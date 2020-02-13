@@ -1,18 +1,23 @@
 Package: opdesmixr
 Type: Package
-Title: Optimal Experimental Designs for mixture models
-Version: 0.1.0
+Title: Optimal experimental designs for mixture models
+Version: 0.0.0.9000
 Author: Mario H. Becerra
 Maintainer: Mario H. Becerra <becerra.mario.h@gmail.com>
-Description: Optimal Experimental Designs for mixtures using Scheffé models
-    A mixture experiment is one in which there is an equality constraint.
-    This is usually that the ingredients must sum up to 1 because they represent proportions of ingredients.
+Description: An implementatio of algorithms to find optimal experimental designs for mixtures using
+    Scheffé models. A mixture experiment is one in which there is an equality constraint.
+    This is usually that the ingredients must sum up to 1 because they represent proportions of 
+    ingredients. It supports Gaussian and Multinomial Logit (MNL) models.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.0.2
+LinkingTo: 
+    Rcpp
 Imports:
-    dplyr,
-    ggplot2,
-    ggtern,
-    purrr,
+    dplyr (>= 0.8.3),
+    ggplot2 (>= 3.2.1),
+    ggtern (>= 3.1.0),
+    purrr (>= 0.3.3),
     Rcpp
