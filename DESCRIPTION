@@ -1,11 +1,18 @@
 Package: opdesmixr
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Optimal Experimental Designs for mixture models
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Mario H. Becerra
+Maintainer: Mario H. Becerra <becerra.mario.h@gmail.com>
+Description: Optimal Experimental Designs for mixtures using Scheffé models
+    A mixture experiment is one in which there is an equality constraint.
+    This is usually that the ingredients must sum up to 1 because they represent proportions of ingredients.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+Imports:
+    dplyr,
+    ggplot2,
+    ggtern,
+    purrr,
+    Rcpp
