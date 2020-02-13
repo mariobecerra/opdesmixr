@@ -21,4 +21,4 @@ Imports:
     ggplot2 (>= 3.2.1),
     ggtern (>= 3.1.0),
     purrr (>= 0.3.3),
-    Rcpp
+    Rcpp (>= 1.0.3)
