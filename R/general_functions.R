@@ -21,8 +21,8 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
   # If component is null
   if(!is.null(comp) & length(comp) == 1){
     out = compute_cox_direction(x_in, comp, n_points) %>%
-      as_tibble() %>%
-      set_names(c("c1", "c2", "c3")) %>%
+      dplyr::as_tibble() %>%
+      purrr::set_names(c("c1", "c2", "c3")) %>%
       ggplot(aes(c1, c2, c3)) +
       coord_tern() +
       geom_path(linetype = "dashed") +
@@ -33,9 +33,9 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
 
     cox_dirs = lapply(1:length(comp), function(i){
       compute_cox_direction(x_in, i, 3) %>%
-        as_tibble() %>%
-        set_names(c("c1", "c2", "c3")) %>%
-        mutate(comp = i)
+        dplyr::as_tibble() %>%
+        purrr::set_names(c("c1", "c2", "c3")) %>%
+        dplyr::mutate(comp = i)
     }) %>%
       bind_rows()
 
