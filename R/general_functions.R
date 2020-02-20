@@ -10,10 +10,6 @@ compute_cox_direction = function(x, comp, n_points = 11){
 plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
   # x_in: vector of length 3 that sums up to 1
   # comp: which component should be plotted. Can be a scalar or a vector
-  library(dplyr)
-  library(purrr)
-  library(ggplot2)
-  library(ggtern)
 
   if(length(x_in) != 3) stop("x_in must be of length 3")
   if(sum(x_in) != 1) stop("x_in must sum up to 1")

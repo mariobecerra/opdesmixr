@@ -192,9 +192,6 @@ mnl_plot_result = function(res_alg){
 
   if(q != 3) stop("Design must be of 3 ingredients.")
 
-  library(ggtern)
-
-
   # Convert 3 dimensional arrays into matrices by vertically binding them
   X_orig_mat = t(res_alg$X_orig[,,1])
   for(s in 2:S){
