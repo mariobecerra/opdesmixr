@@ -1,4 +1,5 @@
-
+#' TODO: write doc
+#' @export
 compute_cox_direction = function(x, comp, n_points = 11){
   # Call C++ function
   cox_direction = computeCoxDirection(x, comp, n_points, verbose = 0)
@@ -7,6 +8,9 @@ compute_cox_direction = function(x, comp, n_points = 11){
 }
 
 
+
+#' TODO: write docs
+#' @export
 plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
   # x_in: vector of length 3 that sums up to 1
   # comp: which component should be plotted. Can be a scalar or a vector
@@ -48,6 +52,9 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
 
 
 # Main function
+
+#' TODO: write doc
+#' @export
 mixture_coord_ex = function(
   X,
   order = NULL,

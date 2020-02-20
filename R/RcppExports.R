@@ -2,38 +2,38 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 computeCoxDirection <- function(x, comp, n_points, verbose) {
-    .Call('_opdesmixr_computeCoxDirection', PACKAGE = 'opdesmixr', x, comp, n_points, verbose)
+    .Call(`_opdesmixr_computeCoxDirection`, x, comp, n_points, verbose)
 }
 
 mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose) {
-    .Call('_opdesmixr_mixtureCoordinateExchangeGaussian', PACKAGE = 'opdesmixr', X_orig, order, n_cox_points, max_it, verbose)
+    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, n_cox_points, max_it, verbose)
 }
 
 getXsMNL <- function(X, s) {
-    .Call('_opdesmixr_getXsMNL', PACKAGE = 'opdesmixr', X, s)
+    .Call(`_opdesmixr_getXsMNL`, X, s)
 }
 
 getUsMNL <- function(X, beta, s, Xs) {
-    .Call('_opdesmixr_getUsMNL', PACKAGE = 'opdesmixr', X, beta, s, Xs)
+    .Call(`_opdesmixr_getUsMNL`, X, beta, s, Xs)
 }
 
 getPsMNL <- function(X, beta, s, Xs) {
-    .Call('_opdesmixr_getPsMNL', PACKAGE = 'opdesmixr', X, beta, s, Xs)
+    .Call(`_opdesmixr_getPsMNL`, X, beta, s, Xs)
 }
 
 getInformationMatrixMNL <- function(X, beta) {
-    .Call('_opdesmixr_getInformationMatrixMNL', PACKAGE = 'opdesmixr', X, beta)
+    .Call(`_opdesmixr_getInformationMatrixMNL`, X, beta)
 }
 
 getLogDEfficiencyMNL <- function(X, beta, verbose) {
-    .Call('_opdesmixr_getLogDEfficiencyMNL', PACKAGE = 'opdesmixr', X, beta, verbose)
+    .Call(`_opdesmixr_getLogDEfficiencyMNL`, X, beta, verbose)
 }
 
 findBestCoxDirMNL <- function(cox_dir, X_in, beta, k, s, log_d_eff_best, verbose) {
-    .Call('_opdesmixr_findBestCoxDirMNL', PACKAGE = 'opdesmixr', cox_dir, X_in, beta, k, s, log_d_eff_best, verbose)
+    .Call(`_opdesmixr_findBestCoxDirMNL`, cox_dir, X_in, beta, k, s, log_d_eff_best, verbose)
 }
 
 mixtureCoordinateExchangeMNL <- function(X_orig, beta, n_cox_points, max_it, verbose) {
-    .Call('_opdesmixr_mixtureCoordinateExchangeMNL', PACKAGE = 'opdesmixr', X_orig, beta, n_cox_points, max_it, verbose)
+    .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta, n_cox_points, max_it, verbose)
 }
 

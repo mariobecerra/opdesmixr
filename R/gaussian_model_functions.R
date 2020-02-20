@@ -1,3 +1,6 @@
+
+#' TODO: write doc
+#' @export
 create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
   X = matrix(rep(NA_real_, n_runs*q), nrow = n_runs)
 
@@ -13,6 +16,11 @@ create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
   return(X)
 }
 
+
+
+
+#' TODO: write doc
+#' @export
 mixture_coord_ex_gaussian = function(X, order = 1, n_cox_points = 100, max_it = 50, plot_designs = F, verbose = 1){
 
   n_runs = nrow(X)
@@ -47,13 +55,16 @@ mixture_coord_ex_gaussian = function(X, order = 1, n_cox_points = 100, max_it = 
 
 
 
+
+#' TODO: write doc
+#' @export
 plot_result_gaussian = function(res_alg){
   # res_alg: output of a call to mixture_coord_ex_gaussian() function
 
   ggtern::grid.arrange(
     res_alg$X_orig %>%
-      as_tibble() %>%
-      set_names(c("c1", "c2", "c3")) %>%
+      dplyr::as_tibble() %>%
+      purrr::set_names(c("c1", "c2", "c3")) %>%
       ggplot(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       coord_tern() +
@@ -62,8 +73,8 @@ plot_result_gaussian = function(res_alg){
               subtitle = paste0("log D-efficiency = ", round(res_alg$d_eff_orig, 3)))
     ,
     res_alg$X %>%
-      as_tibble() %>%
-      set_names(c("c1", "c2", "c3")) %>%
+      dplyr::as_tibble() %>%
+      purrr::set_names(c("c1", "c2", "c3")) %>%
       ggplot(aes(c1, c2, c3)) +
       coord_tern() +
       geom_point(shape = "x", size = 4) +

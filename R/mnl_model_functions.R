@@ -1,3 +1,4 @@
+
 #' Creation of a random initial design for MNL model
 #'
 #' \code{create_random_initial_MNL_design} creates a random initial design for MNL model of the specified dimensions
@@ -8,6 +9,7 @@
 #' @return 3-dimensional array of dimensions (q, J, S)
 #' @examples
 #' create_random_initial_MNL_design(3, 5, 4, seed = 2020)
+#' @export
 create_random_initial_MNL_design = function(q, J, S, seed = NULL){
   X = array(rep(NA_real_, q*J*S), dim = c(q, J, S))
 
@@ -36,6 +38,7 @@ create_random_initial_MNL_design = function(q, J, S, seed = NULL){
 #'     the indices as in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
 #' @examples
 #' create_random_beta(3)
+#' @export
 create_random_beta = function(q){
 
   beta_1 = rnorm(q)
@@ -80,7 +83,6 @@ create_random_beta = function(q){
 
 
 
-
 #' Coordinate exchange algorithm for a Multinomial Logit Scheffé model.
 #'
 #' \code{mixture_coord_ex_mnl} Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
@@ -114,6 +116,7 @@ create_random_beta = function(q){
 #'     \item n_iter: Number of iterations performed.
 #'  }
 #'
+#' @export
 mixture_coord_ex_mnl = function(X, beta, n_cox_points = 100, max_it = 50, plot_designs = F, verbose = 1){
   # Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   # X: 3 dimensional array with dimensions (q, J, S) where:
@@ -182,6 +185,12 @@ mixture_coord_ex_mnl = function(X, beta, n_cox_points = 100, max_it = 50, plot_d
 
 
 
+
+
+
+
+#' TODO: write doc
+#' @export
 mnl_plot_result = function(res_alg){
   # res_alg: output of a call to mixture_coord_ex_mnl() function.
   # It must be a design of 3 ingredients.
@@ -206,8 +215,8 @@ mnl_plot_result = function(res_alg){
   # PLot matrices
   ggtern::grid.arrange(
     X_orig_mat %>%
-      as_tibble() %>%
-      set_names(c("c1", "c2", "c3")) %>%
+      dplyr::as_tibble() %>%
+      purrr::set_names(c("c1", "c2", "c3")) %>%
       ggplot(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       coord_tern() +
@@ -216,8 +225,8 @@ mnl_plot_result = function(res_alg){
               subtitle = paste0("log D-efficiency = ", round(res_alg$d_eff_orig, 3)))
     ,
     X_final_mat %>%
-      as_tibble() %>%
-      set_names(c("c1", "c2", "c3")) %>%
+      dplyr::as_tibble() %>%
+      purrr::set_names(c("c1", "c2", "c3")) %>%
       ggplot(aes(c1, c2, c3)) +
       coord_tern() +
       geom_point(shape = "x", size = 4) +
