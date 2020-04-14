@@ -21,7 +21,16 @@ create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
 
 #' TODO: write doc
 #' @export
-mixture_coord_ex_gaussian = function(X, order = 1, n_cox_points = 100, max_it = 50, plot_designs = F, verbose = 1){
+mixture_coord_ex_gaussian = function(
+  X,
+  order = 1,
+  n_cox_points = 100,
+  max_it = 50,
+  plot_designs = F,
+  verbose = 1,
+  opt_crit = 0){
+
+
 
   n_runs = nrow(X)
   q = ncol(X)
@@ -35,7 +44,7 @@ mixture_coord_ex_gaussian = function(X, order = 1, n_cox_points = 100, max_it = 
 
 
   # Coordinate exchanges:
-  X_result = mixtureCoordinateExchangeGaussian(X, order, n_cox_points, max_it, verbose)
+  X_result = mixtureCoordinateExchangeGaussian(X, order, n_cox_points, max_it, verbose, opt_crit)
 
   out_list = list(
     X_orig = X_result$X_orig,

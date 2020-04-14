@@ -284,11 +284,11 @@ arma::mat getScheffeGaussian(arma::mat& X, int order){
 
 
 
-double getLogDEfficiencyGaussian(arma::mat& X, int order){
+double getLogDCritValueGaussian(arma::mat& X, int order){
   arma::mat X_m = getScheffeGaussian(X, order);
   arma::mat X_mT = trans(X_m);
   arma::mat I = X_mT * X_m; // Information matrix
-  double log_D_eff; // We want to minimize this
+  double opt_crit_value; // We want to minimize this
 
   // Attempt to do a Cholesky decomposition on the information matrix
   arma::mat L;
@@ -297,34 +297,90 @@ double getLogDEfficiencyGaussian(arma::mat& X, int order){
     L = chol(I);
     // Compute the determinant of information matrix using the decomposition
     log_det_I = 2*sum(log(L.diag()));
-    log_D_eff = -log_det_I/X_m.n_cols + log(X_m.n_rows);
+    opt_crit_value = -log_det_I/X_m.n_cols + log(X_m.n_rows);
   }
   catch(const std::runtime_error& e){
     // If Cholesky decomposition fails, it is likely because information matrix
     // was not numerically positive definite.
     // If this happens, it is probably because a numerical inestability.
-    // The function then returns the log D efficiency as a big positive number, this
+    // The function then returns the D criterion value as a big positive number, this
     // way the algorithm does nothing in this iteration because the algorithm thinks
     // there was no improvement when swapping the proportions.
     Rcout << "Information matrix:\n" << I << "\n";
     Rcout << "X:\n" << X << "\n";
     Rcout << "Error in Cholesky decomposition with message: " << e.what() << std::endl;
-    log_D_eff = 10000;
-    Rcout << "Returning log_D_eff = " << log_D_eff << std::endl;
+    opt_crit_value = 10000;
+    Rcout << "Returning opt_crit_value = " << opt_crit_value << std::endl;
   }
 
-  return log_D_eff;
+  return opt_crit_value;
 }
 
 
 
 
-arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int order, double log_d_eff_best) {
+// [[Rcpp::export]]
+double getICritValueGaussian(arma::mat& X, int order, int q){
+
+  if(order != 3) stop("Only special cubic models are allowed (i.e., order = 3).");
+
+  arma::mat W = getMomentMatrixScheffe(q); // Moment's matrix
+  arma::mat X_m = getScheffeGaussian(X, order);
+  arma::mat X_mT = trans(X_m);
+  arma::mat I = X_mT * X_m; // Information matrix
+
+  double I_eff; // We want to minimize this
+
+
+  // Attempt to do a Cholesky decomposition on the information matrix
+  arma::mat L;
+  try{
+    L = chol(I);
+
+    arma::mat A = solve(trimatu(L.t()), W);
+    arma::mat C = solve(trimatu(L), A);
+    I_eff = trace(C);
+  }
+  catch(const std::runtime_error& e){
+    // If Cholesky decomposition fails, it is likely because information matrix
+    // was not numerically positive definite.
+    // If this happens, it is probably because a numerical inestability.
+    // The function then returns the D criterion value as a big negative number, this
+    // way the algorithm does nothing in this iteration because  the algorithm thinks
+    // there was no improvement when swapping the proportions.
+    Rcout << "Information matrix:\n" << I << "\n";
+    Rcout << "X:\n" << X << "\n";
+    Rcout << "Error in Cholesky decomposition with message: " << e.what() << std::endl;
+    I_eff = -10000;
+    Rcout << "Returning I_eff = " << I_eff << std::endl;
+  }
+
+  return I_eff;
+}
+
+
+
+
+
+
+double getEffCritValueGaussian(arma::mat& X, int order, int q, int opt_crit){
+  //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  if(opt_crit == 0){
+    return(getLogDCritValueGaussian(X, order));
+  } else{
+    return(getICritValueGaussian(X, order, q));
+  }
+}
+
+
+
+
+arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int order, double opt_crit_value_best, int opt_crit) {
   arma::mat X = X_in;
   int n_col_X = X.n_cols;
   arma::vec x_k(n_col_X);
 
-  double log_d_eff_j;
+  double opt_crit_value_j;
   int n_cox_points = cox_dir.n_rows;
   for(int j = 0; j < n_cox_points; j++){
 
@@ -338,14 +394,15 @@ arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int
       X(k-1, elem) = cox_dir(j, elem);
     }
 
-    log_d_eff_j = getLogDEfficiencyGaussian(X, order);
+    // opt_crit_value_j = getLogDCritValueGaussian(X, order);
+    opt_crit_value_j = getEffCritValueGaussian(X, order, n_col_X, opt_crit);
 
-    // If new D-efficiency is better, then keep the new one.
-    if(log_d_eff_j < log_d_eff_best) {
-      // This design has a better D-efficiency, so we keep the design and update the best value
-      log_d_eff_best = log_d_eff_j;
+    // If new D criterion value is better, then keep the new one.
+    if(opt_crit_value_j < opt_crit_value_best) {
+      // This design has a better D criterion value, so we keep the design and update the best value
+      opt_crit_value_best = opt_crit_value_j;
     } else{
-      // This design does not have a better D-efficiency, so we return to the old design.
+      // This design does not have a better D criterion value, so we return to the old design.
       // In Rcpp: X(k-1,_) = x_k;
       for(int elem = 0; elem < n_col_X; elem++){
         X(k-1,elem) = x_k(elem);
@@ -361,7 +418,7 @@ arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int
 
 
 // [[Rcpp::export]]
-Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose){
+Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose, int opt_crit){
   // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // X: armadillo matrix with dimensions (n, q) where:
@@ -370,17 +427,19 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
   // n_cox_points: Number of points to use in the discretization of Cox direction.
   // max_it: Maximum number of iteration that the coordinate exchange algorithm will do.
   // verbose: level of verbosity. 6 levels, in which level prints the previous plus additional things:
-  //    1: Print the log D efficiency in each iteration and a final summary
-  //    2: Print the values of k, s, i, and log D efficiency in each subiteration
+  //    1: Print the D criterion value in each iteration and a final summary
+  //    2: Print the values of k, s, i, and D criterion value in each subiteration
   //    3: Print the resulting X after each iteration, i.e., after each complete pass on the data
-  //    4: Print log D efficiency for each point in the Cox direction discretization
+  //    4: Print D criterion value for each point in the Cox direction discretization
   //    5: Print the resulting X and information matrix after each subiteration
   //    6: Print the resulting X or each point in the Cox direction discretization
+  // opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  //
   // Returns an Rcpp::List object with the following objects:
   //    X_orig: The original design. Armadillo matrix with dimensions (n, q).
   //    X: The optimized design. Armadillo matrix with dimensions (n, q).
-  //    d_eff_orig: log D-efficiency of the original design.
-  //    d_eff: log D-efficiency of the optimized design.
+  //    d_eff_orig: D criterion value of the original design.
+  //    d_eff: D criterion value of the optimized design.
   //    n_iter: Number of iterations performed.
 
   // Does not do input checks because the R wrapper function does them.
@@ -398,20 +457,21 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
   arma::vec x(q);
 
 
-  double log_d_eff_orig = getLogDEfficiencyGaussian(X, order);
-  double log_d_eff_best = log_d_eff_orig;
-  double log_d_eff_aux = -1e308; // -Inf
+  // double opt_crit_value_orig = getLogDCritValueGaussian(X, order);
+  double opt_crit_value_orig = getEffCritValueGaussian(X, order, q, opt_crit);
+  double opt_crit_value_best = opt_crit_value_orig;
+  double opt_crit_value_aux = -1e308; // -Inf
 
   // Coordinate exchanges
   int it = 0;
   while(it < max_it){
     it = it + 1;
-    if(verbose >= 1) Rcout << "Iter: " << it << ", log D-efficiency: " << log_d_eff_best << std::endl;
+    if(verbose >= 1) Rcout << "Iter: " << it << ", D-CritValue: " << opt_crit_value_best << std::endl;
 
     // If there was no improvement in this iteration
-    if(abs(log_d_eff_aux - log_d_eff_best) < 1e-16) break;
+    if(abs(opt_crit_value_aux - opt_crit_value_best) < 1e-16) break;
 
-    log_d_eff_aux = log_d_eff_best;
+    opt_crit_value_aux = opt_crit_value_best;
 
     for(int k = 1; k <= n_runs; k++){
       for(int i = 0; i < q; i++){
@@ -424,10 +484,11 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
         }
 
         cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-        X = findBestCoxDirGaussian(cox_dir, X, k, order, log_d_eff_best);
-        log_d_eff_best = getLogDEfficiencyGaussian(X, order);
+        X = findBestCoxDirGaussian(cox_dir, X, k, order, opt_crit_value_best, opt_crit);
+        // opt_crit_value_best = getLogDCritValueGaussian(X, order);
+        opt_crit_value_best = getEffCritValueGaussian(X, order, q, opt_crit);
 
-        if(verbose >= 2) Rcout << "Log D-eff: " << log_d_eff_best << std::endl;
+        if(verbose >= 2) Rcout << "D-eff: " << opt_crit_value_best << std::endl;
 
         if(verbose >= 5){
           Rcout << "X =\n" << X << std::endl;
@@ -445,9 +506,9 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
 
   if(verbose >= 1){
     Rcout << std::endl;
-    Rcout << "Original log D-efficiency: " << log_d_eff_orig;
+    Rcout << "Original D-CritValue: " << opt_crit_value_orig;
     Rcout << std::endl;
-    Rcout << "Final log D-efficiency: " << log_d_eff_best;
+    Rcout << "Final D-CritValue: " << opt_crit_value_best;
     Rcout << std::endl;
     Rcout << "Number of iterations: " << it;
     Rcout << std::endl;
@@ -457,9 +518,10 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
   return Rcpp::List::create(
     _["X_orig"] = X_orig,
     _["X"] = X,
-    _["d_eff_orig"] = log_d_eff_orig,
-    _["d_eff"] = log_d_eff_best,
-    _["n_iter"] = it
+    _["d_eff_orig"] = opt_crit_value_orig,
+    _["d_eff"] = opt_crit_value_best,
+    _["n_iter"] = it,
+    _["opt_crit"] = opt_crit
   );
 
 } // end function
@@ -637,53 +699,10 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta){
 
 
 
-// [[Rcpp::export]]
-double getIEfficiencyGaussian(arma::mat& X, int order, int q){
-
-  if(order != 3) stop("Only special cubic models are allowed (i.e., order = 3).");
-
-  arma::mat W = getMomentMatrixScheffe(q); // Moment's matrix
-  arma::mat X_m = getScheffeGaussian(X, order);
-  arma::mat X_mT = trans(X_m);
-  arma::mat I = X_mT * X_m; // Information matrix
-
-  double I_eff; // We want to minimize this
-
-
-  // Attempt to do a Cholesky decomposition on the information matrix
-  arma::mat L;
-  try{
-    L = chol(I);
-
-    arma::mat A = solve(trimatu(L.t()), W);
-    arma::mat C = solve(trimatu(L), A);
-    I_eff = trace(C);
-  }
-  catch(const std::runtime_error& e){
-    // If Cholesky decomposition fails, it is likely because information matrix
-    // was not numerically positive definite.
-    // If this happens, it is probably because a numerical inestability.
-    // The function then returns the log D efficiency as a big negative number, this
-    // way the algorithm does nothing in this iteration because  the algorithm thinks
-    // there was no improvement when swapping the proportions.
-    Rcout << "Information matrix:\n" << I << "\n";
-    Rcout << "X:\n" << X << "\n";
-    Rcout << "Error in Cholesky decomposition with message: " << e.what() << std::endl;
-    I_eff = -10000;
-    Rcout << "Returning I_eff = " << I_eff << std::endl;
-  }
-
-  return I_eff;
-}
-
-
-
-
-
 
 // [[Rcpp::export]]
-double getLogDEfficiencyMNL(arma::cube& X, arma::vec& beta, int verbose){
-  // Function that returns the log D efficiency for design cube X and parameter vector beta.
+double getLogDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose){
+  // Function that returns the D criterion value for design cube X and parameter vector beta.
   // The D-optimality criterion seeks to maximize the determinant of the information matrix or minimize the determinant of the variance-covariance matrix..
   // This function computes the log determinant of the information matrix using a Choleski decomposition.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
@@ -692,7 +711,7 @@ double getLogDEfficiencyMNL(arma::cube& X, arma::vec& beta, int verbose){
   //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6
   //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
 
-  double log_D_eff; // We want to minimize this
+  double opt_crit_value; // We want to minimize this
   double half_log_det_I;
 
   int m = beta.n_elem;
@@ -708,8 +727,8 @@ double getLogDEfficiencyMNL(arma::cube& X, arma::vec& beta, int verbose){
     // Don't know if I should scale or just return log determinant
     // Right now it just returns the log determinant.
     // This line scales it:
-    // log_D_eff = 2*half_log_det_I/I.n_cols - log(I.n_rows);
-    log_D_eff = -2*half_log_det_I;
+    // opt_crit_value = 2*half_log_det_I/I.n_cols - log(I.n_rows);
+    opt_crit_value = -2*half_log_det_I;
   }
   catch(const std::runtime_error& e){
     // I don't think this is the best way to handle the exception.
@@ -719,7 +738,7 @@ double getLogDEfficiencyMNL(arma::cube& X, arma::vec& beta, int verbose){
     stop("Error in Cholesky decomposition with message: ", e.what(), "\n");
   }
 
-  return log_D_eff;
+  return opt_crit_value;
 }
 
 
@@ -728,9 +747,9 @@ double getLogDEfficiencyMNL(arma::cube& X, arma::vec& beta, int verbose){
 
 
 // [[Rcpp::export]]
-arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& beta, int k, int s, double log_d_eff_best, int verbose) {
-  // Function that returns the design that maximizes the D-efficiency.
-  // Returns a cube of dimension (q, J, S) with a design that maximizes the value of the log D-efficiency.
+arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& beta, int k, int s, double opt_crit_value_best, int verbose) {
+  // Function that returns the design that maximizes the D criterion value.
+  // Returns a cube of dimension (q, J, S) with a design that maximizes the value of the D criterion value.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // Input:
   //     cox_dir: Matrix with Cox direction with q columns. Each row sums up to 1.
@@ -738,8 +757,9 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
   //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6.
   //     k: Cox direction index (1 to q).
   //     s: integer s, corresponding to a choice set in 1 to S.
-  //     log_d_eff_best: log D-efficiecy with which the new efficiencies are compared to.
+  //     opt_crit_value_best: D-efficiecy with which the new efficiencies are compared to.
   //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
+  //     opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
 
   // // Create new cube, otherwise it is modified in R too
   arma::cube X = X_in;
@@ -747,7 +767,7 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
   int q = X.n_rows;
 
   arma::vec x_k(q);
-  double log_d_eff_j;
+  double opt_crit_value_j;
   int n_cox_points = cox_dir.n_rows;
 
   for(int j = 0; j < n_cox_points; j++){
@@ -764,10 +784,10 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
       Rcout << "\tj = " << j << " (of " << n_cox_points << "), ";
     }
 
-    log_d_eff_j = getLogDEfficiencyMNL(X, beta, verbose);
+    opt_crit_value_j = getLogDCritValueMNL(X, beta, verbose);
 
     if(verbose >= 4){
-      Rcout << "log_d_eff_j = "  << log_d_eff_j << "\n";
+      Rcout << "opt_crit_value_j = "  << opt_crit_value_j << "\n";
     }
 
     if(verbose >= 6){
@@ -775,12 +795,12 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
     }
 
     //  The D-optimality criterion seeks to maximize the determinant of the information matrix.
-    // If new D-efficiency is better, then keep the new one. If it's not, keep the old one.
-    if(log_d_eff_j < log_d_eff_best) {
-      // This design has a better D-efficiency, so we keep the design and update the best value
-      log_d_eff_best = log_d_eff_j;
+    // If new D criterion value is better, then keep the new one. If it's not, keep the old one.
+    if(opt_crit_value_j < opt_crit_value_best) {
+      // This design has a better D criterion value, so we keep the design and update the best value
+      opt_crit_value_best = opt_crit_value_j;
     } else{
-      // This design does not have a better D-efficiency, so we return to the old design.
+      // This design does not have a better D criterion value, so we return to the old design.
       for(int l = 0; l < q; l++){
         X(l, k-1, s-1) = x_k(l);
       }
@@ -806,17 +826,17 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
   // n_cox_points: Number of points to use in the discretization of Cox direction.
   // max_it: Maximum number of iteration that the coordinate exchange algorithm will do.
   // verbose: level of verbosity. 6 levels, in which level prints the previous plus additional things:
-  //    1: Print the log D efficiency in each iteration and a final summary
-  //    2: Print the values of k, s, i, and log D efficiency in each subiteration
+  //    1: Print the D criterion value in each iteration and a final summary
+  //    2: Print the values of k, s, i, and D criterion value in each subiteration
   //    3: Print the resulting X after each iteration, i.e., after each complete pass on the data
-  //    4: Print log D efficiency for each point in the Cox direction discretization
+  //    4: Print D criterion value for each point in the Cox direction discretization
   //    5: Print the resulting X and information matrix after each subiteration
   //    6: Print the resulting X or each point in the Cox direction discretization
   // Returns an Rcpp::List object with the following objects:
   //    X_orig: The original design. Cube with dimensions (q, J, S).
   //    X: The optimized design. Cube with dimensions (q, J, S).
-  //    d_eff_orig: log D-efficiency of the original design.
-  //    d_eff: log D-efficiency of the optimized design.
+  //    d_eff_orig: D criterion value of the original design.
+  //    d_eff: D criterion value of the optimized design.
   //    n_iter: Number of iterations performed.
 
   // Does not do input checks because the R wrapper function does them.
@@ -835,20 +855,20 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
   arma::vec x(q);
 
 
-  double log_d_eff_orig = getLogDEfficiencyMNL(X, beta, verbose);
-  double log_d_eff_best = log_d_eff_orig;
-  double log_d_eff_aux = 1e308; // +Inf
+  double opt_crit_value_orig = getLogDCritValueMNL(X, beta, verbose);
+  double opt_crit_value_best = opt_crit_value_orig;
+  double opt_crit_value_aux = 1e308; // +Inf
 
   // Coordinate exchanges
   int it = 0;
   while(it < max_it){
     it = it + 1;
-    if(verbose >= 1) Rcout << "Iter: " << it << ", log D-efficiency: " << log_d_eff_best << std::endl;
+    if(verbose >= 1) Rcout << "Iter: " << it << ", D-CritValue: " << opt_crit_value_best << std::endl;
 
     // If there was no improvement in this iteration
-    if(abs(log_d_eff_aux - log_d_eff_best) < 1e-16) break;
+    if(abs(opt_crit_value_aux - opt_crit_value_best) < 1e-16) break;
 
-    log_d_eff_aux = log_d_eff_best;
+    opt_crit_value_aux = opt_crit_value_best;
 
     for(int k = 1; k <= J; k++){
       // if(verbose >= 2) Rcout << "k = " << k << std::endl;
@@ -866,10 +886,10 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
           }
 
           cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-          X = findBestCoxDirMNL(cox_dir, X, beta, k, s, log_d_eff_best, verbose);
-          log_d_eff_best = getLogDEfficiencyMNL(X, beta, verbose);
+          X = findBestCoxDirMNL(cox_dir, X, beta, k, s, opt_crit_value_best, verbose);
+          opt_crit_value_best = getLogDCritValueMNL(X, beta, verbose);
 
-          if(verbose >= 2) Rcout << "Log D-eff: " << log_d_eff_best << std::endl;
+          if(verbose >= 2) Rcout << "D-eff: " << opt_crit_value_best << std::endl;
 
           if(verbose >= 5){
             Rcout << "X =\n" << X << std::endl;
@@ -889,9 +909,9 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
 
   if(verbose >= 1){
     Rcout << std::endl;
-    Rcout << "Original log D-efficiency: " << log_d_eff_orig;
+    Rcout << "Original D-CritValue: " << opt_crit_value_orig;
     Rcout << std::endl;
-    Rcout << "Final log D-efficiency: " << log_d_eff_best;
+    Rcout << "Final D-CritValue: " << opt_crit_value_best;
     Rcout << std::endl;
     Rcout << "Number of iterations: " << it;
     Rcout << std::endl;
@@ -901,8 +921,8 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
   return Rcpp::List::create(
     _["X_orig"] = X_orig,
     _["X"] = X,
-    _["d_eff_orig"] = log_d_eff_orig,
-    _["d_eff"] = log_d_eff_best,
+    _["d_eff_orig"] = opt_crit_value_orig,
+    _["d_eff"] = opt_crit_value_best,
     _["n_iter"] = it
   );
 

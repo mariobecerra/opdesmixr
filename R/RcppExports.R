@@ -9,8 +9,12 @@ getMomentMatrixScheffe <- function(q) {
     .Call(`_opdesmixr_getMomentMatrixScheffe`, q)
 }
 
-mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose) {
-    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, n_cox_points, max_it, verbose)
+getICritValueGaussian <- function(X, order, q) {
+    .Call(`_opdesmixr_getICritValueGaussian`, X, order, q)
+}
+
+mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose, opt_crit) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, n_cox_points, max_it, verbose, opt_crit)
 }
 
 getXsMNL <- function(X, s) {
@@ -29,16 +33,12 @@ getInformationMatrixMNL <- function(X, beta) {
     .Call(`_opdesmixr_getInformationMatrixMNL`, X, beta)
 }
 
-getIEfficiencyGaussian <- function(X, order, q) {
-    .Call(`_opdesmixr_getIEfficiencyGaussian`, X, order, q)
+getLogDCritValueMNL <- function(X, beta, verbose) {
+    .Call(`_opdesmixr_getLogDCritValueMNL`, X, beta, verbose)
 }
 
-getLogDEfficiencyMNL <- function(X, beta, verbose) {
-    .Call(`_opdesmixr_getLogDEfficiencyMNL`, X, beta, verbose)
-}
-
-findBestCoxDirMNL <- function(cox_dir, X_in, beta, k, s, log_d_eff_best, verbose) {
-    .Call(`_opdesmixr_findBestCoxDirMNL`, cox_dir, X_in, beta, k, s, log_d_eff_best, verbose)
+findBestCoxDirMNL <- function(cox_dir, X_in, beta, k, s, opt_crit_value_best, verbose) {
+    .Call(`_opdesmixr_findBestCoxDirMNL`, cox_dir, X_in, beta, k, s, opt_crit_value_best, verbose)
 }
 
 mixtureCoordinateExchangeMNL <- function(X_orig, beta, n_cox_points, max_it, verbose) {
