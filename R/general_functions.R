@@ -23,8 +23,7 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
     out = compute_cox_direction(x_in, comp, n_points) %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
-      ggplot(aes(c1, c2, c3)) +
-      coord_tern() +
+      ggtern(aes(c1, c2, c3)) +
       geom_path(linetype = "dashed") +
       theme_minimal() +
       geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3]))
@@ -40,8 +39,7 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
       bind_rows()
 
     out = cox_dirs %>%
-      ggplot(aes(c1, c2, c3)) +
-      coord_tern() +
+      ggtern(aes(c1, c2, c3)) +
       geom_path(linetype = "dashed", aes(group = comp)) +
       theme_minimal() +
       geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3]))

@@ -46,7 +46,7 @@ mixture_coord_ex_gaussian = function(X, order = 1, n_cox_points = 100, max_it = 
   )
 
   if(plot_designs) {
-    if(q == 3) plot_result_gaussian(out_list)
+    if(q == 3) gaussian_plot_result(out_list)
     else warning("Could not plot results because q != 3")
   }
   return(out_list)
@@ -58,16 +58,15 @@ mixture_coord_ex_gaussian = function(X, order = 1, n_cox_points = 100, max_it = 
 
 #' TODO: write doc
 #' @export
-plot_result_gaussian = function(res_alg){
+gaussian_plot_result = function(res_alg){
   # res_alg: output of a call to mixture_coord_ex_gaussian() function
 
   ggtern::grid.arrange(
     res_alg$X_orig %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
-      ggplot(aes(c1, c2, c3)) +
+      ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
-      coord_tern() +
       theme_minimal() +
       ggtitle(label = "",
               subtitle = paste0("log D-efficiency = ", round(res_alg$d_eff_orig, 3)))
@@ -75,8 +74,7 @@ plot_result_gaussian = function(res_alg){
     res_alg$X %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
-      ggplot(aes(c1, c2, c3)) +
-      coord_tern() +
+      ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
       ggtitle(label = "",

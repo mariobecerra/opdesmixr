@@ -217,9 +217,8 @@ mnl_plot_result = function(res_alg){
     X_orig_mat %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
-      ggplot(aes(c1, c2, c3)) +
+      ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
-      coord_tern() +
       theme_minimal() +
       ggtitle(label = "",
               subtitle = paste0("log D-efficiency = ", round(res_alg$d_eff_orig, 3)))
@@ -227,8 +226,7 @@ mnl_plot_result = function(res_alg){
     X_final_mat %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
-      ggplot(aes(c1, c2, c3)) +
-      coord_tern() +
+      ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
       ggtitle(label = "",
