@@ -5,6 +5,10 @@ computeCoxDirection <- function(x, comp, n_points, verbose) {
     .Call(`_opdesmixr_computeCoxDirection`, x, comp, n_points, verbose)
 }
 
+getMomentMatrixScheffe <- function(q) {
+    .Call(`_opdesmixr_getMomentMatrixScheffe`, q)
+}
+
 mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose) {
     .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, n_cox_points, max_it, verbose)
 }
@@ -23,6 +27,10 @@ getPsMNL <- function(X, beta, s, Xs) {
 
 getInformationMatrixMNL <- function(X, beta) {
     .Call(`_opdesmixr_getInformationMatrixMNL`, X, beta)
+}
+
+getIEfficiencyGaussian <- function(X, order, q) {
+    .Call(`_opdesmixr_getIEfficiencyGaussian`, X, order, q)
 }
 
 getLogDEfficiencyMNL <- function(X, beta, verbose) {

@@ -119,9 +119,54 @@ arma::mat computeCoxDirection(arma::vec& x, int comp, int n_points, int verbose)
 
 
 
+
+
+
+// [[Rcpp::export]]
+arma::mat getMomentMatrixScheffe(int q){
+  // Function that returns the moment matrix of a special cubic Scheffé mixture model
+
+  // Right now it's only implemented for 3 ingredients.
+  if(q != 3){
+    stop("Inadmissible value for q. Must be 3.");
+  }
+
+  arma::mat W(7, 7);
+  arma::mat I(3, 3, fill::eye);
+  arma::mat ones_3_times_3(3, 3, fill::ones);
+  arma::mat ones_3_times_1(3, 1, fill::ones);
+
+  // Create anti-diagonal matrix
+  arma::mat J(3, 3, fill::zeros);
+  for(int i = 0; i < q; i++){
+    J(i, q-i-1) = 1;
+  }
+
+  // Fill W matrix
+  W(span(0, 2), span(0, 2)) = I/24.0;
+  W(span(3, 5), span(0, 2)) = ones_3_times_3/60.0 - J/120.0;
+  W(span(6, 6), span(0, 2)) = ones_3_times_1.t()/360.0;
+
+  W(span(0, 2), span(3, 5)) = ones_3_times_3/60.0 - J/120.0;
+  W(span(3, 5), span(3, 5)) = (I + ones_3_times_3)/360.0;
+  W(span(6, 6), span(3, 5)) = ones_3_times_1.t()/1260.0;
+
+  W(span(0, 2), span(6, 6)) = ones_3_times_1/360.0;
+  W(span(3, 5), span(6, 6)) = ones_3_times_1/1260.0;
+  W(span(6, 6), span(6, 6)) = 1/5040.0;
+
+  return W;
+}
+
+
+
+
+
 ////////////////////////////////////////
 // Gaussian model
 ////////////////////////////////////////
+
+
 
 arma::mat getScheffeGaussianOrder2(arma::mat& X){
   int q = X.n_cols;
@@ -586,6 +631,52 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta){
   }
   return I;
 }
+
+
+
+
+
+
+// [[Rcpp::export]]
+double getIEfficiencyGaussian(arma::mat& X, int order, int q){
+
+  if(order != 3) stop("Only special cubic models are allowed (i.e., order = 3).");
+
+  arma::mat W = getMomentMatrixScheffe(q); // Moment's matrix
+  arma::mat X_m = getScheffeGaussian(X, order);
+  arma::mat X_mT = trans(X_m);
+  arma::mat I = X_mT * X_m; // Information matrix
+
+  double I_eff; // We want to minimize this
+
+
+  // Attempt to do a Cholesky decomposition on the information matrix
+  arma::mat L;
+  try{
+    L = chol(I);
+
+    arma::mat A = solve(trimatu(L.t()), W);
+    arma::mat C = solve(trimatu(L), A);
+    I_eff = trace(C);
+  }
+  catch(const std::runtime_error& e){
+    // If Cholesky decomposition fails, it is likely because information matrix
+    // was not numerically positive definite.
+    // If this happens, it is probably because a numerical inestability.
+    // The function then returns the log D efficiency as a big negative number, this
+    // way the algorithm does nothing in this iteration because  the algorithm thinks
+    // there was no improvement when swapping the proportions.
+    Rcout << "Information matrix:\n" << I << "\n";
+    Rcout << "X:\n" << X << "\n";
+    Rcout << "Error in Cholesky decomposition with message: " << e.what() << std::endl;
+    I_eff = -10000;
+    Rcout << "Returning I_eff = " << I_eff << std::endl;
+  }
+
+  return I_eff;
+}
+
+
 
 
 
