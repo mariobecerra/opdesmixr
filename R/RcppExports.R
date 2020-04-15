@@ -9,6 +9,10 @@ getMomentMatrixScheffe <- function(q) {
     .Call(`_opdesmixr_getMomentMatrixScheffe`, q)
 }
 
+getScheffeGaussian <- function(X, order) {
+    .Call(`_opdesmixr_getScheffeGaussian`, X, order)
+}
+
 getICritValueGaussian <- function(X, order, q) {
     .Call(`_opdesmixr_getICritValueGaussian`, X, order, q)
 }

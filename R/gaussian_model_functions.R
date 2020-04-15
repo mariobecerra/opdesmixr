@@ -46,12 +46,15 @@ mixture_coord_ex_gaussian = function(
   # Coordinate exchanges:
   X_result = mixtureCoordinateExchangeGaussian(X, order, n_cox_points, max_it, verbose, opt_crit)
 
+  opt_crit = ifelse(X_result$opt_crit == 0, "D-optimality", "I-optimality")
+
   out_list = list(
     X_orig = X_result$X_orig,
     X = X_result$X,
-    d_eff_orig = X_result$d_eff_orig,
-    d_eff = X_result$d_eff,
-    n_iter = X_result$n_iter
+    opt_crit_value_orig = X_result$opt_crit_value_orig,
+    opt_crit_value = X_result$opt_crit_value,
+    n_iter = X_result$n_iter,
+    opt_crit = opt_crit
   )
 
   if(plot_designs) {
@@ -77,8 +80,9 @@ gaussian_plot_result = function(res_alg){
       ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
-      ggtitle(label = "",
-              subtitle = paste0("log D-efficiency = ", round(res_alg$d_eff_orig, 3)))
+      ggtitle(
+        label = paste0("Criterion: ", res_alg$opt_crit),
+        subtitle = paste0("Value = ", round(res_alg$opt_crit_value_orig, 3)))
     ,
     res_alg$X %>%
       dplyr::as_tibble() %>%
@@ -86,8 +90,8 @@ gaussian_plot_result = function(res_alg){
       ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
-      ggtitle(label = "",
-              subtitle = paste0("log D-efficiency = ", round(res_alg$d_eff, 3)))
+      ggtitle(label = paste0("Criterion: ", res_alg$opt_crit),
+              subtitle = paste0("Value = ", round(res_alg$opt_crit_value, 3)))
     ,
     ncol = 2
   )

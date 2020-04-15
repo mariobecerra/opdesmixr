@@ -31,6 +31,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// getScheffeGaussian
+arma::mat getScheffeGaussian(arma::mat& X, int order);
+RcppExport SEXP _opdesmixr_getScheffeGaussian(SEXP XSEXP, SEXP orderSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    rcpp_result_gen = Rcpp::wrap(getScheffeGaussian(X, order));
+    return rcpp_result_gen;
+END_RCPP
+}
 // getICritValueGaussian
 double getICritValueGaussian(arma::mat& X, int order, int q);
 RcppExport SEXP _opdesmixr_getICritValueGaussian(SEXP XSEXP, SEXP orderSEXP, SEXP qSEXP) {
@@ -161,6 +173,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_opdesmixr_computeCoxDirection", (DL_FUNC) &_opdesmixr_computeCoxDirection, 4},
     {"_opdesmixr_getMomentMatrixScheffe", (DL_FUNC) &_opdesmixr_getMomentMatrixScheffe, 1},
+    {"_opdesmixr_getScheffeGaussian", (DL_FUNC) &_opdesmixr_getScheffeGaussian, 2},
     {"_opdesmixr_getICritValueGaussian", (DL_FUNC) &_opdesmixr_getICritValueGaussian, 3},
     {"_opdesmixr_mixtureCoordinateExchangeGaussian", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeGaussian, 6},
     {"_opdesmixr_getXsMNL", (DL_FUNC) &_opdesmixr_getXsMNL, 2},
