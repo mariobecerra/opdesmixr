@@ -474,6 +474,13 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
     opt_crit_value_aux = opt_crit_value_best;
 
     for(int k = 1; k <= n_runs; k++){
+
+      // Checking interruption every 2 iterations
+      // As in https://teuder.github.io/rcpp4everyone_en/270_miscellaneous.html
+      if (k % 2 == 0){
+        Rcpp::checkUserInterrupt();
+      }
+
       for(int i = 0; i < q; i++){
 
         if(verbose >= 2) Rcout << "\nIter: " << it <<  ", k = " << k << ", i = " << i << std::endl;
@@ -862,6 +869,13 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
   // Coordinate exchanges
   int it = 0;
   while(it < max_it){
+
+    // Checking interruption every 2 iterations
+    // As in https://teuder.github.io/rcpp4everyone_en/270_miscellaneous.html
+    if (it % 2 == 0){
+      Rcpp::checkUserInterrupt();
+    }
+
     it = it + 1;
     if(verbose >= 1) Rcout << "Iter: " << it << ", Optimality criterion value: " << opt_crit_value_best << std::endl;
 
