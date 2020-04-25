@@ -33,8 +33,8 @@ getInformationMatrixMNL <- function(X, beta) {
     .Call(`_opdesmixr_getInformationMatrixMNL`, X, beta)
 }
 
-getLogDCritValueMNL <- function(X, beta, verbose) {
-    .Call(`_opdesmixr_getLogDCritValueMNL`, X, beta, verbose)
+getDCritValueMNL <- function(X, beta, verbose) {
+    .Call(`_opdesmixr_getDCritValueMNL`, X, beta, verbose)
 }
 
 getICritValueMNL <- function(X, beta, verbose, W) {

@@ -115,16 +115,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// getLogDCritValueMNL
-double getLogDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose);
-RcppExport SEXP _opdesmixr_getLogDCritValueMNL(SEXP XSEXP, SEXP betaSEXP, SEXP verboseSEXP) {
+// getDCritValueMNL
+double getDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose);
+RcppExport SEXP _opdesmixr_getDCritValueMNL(SEXP XSEXP, SEXP betaSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::cube& >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::vec& >::type beta(betaSEXP);
     Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(getLogDCritValueMNL(X, beta, verbose));
+    rcpp_result_gen = Rcpp::wrap(getDCritValueMNL(X, beta, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -188,7 +188,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_opdesmixr_getUsMNL", (DL_FUNC) &_opdesmixr_getUsMNL, 4},
     {"_opdesmixr_getPsMNL", (DL_FUNC) &_opdesmixr_getPsMNL, 4},
     {"_opdesmixr_getInformationMatrixMNL", (DL_FUNC) &_opdesmixr_getInformationMatrixMNL, 2},
-    {"_opdesmixr_getLogDCritValueMNL", (DL_FUNC) &_opdesmixr_getLogDCritValueMNL, 3},
+    {"_opdesmixr_getDCritValueMNL", (DL_FUNC) &_opdesmixr_getDCritValueMNL, 3},
     {"_opdesmixr_getICritValueMNL", (DL_FUNC) &_opdesmixr_getICritValueMNL, 4},
     {"_opdesmixr_findBestCoxDirMNL", (DL_FUNC) &_opdesmixr_findBestCoxDirMNL, 9},
     {"_opdesmixr_mixtureCoordinateExchangeMNL", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL, 7},

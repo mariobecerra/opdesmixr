@@ -243,7 +243,7 @@ arma::mat getScheffeGaussian(arma::mat& X, int order){
 
 
 
-double getLogDCritValueGaussian(arma::mat& X, int order){
+double getDCritValueGaussian(arma::mat& X, int order){
   arma::mat X_m = getScheffeGaussian(X, order);
   arma::mat X_mT = trans(X_m);
   arma::mat I = X_mT * X_m; // Information matrix
@@ -324,7 +324,7 @@ double getICritValueGaussian(arma::mat& X, int order, int q, arma::mat& W){
 double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arma::mat& W){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
   if(opt_crit == 0){
-    return(getLogDCritValueGaussian(X, order));
+    return(getDCritValueGaussian(X, order));
   } else{
     return(getICritValueGaussian(X, order, q, W));
   }
@@ -352,7 +352,6 @@ arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int
       X(k-1, elem) = cox_dir(j, elem);
     }
 
-    // opt_crit_value_j = getLogDCritValueGaussian(X, order);
     opt_crit_value_j = getOptCritValueGaussian(X, order, n_col_X, opt_crit, W);
 
     // If new optimality criterion value is better, then keep the new one.
@@ -415,8 +414,6 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
   // Vector of ingredient proportions
   arma::vec x(q);
 
-
-  // double opt_crit_value_orig = getLogDCritValueGaussian(X, order);
   double opt_crit_value_orig = getOptCritValueGaussian(X, order, q, opt_crit, W);
   double opt_crit_value_best = opt_crit_value_orig;
   double opt_crit_value_aux = -1e308; // -Inf
@@ -451,7 +448,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
 
         cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
         X = findBestCoxDirGaussian(cox_dir, X, k, order, opt_crit_value_best, opt_crit, W);
-        // opt_crit_value_best = getLogDCritValueGaussian(X, order);
+
         opt_crit_value_best = getOptCritValueGaussian(X, order, q, opt_crit, W);
 
         if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
@@ -681,7 +678,7 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta){
 
 
 // [[Rcpp::export]]
-double getLogDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose){
+double getDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose){
   // Function that returns the D criterion value for design cube X and parameter vector beta.
   // The D-optimality criterion seeks to maximize the determinant of the information matrix or minimize the determinant of the variance-covariance matrix..
   // This function computes the log determinant of the information matrix using a Choleski decomposition.
@@ -767,7 +764,7 @@ double getICritValueMNL(arma::cube& X, arma::vec& beta, int verbose, arma::mat& 
 double getOptCritValueMNL(arma::cube& X, arma::vec& beta, int verbose, int opt_crit, arma::mat& W){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
   if(opt_crit == 0){
-    return(getLogDCritValueMNL(X, beta, verbose));
+    return(getDCritValueMNL(X, beta, verbose));
   } else{
     return(getICritValueMNL(X, beta, verbose, W));
   }
