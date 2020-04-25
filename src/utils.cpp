@@ -891,7 +891,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
   arma::vec x(q);
 
 
-  double opt_crit_value_orig = getLogDCritValueMNL(X, beta, verbose);
+  double opt_crit_value_orig = getOptCritValueMNL(X, beta, verbose, opt_crit, W);
   double opt_crit_value_best = opt_crit_value_orig;
   double opt_crit_value_aux = 1e308; // +Inf
 
@@ -930,7 +930,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
 
           cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
           X = findBestCoxDirMNL(cox_dir, X, beta, k, s, opt_crit_value_best, verbose, opt_crit, W);
-          opt_crit_value_best = getLogDCritValueMNL(X, beta, verbose);
+          opt_crit_value_best = getOptCritValueMNL(X, beta, verbose, opt_crit, W);
 
           if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
 
