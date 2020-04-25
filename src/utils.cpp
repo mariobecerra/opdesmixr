@@ -746,7 +746,7 @@ double getICritValueMNL(arma::cube& X, arma::vec& beta, int verbose, arma::mat& 
 
     arma::mat A = solve(trimatl(L.t()), W);
     arma::mat C = solve(trimatu(L), A);
-    I_eff = trace(C);
+    I_eff = log(trace(C));
   }
   catch(const std::runtime_error& e){
     // I don't think this is the best way to handle the exception.
