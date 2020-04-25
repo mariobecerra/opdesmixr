@@ -20,17 +20,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// getMomentMatrixScheffe
-arma::mat getMomentMatrixScheffe(int q);
-RcppExport SEXP _opdesmixr_getMomentMatrixScheffe(SEXP qSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type q(qSEXP);
-    rcpp_result_gen = Rcpp::wrap(getMomentMatrixScheffe(q));
-    return rcpp_result_gen;
-END_RCPP
-}
 // getScheffeGaussian
 arma::mat getScheffeGaussian(arma::mat& X, int order);
 RcppExport SEXP _opdesmixr_getScheffeGaussian(SEXP XSEXP, SEXP orderSEXP) {
@@ -44,21 +33,22 @@ BEGIN_RCPP
 END_RCPP
 }
 // getICritValueGaussian
-double getICritValueGaussian(arma::mat& X, int order, int q);
-RcppExport SEXP _opdesmixr_getICritValueGaussian(SEXP XSEXP, SEXP orderSEXP, SEXP qSEXP) {
+double getICritValueGaussian(arma::mat& X, int order, int q, arma::mat& W);
+RcppExport SEXP _opdesmixr_getICritValueGaussian(SEXP XSEXP, SEXP orderSEXP, SEXP qSEXP, SEXP WSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< int >::type order(orderSEXP);
     Rcpp::traits::input_parameter< int >::type q(qSEXP);
-    rcpp_result_gen = Rcpp::wrap(getICritValueGaussian(X, order, q));
+    Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
+    rcpp_result_gen = Rcpp::wrap(getICritValueGaussian(X, order, q, W));
     return rcpp_result_gen;
 END_RCPP
 }
 // mixtureCoordinateExchangeGaussian
-Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose, int opt_crit);
-RcppExport SEXP _opdesmixr_mixtureCoordinateExchangeGaussian(SEXP X_origSEXP, SEXP orderSEXP, SEXP n_cox_pointsSEXP, SEXP max_itSEXP, SEXP verboseSEXP, SEXP opt_critSEXP) {
+Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose, int opt_crit, arma::mat W);
+RcppExport SEXP _opdesmixr_mixtureCoordinateExchangeGaussian(SEXP X_origSEXP, SEXP orderSEXP, SEXP n_cox_pointsSEXP, SEXP max_itSEXP, SEXP verboseSEXP, SEXP opt_critSEXP, SEXP WSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -68,7 +58,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type max_it(max_itSEXP);
     Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type opt_crit(opt_critSEXP);
-    rcpp_result_gen = Rcpp::wrap(mixtureCoordinateExchangeGaussian(X_orig, order, n_cox_points, max_it, verbose, opt_crit));
+    Rcpp::traits::input_parameter< arma::mat >::type W(WSEXP);
+    rcpp_result_gen = Rcpp::wrap(mixtureCoordinateExchangeGaussian(X_orig, order, n_cox_points, max_it, verbose, opt_crit, W));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -137,9 +128,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// getICritValueMNL
+double getICritValueMNL(arma::cube& X, arma::vec& beta, int verbose, arma::mat& W);
+RcppExport SEXP _opdesmixr_getICritValueMNL(SEXP XSEXP, SEXP betaSEXP, SEXP verboseSEXP, SEXP WSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::cube& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
+    rcpp_result_gen = Rcpp::wrap(getICritValueMNL(X, beta, verbose, W));
+    return rcpp_result_gen;
+END_RCPP
+}
 // findBestCoxDirMNL
-arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& beta, int k, int s, double opt_crit_value_best, int verbose);
-RcppExport SEXP _opdesmixr_findBestCoxDirMNL(SEXP cox_dirSEXP, SEXP X_inSEXP, SEXP betaSEXP, SEXP kSEXP, SEXP sSEXP, SEXP opt_crit_value_bestSEXP, SEXP verboseSEXP) {
+arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& beta, int k, int s, double opt_crit_value_best, int verbose, int opt_crit, arma::mat& W);
+RcppExport SEXP _opdesmixr_findBestCoxDirMNL(SEXP cox_dirSEXP, SEXP X_inSEXP, SEXP betaSEXP, SEXP kSEXP, SEXP sSEXP, SEXP opt_crit_value_bestSEXP, SEXP verboseSEXP, SEXP opt_critSEXP, SEXP WSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -150,13 +155,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type s(sSEXP);
     Rcpp::traits::input_parameter< double >::type opt_crit_value_best(opt_crit_value_bestSEXP);
     Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(findBestCoxDirMNL(cox_dir, X_in, beta, k, s, opt_crit_value_best, verbose));
+    Rcpp::traits::input_parameter< int >::type opt_crit(opt_critSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
+    rcpp_result_gen = Rcpp::wrap(findBestCoxDirMNL(cox_dir, X_in, beta, k, s, opt_crit_value_best, verbose, opt_crit, W));
     return rcpp_result_gen;
 END_RCPP
 }
 // mixtureCoordinateExchangeMNL
-Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n_cox_points, int max_it, int verbose);
-RcppExport SEXP _opdesmixr_mixtureCoordinateExchangeMNL(SEXP X_origSEXP, SEXP betaSEXP, SEXP n_cox_pointsSEXP, SEXP max_itSEXP, SEXP verboseSEXP) {
+Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n_cox_points, int max_it, int verbose, int opt_crit, arma::mat W);
+RcppExport SEXP _opdesmixr_mixtureCoordinateExchangeMNL(SEXP X_origSEXP, SEXP betaSEXP, SEXP n_cox_pointsSEXP, SEXP max_itSEXP, SEXP verboseSEXP, SEXP opt_critSEXP, SEXP WSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -165,24 +172,26 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_cox_points(n_cox_pointsSEXP);
     Rcpp::traits::input_parameter< int >::type max_it(max_itSEXP);
     Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(mixtureCoordinateExchangeMNL(X_orig, beta, n_cox_points, max_it, verbose));
+    Rcpp::traits::input_parameter< int >::type opt_crit(opt_critSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type W(WSEXP);
+    rcpp_result_gen = Rcpp::wrap(mixtureCoordinateExchangeMNL(X_orig, beta, n_cox_points, max_it, verbose, opt_crit, W));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_opdesmixr_computeCoxDirection", (DL_FUNC) &_opdesmixr_computeCoxDirection, 4},
-    {"_opdesmixr_getMomentMatrixScheffe", (DL_FUNC) &_opdesmixr_getMomentMatrixScheffe, 1},
     {"_opdesmixr_getScheffeGaussian", (DL_FUNC) &_opdesmixr_getScheffeGaussian, 2},
-    {"_opdesmixr_getICritValueGaussian", (DL_FUNC) &_opdesmixr_getICritValueGaussian, 3},
-    {"_opdesmixr_mixtureCoordinateExchangeGaussian", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeGaussian, 6},
+    {"_opdesmixr_getICritValueGaussian", (DL_FUNC) &_opdesmixr_getICritValueGaussian, 4},
+    {"_opdesmixr_mixtureCoordinateExchangeGaussian", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeGaussian, 7},
     {"_opdesmixr_getXsMNL", (DL_FUNC) &_opdesmixr_getXsMNL, 2},
     {"_opdesmixr_getUsMNL", (DL_FUNC) &_opdesmixr_getUsMNL, 4},
     {"_opdesmixr_getPsMNL", (DL_FUNC) &_opdesmixr_getPsMNL, 4},
     {"_opdesmixr_getInformationMatrixMNL", (DL_FUNC) &_opdesmixr_getInformationMatrixMNL, 2},
     {"_opdesmixr_getLogDCritValueMNL", (DL_FUNC) &_opdesmixr_getLogDCritValueMNL, 3},
-    {"_opdesmixr_findBestCoxDirMNL", (DL_FUNC) &_opdesmixr_findBestCoxDirMNL, 7},
-    {"_opdesmixr_mixtureCoordinateExchangeMNL", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL, 5},
+    {"_opdesmixr_getICritValueMNL", (DL_FUNC) &_opdesmixr_getICritValueMNL, 4},
+    {"_opdesmixr_findBestCoxDirMNL", (DL_FUNC) &_opdesmixr_findBestCoxDirMNL, 9},
+    {"_opdesmixr_mixtureCoordinateExchangeMNL", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL, 7},
     {NULL, NULL, 0}
 };
 

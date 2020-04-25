@@ -43,10 +43,19 @@ mixture_coord_ex_gaussian = function(
   }
 
 
-  # Coordinate exchanges:
-  X_result = mixtureCoordinateExchangeGaussian(X, order, n_cox_points, max_it, verbose, opt_crit)
+  # If criterion is D-optimality, send a matrix with only one zero element as a moment matrix
+  # Maybe a NULL value would be better. Gotta check.
+  if(opt_crit == 0){
+    # "D-optimality"
+    W = matrix(0.0, nrow = 1)
+  } else{
+    # "I-optimality")
+    W = create_moment_matrix_gaussian(q)
+  }
 
-  opt_crit = ifelse(X_result$opt_crit == 0, "D-optimality", "I-optimality")
+
+  # Coordinate exchanges:
+  X_result = mixtureCoordinateExchangeGaussian(X, order, n_cox_points, max_it, verbose, opt_crit, W)
 
   out_list = list(
     X_orig = X_result$X_orig,
@@ -54,7 +63,7 @@ mixture_coord_ex_gaussian = function(
     opt_crit_value_orig = X_result$opt_crit_value_orig,
     opt_crit_value = X_result$opt_crit_value,
     n_iter = X_result$n_iter,
-    opt_crit = opt_crit
+    opt_crit = ifelse(X_result$opt_crit == 0, "D-optimality", "I-optimality")
   )
 
   if(plot_designs) {
@@ -97,5 +106,61 @@ gaussian_plot_result = function(res_alg){
   )
 
 
+}
+
+
+
+
+#' TODO: write doc
+#' @export
+create_moment_matrix_gaussian = function(q){
+
+  m = (q^3+ 5*q)/6
+
+  f = lapply(1:m, function(x) rep(0, q))
+
+  counter = 0
+  # Fill indicators of first part of the model expansion
+  for(i in 1:q){
+    counter = counter + 1
+    f[[counter]][i] = 1
+  }
+
+  # Fill indicators of second part of the model expansion
+  for(i in 1:(q-1)){
+    for(j in (i+1):q){
+      counter = counter + 1
+      f[[counter]][i] = 1
+      f[[counter]][j] = 1
+    }
+  }
+
+
+  # Fill indicators of third part of the model expansion
+  for(i in 1:(q-2)){
+    for(j in (i+1):(q-1)){
+      for(k in (j+1):q){
+        counter = counter + 1
+        f[[counter]][i] = 1
+        f[[counter]][j] = 1
+        f[[counter]][k] = 1
+      }
+    }
+  }
+
+
+  W = matrix(rep(NA_real_, m*m), ncol = m)
+
+  for(i in 1:m){
+    for(j in 1:m){
+
+      aux_ij = f[[i]] + f[[j]]
+      num_ij = prod(factorial(aux_ij))
+      denom_ij = factorial(2 + sum(aux_ij))
+      W[i,j] = num_ij/denom_ij
+    }
+  }
+
+  return(W)
 }
 

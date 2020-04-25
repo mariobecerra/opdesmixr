@@ -121,47 +121,6 @@ arma::mat computeCoxDirection(arma::vec& x, int comp, int n_points, int verbose)
 
 
 
-
-// [[Rcpp::export]]
-arma::mat getMomentMatrixScheffe(int q){
-  // Function that returns the moment matrix of a special cubic Scheffé mixture model
-
-  // Right now it's only implemented for 3 ingredients.
-  if(q != 3){
-    stop("Inadmissible value for q. Must be 3.");
-  }
-
-  arma::mat W(7, 7);
-  arma::mat I(3, 3, fill::eye);
-  arma::mat ones_3_times_3(3, 3, fill::ones);
-  arma::mat ones_3_times_1(3, 1, fill::ones);
-
-  // Create anti-diagonal matrix
-  arma::mat J(3, 3, fill::zeros);
-  for(int i = 0; i < q; i++){
-    J(i, q-i-1) = 1;
-  }
-
-  // Fill W matrix
-  W(span(0, 2), span(0, 2)) = (I + ones_3_times_3)/24.0;
-  W(span(0, 2), span(3, 5)) = ones_3_times_3/60.0 - J/120.0;
-  W(span(0, 2), span(6, 6)) = ones_3_times_1/360.0;
-
-  W(span(3, 5), span(0, 2)) = ones_3_times_3/60.0 - J/120.0;
-  W(span(3, 5), span(3, 5)) = (I + ones_3_times_3)/360.0;
-  W(span(3, 5), span(6, 6)) = ones_3_times_1/1260.0;
-
-  W(span(6, 6), span(0, 2)) = ones_3_times_1.t()/360.0;
-  W(span(6, 6), span(3, 5)) = ones_3_times_1.t()/1260.0;
-  W(span(6, 6), span(6, 6)) = 1/5040.0;
-
-  return W;
-}
-
-
-
-
-
 ////////////////////////////////////////
 // Gaussian model
 ////////////////////////////////////////
@@ -320,11 +279,10 @@ double getLogDCritValueGaussian(arma::mat& X, int order){
 
 
 // [[Rcpp::export]]
-double getICritValueGaussian(arma::mat& X, int order, int q){
+double getICritValueGaussian(arma::mat& X, int order, int q, arma::mat& W){
 
   if(order != 3) stop("Only special cubic models are allowed (i.e., order = 3).");
 
-  arma::mat W = getMomentMatrixScheffe(q); // Moment's matrix
   arma::mat X_m = getScheffeGaussian(X, order);
   arma::mat X_mT = trans(X_m);
   arma::mat I = X_mT * X_m; // Information matrix
@@ -363,19 +321,19 @@ double getICritValueGaussian(arma::mat& X, int order, int q){
 
 
 
-double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit){
+double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arma::mat& W){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
   if(opt_crit == 0){
     return(getLogDCritValueGaussian(X, order));
   } else{
-    return(getICritValueGaussian(X, order, q));
+    return(getICritValueGaussian(X, order, q, W));
   }
 }
 
 
 
 
-arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int order, double opt_crit_value_best, int opt_crit) {
+arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int order, double opt_crit_value_best, int opt_crit, arma::mat& W) {
   arma::mat X = X_in;
   int n_col_X = X.n_cols;
   arma::vec x_k(n_col_X);
@@ -395,7 +353,7 @@ arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int
     }
 
     // opt_crit_value_j = getLogDCritValueGaussian(X, order);
-    opt_crit_value_j = getOptCritValueGaussian(X, order, n_col_X, opt_crit);
+    opt_crit_value_j = getOptCritValueGaussian(X, order, n_col_X, opt_crit, W);
 
     // If new optimality criterion value is better, then keep the new one.
     if(opt_crit_value_j < opt_crit_value_best) {
@@ -418,7 +376,7 @@ arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int
 
 
 // [[Rcpp::export]]
-Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose, int opt_crit){
+Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose, int opt_crit, arma::mat W){
   // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // X: armadillo matrix with dimensions (n, q) where:
@@ -434,6 +392,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
   //    5: Print the resulting X and information matrix after each subiteration
   //    6: Print the resulting X or each point in the Cox direction discretization
   // opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  // W: moment matrix for I-optimality
   //
   // Returns an Rcpp::List object with the following objects:
   //    X_orig: The original design. Armadillo matrix with dimensions (n, q).
@@ -458,7 +417,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
 
 
   // double opt_crit_value_orig = getLogDCritValueGaussian(X, order);
-  double opt_crit_value_orig = getOptCritValueGaussian(X, order, q, opt_crit);
+  double opt_crit_value_orig = getOptCritValueGaussian(X, order, q, opt_crit, W);
   double opt_crit_value_best = opt_crit_value_orig;
   double opt_crit_value_aux = -1e308; // -Inf
 
@@ -491,9 +450,9 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
         }
 
         cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-        X = findBestCoxDirGaussian(cox_dir, X, k, order, opt_crit_value_best, opt_crit);
+        X = findBestCoxDirGaussian(cox_dir, X, k, order, opt_crit_value_best, opt_crit, W);
         // opt_crit_value_best = getLogDCritValueGaussian(X, order);
-        opt_crit_value_best = getOptCritValueGaussian(X, order, q, opt_crit);
+        opt_crit_value_best = getOptCritValueGaussian(X, order, q, opt_crit, W);
 
         if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
 
@@ -532,6 +491,20 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
   );
 
 } // end function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -752,9 +725,62 @@ double getLogDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose){
 
 
 
+// [[Rcpp::export]]
+double getICritValueMNL(arma::cube& X, arma::vec& beta, int verbose, arma::mat& W){
+  int q = X.n_rows;
+
+  int m = beta.n_elem;
+
+  arma::mat I(m-1, m-1, fill::zeros);
+  I = getInformationMatrixMNL(X, beta);
+
+  if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
+
+  double I_eff; // We want to minimize this
+
+
+  // Attempt to do a Cholesky decomposition on the information matrix
+  arma::mat L;
+  try{
+    L = chol(I);
+
+    arma::mat A = solve(trimatl(L.t()), W);
+    arma::mat C = solve(trimatu(L), A);
+    I_eff = trace(C);
+  }
+  catch(const std::runtime_error& e){
+    // I don't think this is the best way to handle the exception.
+    Rcout << "Error in Cholesky decomposition\n";
+    Rcout << "Information matrix:\n" << I << "\n";
+    Rcout << "X:\n" << X << "\n";
+    stop("Error in Cholesky decomposition with message: ", e.what(), "\n");
+  }
+
+  return I_eff;
+}
+
+
+
+
+
+
+double getOptCritValueMNL(arma::cube& X, arma::vec& beta, int verbose, int opt_crit, arma::mat& W){
+  //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  if(opt_crit == 0){
+    return(getLogDCritValueMNL(X, beta, verbose));
+  } else{
+    return(getICritValueMNL(X, beta, verbose, W));
+  }
+}
+
+
+
+
+
+
 
 // [[Rcpp::export]]
-arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& beta, int k, int s, double opt_crit_value_best, int verbose) {
+arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& beta, int k, int s, double opt_crit_value_best, int verbose, int opt_crit, arma::mat& W) {
   // Function that returns the design that minimizes the optimality criterion value.
   // Returns a cube of dimension (q, J, S) with a design that minimizes the value of the optimality criterion value.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
@@ -767,6 +793,7 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
   //     opt_crit_value_best: Efficiency value with which the new efficiencies are compared to.
   //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
   //     opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  //     W: moment matrix
 
   // // Create new cube, otherwise it is modified in R too
   arma::cube X = X_in;
@@ -791,7 +818,7 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
       Rcout << "\tj = " << j << " (of " << n_cox_points << "), ";
     }
 
-    opt_crit_value_j = getLogDCritValueMNL(X, beta, verbose);
+    opt_crit_value_j = getOptCritValueMNL(X, beta, verbose, opt_crit, W);
 
     if(verbose >= 4){
       Rcout << "opt_crit_value_j = "  << opt_crit_value_j << "\n";
@@ -822,7 +849,7 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
 
 
 // [[Rcpp::export]]
-Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n_cox_points, int max_it, int verbose){
+Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n_cox_points, int max_it, int verbose, int opt_crit, arma::mat W){
   // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // X: 3 dimensional cube with dimensions (q, J, S) where:
@@ -839,6 +866,8 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
   //    4: Print optimality criterion value for each point in the Cox direction discretization
   //    5: Print the resulting X and information matrix after each subiteration
   //    6: Print the resulting X or each point in the Cox direction discretization
+  //    opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  //    W: moment matrix
   // Returns an Rcpp::List object with the following objects:
   //    X_orig: The original design. Cube with dimensions (q, J, S).
   //    X: The optimized design. Cube with dimensions (q, J, S).
@@ -900,7 +929,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
           }
 
           cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-          X = findBestCoxDirMNL(cox_dir, X, beta, k, s, opt_crit_value_best, verbose);
+          X = findBestCoxDirMNL(cox_dir, X, beta, k, s, opt_crit_value_best, verbose, opt_crit, W);
           opt_crit_value_best = getLogDCritValueMNL(X, beta, verbose);
 
           if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;

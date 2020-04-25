@@ -61,6 +61,7 @@ mixture_coord_ex = function(
   n_cox_points = 100,
   max_it = 50,
   plot_designs = F,
+  opt_crit = 0, # 0 is D-optimality and 1 is I-optimality
   verbose = 1){
 
   available_models = c("Gaussian", "MNL")
@@ -90,7 +91,8 @@ mixture_coord_ex = function(
       n_cox_points = n_cox_points,
       max_it = max_it,
       plot_designs = plot_designs,
-      verbose = verbose)
+      verbose = verbose,
+      opt_crit = opt_crit)
   }
 
   # Call MNL function
@@ -106,7 +108,8 @@ mixture_coord_ex = function(
       n_cox_points = n_cox_points,
       max_it = max_it,
       plot_designs = plot_designs,
-      verbose = verbose)
+      verbose = verbose,
+      opt_crit = opt_crit)
   }
 
   return(out)

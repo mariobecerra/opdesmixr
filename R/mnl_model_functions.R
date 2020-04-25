@@ -95,6 +95,7 @@ create_random_beta = function(q){
 #' @param max_it integer for maximum number of iterations that the coordinate exchange algorithm will do
 #' @param plot_designs boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3.
 #' @param verbose level of verbosity. 6 levels. See below for details.
+#' @param opt_crit optimality criterion: 0 (D-optimality) or 1 (I-optimality)
 #' @return list with 5 elements. See below for details.
 #'
 #' Verbosity levels: each level prints the previous plus additional things:
@@ -117,7 +118,14 @@ create_random_beta = function(q){
 #'  }
 #'
 #' @export
-mixture_coord_ex_mnl = function(X, beta, n_cox_points = 100, max_it = 50, plot_designs = F, verbose = 1){
+mixture_coord_ex_mnl = function(
+  X,
+  beta,
+  n_cox_points = 100,
+  max_it = 50,
+  plot_designs = F,
+  verbose = 1,
+  opt_crit = 0){
   # Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   # X: 3 dimensional array with dimensions (q, J, S) where:
   #    q is the number of ingredient proportions
@@ -134,6 +142,8 @@ mixture_coord_ex_mnl = function(X, beta, n_cox_points = 100, max_it = 50, plot_d
   #    4: Print log D efficiency for each point in the Cox direction discretization
   #    5: Print the resulting X and information matrix after each subiteration
   #    6: Print the resulting X or each point in the Cox direction discretization
+  # opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  #
   # Returns alist with the following objects:
   #    X_orig: The original design. Array with dimensions (q, J, S).
   #    X: The optimized design. Array with dimensions (q, J, S).
@@ -152,6 +162,20 @@ mixture_coord_ex_mnl = function(X, beta, n_cox_points = 100, max_it = 50, plot_d
   q = dim_X[1]
   m = (q*q*q + 5*q)/6
 
+
+
+  # If criterion is D-optimality, send a matrix with only one zero element as a moment matrix
+  # Maybe a NULL value would be better. Gotta check.
+  if(opt_crit == 0){
+    # "D-optimality"
+    W = matrix(0.0, nrow = 1)
+  } else{
+    # "I-optimality")
+    W = create_moment_matrix_MNL(q)
+  }
+
+
+
   if(m != length(beta)) stop("Incompatible length in beta and q: beta must be of length (q^3 + 5*q)/6")
 
   # Call to C++ function
@@ -165,15 +189,20 @@ mixture_coord_ex_mnl = function(X, beta, n_cox_points = 100, max_it = 50, plot_d
     beta = beta,
     n_cox_points = n_cox_points,
     max_it = max_it,
-    verbose = verbose
+    verbose = verbose,
+    opt_crit,
+    W
   )
+
+
 
   out_list = list(
     X_orig = X_result$X_orig,
     X = X_result$X,
-    d_eff_orig = X_result$d_eff_orig,
-    d_eff = X_result$d_eff,
-    n_iter = X_result$n_iter
+    opt_crit_value_orig = X_result$opt_crit_value_orig,
+    opt_crit_value = X_result$opt_crit_value,
+    n_iter = X_result$n_iter,
+    opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality")
   )
 
   if(plot_designs) {
@@ -220,8 +249,9 @@ mnl_plot_result = function(res_alg){
       ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
-      ggtitle(label = "",
-              subtitle = paste0("log D-efficiency = ", round(res_alg$d_eff_orig, 3)))
+      ggtitle(
+        label = paste0("Criterion: ", res_alg$opt_crit),
+        subtitle = paste0("Value = ", round(res_alg$opt_crit_value_orig, 3)))
     ,
     X_final_mat %>%
       dplyr::as_tibble() %>%
@@ -229,11 +259,73 @@ mnl_plot_result = function(res_alg){
       ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
-      ggtitle(label = "",
-              subtitle = paste0("log D-efficiency = ", round(res_alg$d_eff, 3)))
+      ggtitle(label = paste0("Criterion: ", res_alg$opt_crit),
+              subtitle = paste0("Value = ", round(res_alg$opt_crit_value, 3)))
     ,
     ncol = 2
   )
 
 
 }
+
+
+
+
+#' TODO: write doc
+#' @export
+create_moment_matrix_MNL = function(q){
+
+  m = (q^3+ 5*q)/6
+
+  f = lapply(1:(m-1), function(x) rep(0, q))
+
+  counter = 0
+  # Fill indicators of first part of the model expansion
+  for(i in 1:(q-1)){
+    counter = counter + 1
+    f[[counter]][i] = 1
+  }
+
+  # Fill indicators of second part of the model expansion
+  for(i in 1:(q-1)){
+    for(j in (i+1):q){
+      counter = counter + 1
+      f[[counter]][i] = 1
+      f[[counter]][j] = 1
+    }
+  }
+
+
+  # Fill indicators of third part of the model expansion
+  for(i in 1:(q-2)){
+    for(j in (i+1):(q-1)){
+      for(k in (j+1):q){
+        counter = counter + 1
+        f[[counter]][i] = 1
+        f[[counter]][j] = 1
+        f[[counter]][k] = 1
+      }
+    }
+  }
+
+
+  W = matrix(rep(NA_real_, (m-1)^2), ncol = m-1)
+
+  for(i in 1:(m-1)){
+    for(j in 1:(m-1)){
+
+      aux_ij = f[[i]] + f[[j]]
+      num_ij = prod(factorial(aux_ij))
+      denom_ij = factorial(2 + sum(aux_ij))
+      W[i,j] = num_ij/denom_ij
+    }
+  }
+
+  return(W)
+
+}
+
+
+
+
+
