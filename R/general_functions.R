@@ -26,6 +26,7 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
       ggtern(aes(c1, c2, c3)) +
       geom_path(linetype = "dashed") +
       theme_minimal() +
+      theme_nomask() +
       geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3]))
   } else{
     if(is.null(comp)) comp = 1:length(x_in)
@@ -42,6 +43,7 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
       ggtern(aes(c1, c2, c3)) +
       geom_path(linetype = "dashed", aes(group = comp)) +
       theme_minimal() +
+      theme_nomask() +
       geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3]))
   }
 

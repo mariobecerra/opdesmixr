@@ -89,6 +89,7 @@ gaussian_plot_result = function(res_alg){
       ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
+      theme_nomask() +
       ggtitle(
         label = paste0("Criterion: ", res_alg$opt_crit),
         subtitle = paste0("Value = ", round(res_alg$opt_crit_value_orig, 3)))
@@ -99,6 +100,7 @@ gaussian_plot_result = function(res_alg){
       ggtern(aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
+      theme_nomask() +
       ggtitle(label = paste0("Criterion: ", res_alg$opt_crit),
               subtitle = paste0("Value = ", round(res_alg$opt_crit_value, 3)))
     ,
