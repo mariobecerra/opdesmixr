@@ -22,25 +22,44 @@ create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
 #' TODO: write doc
 #' @export
 mixture_coord_ex_gaussian = function(
-  X,
+  n_runs = NULL,
+  q = NULL,
+  n_random_starts = 100,
+  X = NULL,
   order = 1,
-  n_cox_points = 100,
-  max_it = 50,
+  n_cox_points = 30,
+  max_it = 10,
   plot_designs = F,
   verbose = 1,
-  opt_crit = 0){
+  opt_crit = 0,
+  seed = NULL,
+  n_cores = 1){
 
 
 
-  n_runs = nrow(X)
-  q = ncol(X)
+  if(is.null(X)){
+    if(!is.null(seed)) set.seed(seed)
 
-  # Check that rows in X sum to 1
-  row_sums = apply(X, 1, sum)
+    seeds_designs = sample.int(1e9, n_random_starts)
 
-  if(sum(abs(row_sums - rep(1, n_runs)) < 1e-10) != n_runs){
-    stop("Rows in X must sum 1")
+    designs = lapply(seeds_designs, function(x){
+      des = create_random_initial_design_gaussian(n_runs, q, seed = x)
+      return(des)
+    })
+  } else{
+    n_runs = nrow(X)
+    q = ncol(X)
+
+    # Check that rows in X sum to 1
+    row_sums = apply(X, 1, sum)
+
+    if(sum(abs(row_sums - rep(1, n_runs)) < 1e-10) != n_runs){
+      stop("Rows in X must sum 1")
+    }
+
+    designs = list(X)
   }
+
 
 
   # If criterion is D-optimality, send a matrix with only one zero element as a moment matrix
@@ -54,8 +73,27 @@ mixture_coord_ex_gaussian = function(
   }
 
 
-  # Coordinate exchanges:
-  X_result = mixtureCoordinateExchangeGaussian(X, order, n_cox_points, max_it, verbose, opt_crit, W)
+  # Apply the coordinate exchange algorithm to all the designs generated
+  results = parallel::mclapply(seq_along(designs), function(i){
+    X = designs[[i]]
+
+    if(verbose > 0) cat("\nDesign", i, "\n")
+
+    out = mixtureCoordinateExchangeGaussian(
+        X, order, n_cox_points, max_it, verbose, opt_crit, W
+      )
+
+    return(out)
+  }, mc.cores = n_cores)
+
+  # Get optimality values for all designs
+  optimality_values = unlist(lapply(results, function(x) x$opt_crit_value))
+
+  # Return the result with the best optimality criterion
+  X_result = results[[which.min(optimality_values)]]
+
+  # # Coordinate exchanges:
+  # X_result = mixtureCoordinateExchangeGaussian(X, order, n_cox_points, max_it, verbose, opt_crit, W)
 
   out_list = list(
     X_orig = X_result$X_orig,

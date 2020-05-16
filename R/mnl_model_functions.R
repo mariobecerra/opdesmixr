@@ -119,13 +119,20 @@ create_random_beta = function(q){
 #'
 #' @export
 mixture_coord_ex_mnl = function(
-  X,
+  q = NULL,
+  J = NULL,
+  s = NULL,
+  n_random_starts = 100,
+  X = NULL,
   beta,
-  n_cox_points = 100,
-  max_it = 50,
+  n_cox_points = 30,
+  max_it = 10,
   plot_designs = F,
   verbose = 1,
-  opt_crit = 0){
+  opt_crit = 0,
+  seed = NULL,
+  n_cores = 1
+  ){
   # Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   # X: 3 dimensional array with dimensions (q, J, S) where:
   #    q is the number of ingredient proportions
@@ -152,16 +159,34 @@ mixture_coord_ex_mnl = function(
   #    n_iter: Number of iterations performed.
 
 
-  # Some input checks
-  dim_X = dim(X)
+  # If initial design was not provided, create list of random designs
+  if(is.null(X)){
 
-  if(length(dim_X) != 3) stop("X must be a 3 dimensional array.")
-  if(!is.vector(beta)) stop("beta is not a vector. It must be a numerical or integer vector.")
-  if(!(is.numeric(beta) | !is.integer(beta))) stop("beta is not numeric or integer. It must be a numerical or integer vector.")
+    if(!is.null(seed)) set.seed(seed)
 
-  q = dim_X[1]
+    seeds_designs = sample.int(1e9, n_random_starts)
+
+    designs = lapply(seeds_designs, function(x){
+      des = create_random_initial_MNL_design(q, J, S, seed = x)
+      return(des)
+    })
+
+  } else{
+    # Some input checks
+    dim_X = dim(X)
+
+    if(length(dim_X) != 3) stop("X must be a 3 dimensional array.")
+    if(!is.vector(beta)) stop("beta is not a vector. It must be a numerical or integer vector.")
+    if(!(is.numeric(beta) | !is.integer(beta))) stop("beta is not numeric or integer. It must be a numerical or integer vector.")
+
+    q = dim_X[1]
+
+    designs = list(X)
+  }
+
+
   m = (q*q*q + 5*q)/6
-
+  if(m != length(beta)) stop("Incompatible length in beta and q: beta must be of length (q^3 + 5*q)/6")
 
 
   # If criterion is D-optimality, send a matrix with only one zero element as a moment matrix
@@ -175,24 +200,49 @@ mixture_coord_ex_mnl = function(
   }
 
 
+  # Apply the coordinate exchange algorithm to all the designs generated
+  results = parallel::mclapply(seq_along(designs), function(i){
+    X = designs[[i]]
 
-  if(m != length(beta)) stop("Incompatible length in beta and q: beta must be of length (q^3 + 5*q)/6")
+    if(verbose > 0) cat("\nDesign", i, "\n")
 
-  # Call to C++ function
-  # Note: In the future use a C++ implementation of Brent's method like the following
-  # https://people.sc.fsu.edu/~jburkardt/cpp_src/brent/brent.html
-  # https://github.com/fditraglia/RcppBrent
-  # It has the implementation of the algorithm in Chapter 6 of Brent's book
-  # (Ch 6: Global Minimization Given an Upper Bound on the Second Derivative)
-  X_result = mixtureCoordinateExchangeMNL(
-    X_orig = X,
-    beta = beta,
-    n_cox_points = n_cox_points,
-    max_it = max_it,
-    verbose = verbose,
-    opt_crit,
-    W
-  )
+    out = mixtureCoordinateExchangeMNL(
+      X_orig = X,
+      beta = beta,
+      n_cox_points = n_cox_points,
+      max_it = max_it,
+      verbose = verbose,
+      opt_crit,
+      W
+    )
+
+    return(out)
+  }, mc.cores = n_cores)
+
+  # Get optimality values for all designs
+  optimality_values = unlist(lapply(results, function(x) x$opt_crit_value))
+
+  # Return the result with the best optimality criterion
+  X_result = results[[which.min(optimality_values)]]
+
+
+
+
+  # # Call to C++ function
+  # # Note: In the future use a C++ implementation of Brent's method like the following
+  # # https://people.sc.fsu.edu/~jburkardt/cpp_src/brent/brent.html
+  # # https://github.com/fditraglia/RcppBrent
+  # # It has the implementation of the algorithm in Chapter 6 of Brent's book
+  # # (Ch 6: Global Minimization Given an Upper Bound on the Second Derivative)
+  # X_result = mixtureCoordinateExchangeMNL(
+  #   X_orig = X,
+  #   beta = beta,
+  #   n_cox_points = n_cox_points,
+  #   max_it = max_it,
+  #   verbose = verbose,
+  #   opt_crit,
+  #   W
+  # )
 
 
 
