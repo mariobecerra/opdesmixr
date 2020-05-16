@@ -25,9 +25,9 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
       purrr::set_names(c("c1", "c2", "c3")) %>%
       ggtern(aes(c1, c2, c3)) +
       geom_path(linetype = "dashed") +
+      geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3])) +
       theme_minimal() +
-      theme_nomask() +
-      geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3]))
+      theme_nomask()
   } else{
     if(is.null(comp)) comp = 1:length(x_in)
 
@@ -42,9 +42,9 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
     out = cox_dirs %>%
       ggtern(aes(c1, c2, c3)) +
       geom_path(linetype = "dashed", aes(group = comp)) +
+      geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3])) +
       theme_minimal() +
-      theme_nomask() +
-      geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3]))
+      theme_nomask()
   }
 
   return(out)
