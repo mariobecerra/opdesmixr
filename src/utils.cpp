@@ -110,8 +110,22 @@ arma::mat computeCoxDirection(arma::vec& x, int comp, int n_points, int verbose)
 
     // Check that the computed directions are not smaller than 0 or bigger than 1 because of numerical error
     if(any(cox_direction.row(n) < -1e-10 || cox_direction.row(n) > 1 + 1e10)) {
+      Rcout << "Value out of bounds while computing Cox direction." << std::endl;
+      Rcout << "The error ocurred with the following vector in component " << comp << std::endl;
+      Rcout << x << std::endl;
+      Rcout << "Cox direction computed as:" << std::endl;
       Rcout << cox_direction << std::endl;
-      stop("Error while computing Cox direction. Value out of bounds.\n");
+
+
+      for(int j = 0; j < q; j++){
+        cox_direction(n, j) = 1.0/q;
+      }
+
+      Rcout << "Filling Cox direction with 1/q. Corrected Cox direction:" << std::endl;
+      Rcout << cox_direction << std::endl << std::endl << std::endl;
+
+      warning("Value out of bounds while computing Cox direction. Filling with 1/q.\n");
+
     }
   } // end for n
   return(cox_direction);
