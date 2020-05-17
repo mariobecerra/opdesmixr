@@ -121,7 +121,7 @@ create_random_beta = function(q){
 mixture_coord_ex_mnl = function(
   q = NULL,
   J = NULL,
-  s = NULL,
+  S = NULL,
   n_random_starts = 100,
   X = NULL,
   beta,
