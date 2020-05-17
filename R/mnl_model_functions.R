@@ -199,6 +199,7 @@ mixture_coord_ex_mnl = function(
     W = create_moment_matrix_MNL(q)
   }
 
+  if(.Platform$OS.type != "unix") n_cores = 1
 
   # Apply the coordinate exchange algorithm to all the designs generated
   results = parallel::mclapply(seq_along(designs), function(i){
