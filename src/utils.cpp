@@ -256,7 +256,7 @@ arma::mat getScheffeGaussian(arma::mat& X, int order){
 
 
 
-
+// [[Rcpp::export]]
 double getDCritValueGaussian(arma::mat& X, int order){
   arma::mat X_m = getScheffeGaussian(X, order);
   arma::mat X_mT = trans(X_m);
@@ -334,7 +334,7 @@ double getICritValueGaussian(arma::mat& X, int order, int q, arma::mat& W){
 
 
 
-
+// [[Rcpp::export]]
 double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arma::mat& W){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
   if(opt_crit == 0){
@@ -774,7 +774,7 @@ double getICritValueMNL(arma::cube& X, arma::vec& beta, int verbose, arma::mat& 
 
 
 
-
+// [[Rcpp::export]]
 double getOptCritValueMNL(arma::cube& X, arma::vec& beta, int verbose, int opt_crit, arma::mat& W){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
   if(opt_crit == 0){
