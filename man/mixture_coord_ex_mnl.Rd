@@ -5,12 +5,19 @@
 \title{Coordinate exchange algorithm for a Multinomial Logit Scheffé model.}
 \usage{
 mixture_coord_ex_mnl(
-  X,
+  q = NULL,
+  J = NULL,
+  S = NULL,
+  n_random_starts = 100,
+  X = NULL,
   beta,
-  n_cox_points = 100,
-  max_it = 50,
+  n_cox_points = 30,
+  max_it = 10,
   plot_designs = F,
-  verbose = 1
+  verbose = 1,
+  opt_crit = 0,
+  seed = NULL,
+  n_cores = 1
 )
 }
 \arguments{
@@ -28,6 +35,8 @@ S is the number of choice sets.}
 \item{plot_designs}{boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3.}
 
 \item{verbose}{level of verbosity. 6 levels. See below for details.}
+
+\item{opt_crit}{optimality criterion: 0 (D-optimality) or 1 (I-optimality)}
 }
 \value{
 list with 5 elements. See below for details.

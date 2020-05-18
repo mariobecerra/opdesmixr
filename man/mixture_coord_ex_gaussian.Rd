@@ -5,12 +5,18 @@
 \title{TODO: write doc}
 \usage{
 mixture_coord_ex_gaussian(
-  X,
+  n_runs = NULL,
+  q = NULL,
+  n_random_starts = 100,
+  X = NULL,
   order = 1,
-  n_cox_points = 100,
-  max_it = 50,
+  n_cox_points = 30,
+  max_it = 10,
   plot_designs = F,
-  verbose = 1
+  verbose = 1,
+  opt_crit = 0,
+  seed = NULL,
+  n_cores = 1
 )
 }
 \description{

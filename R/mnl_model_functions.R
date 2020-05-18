@@ -28,6 +28,33 @@ create_random_initial_MNL_design = function(q, J, S, seed = NULL){
 
 
 
+#' Function that computes optimality criterion value for MNL model
+#'
+#' \code{get_opt_crit_value_MNL} computes optimality criterion value for MNL model
+#' @param X 3 dimensional array with dimensions (q, J, S) where:
+#'     q is the number of ingredient proportions,
+#'     J is the number of alternatives within a choice set,
+#'     S is the number of choice sets.
+#' @param beta numeric vector containing the parameters. Should be of length (q^3 + 5*q)/6
+#' @param opt_crit optimality criterion: 0 is D-optimality and 1 is I-optimality
+#' @return Returns the value of the optimality criterion for this particular design and this beta vector
+#' @export
+get_opt_crit_value_MNL = function(X, beta, opt_crit = 0){
+
+  q = dim(X)[1]
+
+  if(opt_crit == 0){
+    # "D-optimality"
+    W = matrix(0.0, nrow = 1)
+  } else{
+    # "I-optimality")
+    W = create_moment_matrix_MNL(q)
+  }
+
+  return(getOptCritValueMNL(X = X, beta = beta, opt_crit = opt_crit, verbose = 0, W = W))
+}
+
+
 
 #' Creation of a random parameter vector for MNL model
 #'
