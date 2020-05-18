@@ -21,16 +21,17 @@ n_designs = 50
 #     for(S in 2:5){
 for(q in 3:4){
   for(J in 4:5){
-    for(S in 6:7){
+    for(S in 4:5){
 
       time_now = substring(as.character(Sys.time()), 12, 1000)
-      cat("\n\n", "q = ", q, ", J = ", J, ", S = ", S, " (", time_now, ")", "\n", sep = "")
+      cat("\n\n\n\n", "q = ", q, ", J = ", J, ", S = ", S, " (", time_now, ")", "\n", sep = "")
 
       efficiencies = lapply(1:n_designs, function(i){
 
         # Cada iteración de estas tarda como 18 segundos con 4 cores
         # Si n_designs = 50, y tengo 2 qs 2 Ss y 2 Js, entonces tardará 50*2*2*2 = 400 seg ~ 7 mins
-        cat("Iter:", i, "\n")
+        time_now = substring(as.character(Sys.time()), 12, 1000)
+        cat("\nIter ", i, " (", time_now, ")\n", sep = "")
 
         beta = create_random_beta(q)$beta
 
