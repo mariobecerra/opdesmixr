@@ -80,9 +80,27 @@ mixture_coord_ex_gaussian = function(
 
     if(verbose > 0) cat("\nDesign", i, "\n")
 
-    out = mixtureCoordinateExchangeGaussian(
+    out = try(
+      mixtureCoordinateExchangeGaussian(
         X, order, n_cox_points, max_it, verbose, opt_crit, W
+      ),
+      silent = T)
+
+
+    # If there was an error with this design, return whatever
+    if(class(out) == "try-error"){
+
+      if(verbose > 0) cat("Design", i, "encountered an error.\n")
+      warning("Design ", i, " encountered an error.")
+
+      out = list(
+        X_orig = X,
+        X = X,
+        opt_crit_value_orig = Inf,
+        opt_crit_value = Inf,
+        n_iter = NA
       )
+    }
 
     return(out)
   }, mc.cores = n_cores)

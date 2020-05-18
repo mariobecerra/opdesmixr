@@ -132,7 +132,7 @@ mixture_coord_ex_mnl = function(
   opt_crit = 0,
   seed = NULL,
   n_cores = 1
-  ){
+){
   # Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   # X: 3 dimensional array with dimensions (q, J, S) where:
   #    q is the number of ingredient proportions
@@ -207,15 +207,32 @@ mixture_coord_ex_mnl = function(
 
     if(verbose > 0) cat("\nDesign", i, "\n")
 
-    out = mixtureCoordinateExchangeMNL(
-      X_orig = X,
-      beta = beta,
-      n_cox_points = n_cox_points,
-      max_it = max_it,
-      verbose = verbose,
-      opt_crit,
-      W
-    )
+    out = try(
+      mixtureCoordinateExchangeMNL(
+        X_orig = X,
+        beta = beta,
+        n_cox_points = n_cox_points,
+        max_it = max_it,
+        verbose = verbose,
+        opt_crit,
+        W
+      ), silent = T)
+
+    # If there was an error with this design, return whatever
+    if(class(out) == "try-error"){
+
+      if(verbose > 0) cat("Design", i, "encountered an error.\n")
+      warning("Design ", i, " encountered an error.")
+
+      out = list(
+        X_orig = X,
+        X = X,
+        opt_crit_value_orig = Inf,
+        opt_crit_value = Inf,
+        n_iter = NA
+      )
+
+    }
 
     return(out)
   }, mc.cores = n_cores)
