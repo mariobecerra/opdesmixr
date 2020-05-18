@@ -1,9 +1,10 @@
-library(opdesmixr)
+# library(opdesmixr)
 library(tidyverse)
 library(here)
 
-
-
+Rcpp::sourceCpp("src/utils.cpp")
+source("R/mnl_model_functions.R")
+source("R/general_functions.R")
 
 out_dir_1 = "tests/i_opt_d_opt_plots/"
 out_dir = paste0(out_dir_1, "rds_files/")
@@ -11,79 +12,103 @@ dir.create(here(out_dir_1))
 dir.create(here(out_dir))
 
 n_rand_starts = 100
-n_cox_points = 50
-max_it = 4
-n_cores = 4
+n_cox_points = 40
+max_it = 3
+n_cores = parallel::detectCores()
 n_designs = 50
 
-# for(q in 3:5){
-#   for(J in 2:5){
-#     for(S in 2:5){
-for(q in 3:4){
-  for(J in 4:5){
-    for(S in 4:5){
+# for(J in 2:5){
+#  for(S in 2:5){
+#   for(q in 3:5){
+for(S in 5:7){
+  for(J in 3:4){
+    for(q in 4:3){
 
       time_now = substring(as.character(Sys.time()), 12, 1000)
       cat("\n\n\n\n", "q = ", q, ", J = ", J, ", S = ", S, " (", time_now, ")", "\n", sep = "")
 
-      efficiencies = lapply(1:n_designs, function(i){
-
-        # Cada iteración de estas tarda como 18 segundos con 4 cores
-        # Si n_designs = 50, y tengo 2 qs 2 Ss y 2 Js, entonces tardará 50*2*2*2 = 400 seg ~ 7 mins
-        time_now = substring(as.character(Sys.time()), 12, 1000)
-        cat("\nIter ", i, " (", time_now, ")\n", sep = "")
-
-        beta = create_random_beta(q)$beta
-
-        D_opt = mixture_coord_ex(
-          n_random_starts = n_rand_starts,
-          q = q,
-          J = J,
-          S = S,
-          beta = beta,
-          model = "MNL",
-          n_cox_points = n_cox_points,
-          max_it = max_it,
-          verbose = 0,
-          plot_designs = F,
-          opt_crit = 0,
-          seed = i,
-          n_cores = n_cores
-        )
-
-        I_opt = mixture_coord_ex(
-          n_random_starts = n_rand_starts,
-          q = q,
-          J = J,
-          S = S,
-          beta = beta,
-          model = "MNL",
-          n_cox_points = n_cox_points,
-          max_it = max_it,
-          verbose = 0,
-          plot_designs = F,
-          opt_crit = 1,
-          seed = i,
-          n_cores = n_cores
-        )
-
-        out = tibble(
-          d_eff_of_d_optimal_design = get_opt_crit_value_MNL(D_opt$X, beta = beta, opt_crit = 0),
-          d_eff_of_i_optimal_design = get_opt_crit_value_MNL(I_opt$X, beta = beta, opt_crit = 0),
-          i_eff_of_d_optimal_design = get_opt_crit_value_MNL(D_opt$X, beta = beta, opt_crit = 1),
-          i_eff_of_i_optimal_design = get_opt_crit_value_MNL(I_opt$X, beta = beta, opt_crit = 1)
-        ) %>%
-          mutate(q = q, J = J, S = S)
-
-        return(out)
-
-      }) %>%
-        bind_rows()
-
       file_name = here(out_dir, paste0("efficiencies_q", q, "_J", J, "_S", S, ".rds"))
-      cat("\tSaving RDS...")
-      saveRDS(efficiencies, file_name)
-      cat("Done.\n")
+      if(file.exists(file_name)){
+        cat(file_name, "already exists.")
+      } else{
+        efficiencies = lapply(1:n_designs, function(i){
+
+          # Cada iteración de estas tarda como 18 segundos con 4 cores
+          # Si n_designs = 50, y tengo 2 qs 2 Ss y 2 Js, entonces tardará 50*2*2*2 = 400 seg ~ 7 mins
+          time_now = substring(as.character(Sys.time()), 12, 1000)
+          cat("\nIter ", i, " (", time_now, ")\n", sep = "")
+
+          beta = create_random_beta(q)$beta
+
+          D_opt = mixture_coord_ex(
+            n_random_starts = n_rand_starts,
+            q = q,
+            J = J,
+            S = S,
+            beta = beta,
+            model = "MNL",
+            n_cox_points = n_cox_points,
+            max_it = max_it,
+            verbose = 0,
+            plot_designs = F,
+            opt_crit = 0,
+            seed = i,
+            n_cores = n_cores
+          )
+
+          I_opt = mixture_coord_ex(
+            n_random_starts = n_rand_starts,
+            q = q,
+            J = J,
+            S = S,
+            beta = beta,
+            model = "MNL",
+            n_cox_points = n_cox_points,
+            max_it = max_it,
+            verbose = 0,
+            plot_designs = F,
+            opt_crit = 1,
+            seed = i,
+            n_cores = n_cores
+          )
+
+          d_eff_of_d_optimal_design = try(get_opt_crit_value_MNL(D_opt$X, beta = beta, opt_crit = 0), silent = T)
+          d_eff_of_i_optimal_design = try(get_opt_crit_value_MNL(I_opt$X, beta = beta, opt_crit = 0), silent = T)
+          i_eff_of_d_optimal_design = try(get_opt_crit_value_MNL(D_opt$X, beta = beta, opt_crit = 1), silent = T)
+          i_eff_of_i_optimal_design = try(get_opt_crit_value_MNL(I_opt$X, beta = beta, opt_crit = 1), silent = T)
+
+          if(
+            class(d_eff_of_d_optimal_design) == 'try-error' |
+            class(d_eff_of_i_optimal_design) == 'try-error' |
+            class(i_eff_of_d_optimal_design) == 'try-error' |
+            class(i_eff_of_i_optimal_design) == 'try-error'
+          ){
+            d_eff_of_d_optimal_design = NA_real_
+            d_eff_of_i_optimal_design = NA_real_
+            i_eff_of_d_optimal_design = NA_real_
+            i_eff_of_i_optimal_design = NA_real_
+          }
+
+          out = tibble(
+            d_eff_of_d_optimal_design = d_eff_of_d_optimal_design,
+            d_eff_of_i_optimal_design = d_eff_of_i_optimal_design,
+            i_eff_of_d_optimal_design = i_eff_of_d_optimal_design,
+            i_eff_of_i_optimal_design = i_eff_of_i_optimal_design
+          ) %>%
+            mutate(q = q, J = J, S = S)
+
+          return(out)
+
+        }) %>%
+          bind_rows()
+
+        cat("\tSaving RDS...")
+        saveRDS(efficiencies, file_name)
+        cat("Done.\n")
+
+
+      } # end else
+
 
     }
   }
