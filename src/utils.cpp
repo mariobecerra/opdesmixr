@@ -261,7 +261,7 @@ double getDCritValueGaussian(arma::mat& X, int order){
   arma::mat X_m = getScheffeGaussian(X, order);
   arma::mat X_mT = trans(X_m);
   arma::mat I = X_mT * X_m; // Information matrix
-  double opt_crit_value; // We want to minimize this
+  double eff_crit; // We want to minimize this
 
   // Attempt to do a Cholesky decomposition on the information matrix
   arma::mat L;
@@ -270,23 +270,20 @@ double getDCritValueGaussian(arma::mat& X, int order){
     L = chol(I);
     // Compute the determinant of information matrix using the decomposition
     log_det_I = 2*sum(log(L.diag()));
-    opt_crit_value = -log_det_I/X_m.n_cols + log(X_m.n_rows);
+    eff_crit = -log_det_I/X_m.n_cols + log(X_m.n_rows);
   }
   catch(const std::runtime_error& e){
     // If Cholesky decomposition fails, it is likely because information matrix
     // was not numerically positive definite.
     // If this happens, it is probably because a numerical inestability.
-    // The function then returns the D criterion value as a big positive number, this
+    // The function then returns the efficiency value as a big positive number, this
     // way the algorithm does nothing in this iteration because the algorithm thinks
     // there was no improvement when swapping the proportions.
-    Rcout << "Information matrix:\n" << I << "\n";
-    Rcout << "X:\n" << X << "\n";
-    Rcout << "Error in Cholesky decomposition with message: " << e.what() << std::endl;
-    opt_crit_value = 10000;
-    Rcout << "Returning opt_crit_value = " << opt_crit_value << std::endl;
+    eff_crit = 100;
+    Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
   }
 
-  return opt_crit_value;
+  return eff_crit;
 }
 
 
@@ -301,7 +298,7 @@ double getICritValueGaussian(arma::mat& X, int order, int q, arma::mat& W){
   arma::mat X_mT = trans(X_m);
   arma::mat I = X_mT * X_m; // Information matrix
 
-  double I_eff; // We want to minimize this
+  double eff_crit; // We want to minimize this
 
 
   // Attempt to do a Cholesky decomposition on the information matrix
@@ -311,23 +308,20 @@ double getICritValueGaussian(arma::mat& X, int order, int q, arma::mat& W){
 
     arma::mat A = solve(trimatl(L.t()), W);
     arma::mat C = solve(trimatu(L), A);
-    I_eff = trace(C);
+    eff_crit = trace(C);
   }
   catch(const std::runtime_error& e){
     // If Cholesky decomposition fails, it is likely because information matrix
     // was not numerically positive definite.
     // If this happens, it is probably because a numerical inestability.
-    // The function then returns the I criterion value as a big positive number, this
+    // The function then returns the efficiency value as a big positive number, this
     // way the algorithm does nothing in this iteration because the algorithm thinks
     // there was no improvement when swapping the proportions.
-    Rcout << "Information matrix:\n" << I << "\n";
-    Rcout << "X:\n" << X << "\n";
-    Rcout << "Error in Cholesky decomposition with message: " << e.what() << std::endl;
-    I_eff = 10000;
-    Rcout << "Returning I_eff = " << I_eff << std::endl;
+    eff_crit = 100;
+    Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
   }
 
-  return I_eff;
+  return eff_crit;
 }
 
 
@@ -702,8 +696,7 @@ double getDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose){
   //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6
   //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
 
-  double opt_crit_value; // We want to minimize this
-  double half_log_det_I;
+  double eff_crit = 0.0; // We want to minimize this
 
   int m = beta.n_elem;
   arma::mat I(m-1, m-1, fill::zeros);
@@ -711,25 +704,24 @@ double getDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose){
   I = getInformationMatrixMNL(X, beta);
   if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
 
+
   arma::mat L;
   try{
-    arma::mat L = chol(I);
-    half_log_det_I = sum(log(L.diag()));
-    // Don't know if I should scale or just return log determinant
-    // Right now it just returns the log determinant.
-    // This line scales it:
-    // opt_crit_value = 2*half_log_det_I/I.n_cols - log(I.n_rows);
-    opt_crit_value = -2*half_log_det_I;
+    L = chol(I);
+    eff_crit = -2*sum(log(L.diag()));
   }
   catch(const std::runtime_error& e){
-    // I don't think this is the best way to handle the exception.
-    Rcout << "Error in Cholesky decomposition\n";
-    Rcout << "Information matrix:\n" << I << "\n";
-    Rcout << "X:\n" << X << "\n";
-    stop("Error in Cholesky decomposition with message: ", e.what(), "\n");
+    // If Cholesky decomposition fails, it is likely because information matrix
+    // was not numerically positive definite.
+    // If this happens, it is probably because a numerical inestability.
+    // The function then returns the efficiency value as a big positive number, this
+    // way the algorithm does nothing in this iteration because the algorithm thinks
+    // there was no improvement when swapping the proportions.
+    eff_crit = 100;
+    Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
   }
 
-  return opt_crit_value;
+  return eff_crit;
 }
 
 
@@ -747,7 +739,7 @@ double getICritValueMNL(arma::cube& X, arma::vec& beta, int verbose, arma::mat& 
 
   if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
 
-  double I_eff; // We want to minimize this
+  double eff_crit; // We want to minimize this
 
 
   // Attempt to do a Cholesky decomposition on the information matrix
@@ -757,17 +749,20 @@ double getICritValueMNL(arma::cube& X, arma::vec& beta, int verbose, arma::mat& 
 
     arma::mat A = solve(trimatl(L.t()), W);
     arma::mat C = solve(trimatu(L), A);
-    I_eff = log(trace(C));
+    eff_crit = log(trace(C));
   }
   catch(const std::runtime_error& e){
-    // I don't think this is the best way to handle the exception.
-    Rcout << "Error in Cholesky decomposition\n";
-    Rcout << "Information matrix:\n" << I << "\n";
-    Rcout << "X:\n" << X << "\n";
-    stop("Error in Cholesky decomposition with message: ", e.what(), "\n");
+    // If Cholesky decomposition fails, it is likely because information matrix
+    // was not numerically positive definite.
+    // If this happens, it is probably because a numerical inestability.
+    // The function then returns the efficiency value as a big positive number, this
+    // way the algorithm does nothing in this iteration because the algorithm thinks
+    // there was no improvement when swapping the proportions.
+    eff_crit = 100;
+    Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
   }
 
-  return I_eff;
+  return eff_crit;
 }
 
 
