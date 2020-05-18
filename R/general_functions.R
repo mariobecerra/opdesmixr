@@ -56,15 +56,22 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
 #' TODO: write doc
 #' @export
 mixture_coord_ex = function(
-  X,
+  n_random_starts = 100,
+  X = NULL,
   order = NULL,
+  n_runs = NULL,
+  q = NULL,
+  J = NULL,
+  S = NULL,
   beta = NULL,
   model = "Gaussian",
-  n_cox_points = 100,
-  max_it = 50,
+  n_cox_points = 50,
+  max_it = 5,
   plot_designs = F,
   opt_crit = 0, # 0 is D-optimality and 1 is I-optimality
-  verbose = 1){
+  verbose = 1,
+  seed = NULL,
+  n_cores = 1){
 
   available_models = c("Gaussian", "MNL")
 
@@ -84,17 +91,28 @@ mixture_coord_ex = function(
   # Call Gaussian function
   if(model == "Gaussian"){
 
+    if(is.null(order)) stop("Must supply order.")
+
     cat('Creating design for "', model, '" model of order ', order, '.\n', sep = "")
 
     if(!is.null(beta)) warning("beta was supplied but was ignored.")
+    if(!is.null(J)) warning("J was supplied but was ignored.")
+    if(!is.null(S)) warning("S was supplied but was ignored.")
+    if(is.null(X) & (is.null(n_runs) | is.null(q))) stop("Must supply X, or both n_runs and q.")
+
     out = mixture_coord_ex_gaussian(
       X = X,
+      q = q,
+      n_random_starts = n_random_starts,
       order = order,
+      n_runs = n_runs,
       n_cox_points = n_cox_points,
       max_it = max_it,
       plot_designs = plot_designs,
       verbose = verbose,
-      opt_crit = opt_crit)
+      opt_crit = opt_crit,
+      seed = seed,
+      n_cores = n_cores)
   }
 
   # Call MNL function
@@ -102,16 +120,27 @@ mixture_coord_ex = function(
 
     cat('Creating design for "', model, '" model.\n', sep = "")
 
-    if(!is.null(order)) warning("order was supplied but was ignored.")
+    if(is.null(beta)) stop("Must supply beta for MNL model.")
+    if(is.null(X) & (is.null(q) | is.null(J) | is.null(S))) stop("Must supply X, or all of J, Q, and q.")
+
+    if(!is.null(order)) warning("order was supplied but was ignored. MNL only works with cubic models")
+    if(!is.null(n_runs)) warning("n_runs was supplied but was ignored")
+
 
     out = mixture_coord_ex_mnl(
+      q = q,
+      J = J,
+      S = S,
+      n_random_starts = n_random_starts,
       X = X,
       beta = beta,
       n_cox_points = n_cox_points,
       max_it = max_it,
       plot_designs = plot_designs,
       verbose = verbose,
-      opt_crit = opt_crit)
+      opt_crit = opt_crit,
+      seed = seed,
+      n_cores = n_cores)
   }
 
   return(out)
