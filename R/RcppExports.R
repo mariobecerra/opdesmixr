@@ -9,8 +9,16 @@ getScheffeGaussian <- function(X, order) {
     .Call(`_opdesmixr_getScheffeGaussian`, X, order)
 }
 
+getDCritValueGaussian <- function(X, order) {
+    .Call(`_opdesmixr_getDCritValueGaussian`, X, order)
+}
+
 getICritValueGaussian <- function(X, order, q, W) {
     .Call(`_opdesmixr_getICritValueGaussian`, X, order, q, W)
+}
+
+getOptCritValueGaussian <- function(X, order, q, opt_crit, W) {
+    .Call(`_opdesmixr_getOptCritValueGaussian`, X, order, q, opt_crit, W)
 }
 
 mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose, opt_crit, W) {
@@ -39,6 +47,10 @@ getDCritValueMNL <- function(X, beta, verbose) {
 
 getICritValueMNL <- function(X, beta, verbose, W) {
     .Call(`_opdesmixr_getICritValueMNL`, X, beta, verbose, W)
+}
+
+getOptCritValueMNL <- function(X, beta, verbose, opt_crit, W) {
+    .Call(`_opdesmixr_getOptCritValueMNL`, X, beta, verbose, opt_crit, W)
 }
 
 findBestCoxDirMNL <- function(cox_dir, X_in, beta, k, s, opt_crit_value_best, verbose, opt_crit, W) {
