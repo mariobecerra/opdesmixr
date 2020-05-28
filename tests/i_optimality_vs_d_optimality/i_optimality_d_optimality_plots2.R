@@ -35,7 +35,8 @@ efficiencies %>%
   geom_bar(aes(name, value), stat = "identity") +
   facet_wrap(~group) +
   xlab("") +
-  ylab("Percentage")
+  ylab("Percentage") +
+  geom_hline(yintercept = 1)
 
 
 
