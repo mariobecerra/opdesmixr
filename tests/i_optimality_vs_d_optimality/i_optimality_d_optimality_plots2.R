@@ -7,7 +7,7 @@ theme_set(theme_bw())
 # source("R/mnl_model_functions.R")
 # source("R/general_functions.R")
 
-out_dir_1 = "tests/i_opt_d_opt_plots/"
+out_dir_1 = "tests/i_optimality_vs_d_optimality/out/"
 out_dir = paste0(out_dir_1, "rds_files/")
 
 file_names = list.files(here(out_dir))
@@ -16,7 +16,13 @@ efficiencies = map_df(seq_along(file_names), function(i){
   eff = readRDS(here(out_dir, file_names[i]))
   if(any(is.na(eff))) eff = eff %>% filter(rep(F, nrow(eff)))
   return(eff)
-})
+}) %>%
+  mutate(n_params = (q^3 + 5*q)/6-1) %>%
+  mutate(
+    ratio_d_eff = (exp(d_eff_of_i_optimal_design - d_eff_of_d_optimal_design))^(1/n_params),
+    ratio_i_eff = (exp(i_eff_of_d_optimal_design - i_eff_of_i_optimal_design))
+  )
+
 
 
 efficiencies %>%
@@ -37,6 +43,42 @@ efficiencies %>%
   xlab("") +
   ylab("Percentage") +
   geom_hline(yintercept = 1)
+
+
+
+# I like the boxplot better
+efficiencies %>%
+  mutate(group = paste0("q = ", q, ", J = ", J, ", S = ", S)) %>%
+  ggplot() +
+  geom_histogram(aes(ratio_d_eff)) +
+  facet_wrap(~group, scales = "free")
+
+
+efficiencies %>%
+  mutate(group = paste0("q = ", q, ", J = ", J, ", S = ", S)) %>%
+  ggplot() +
+  geom_boxplot(aes(group, ratio_d_eff)) +
+  geom_hline(yintercept = 1, linetype = "dotted") +
+  coord_flip() +
+  xlab("") +
+  ylab("Ratio of D-efficiencies")
+
+
+
+efficiencies %>%
+  mutate(group = paste0("q = ", q, ", J = ", J, ", S = ", S)) %>%
+  ggplot() +
+  geom_boxplot(aes(group, ratio_i_eff)) +
+  geom_hline(yintercept = 1, linetype = "dotted") +
+  coord_flip() +
+  xlab("") +
+  ylab("Ratio of I-efficiencies")
+
+
+
+
+
+
 
 
 
