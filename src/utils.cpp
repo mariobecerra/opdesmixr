@@ -685,98 +685,180 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta){
 
 
 
+// // [[Rcpp::export]]
+// double getDCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose){
+//   // Function that returns the D criterion value for design cube X and parameter vector beta.
+//   // The D-optimality criterion seeks to maximize the determinant of the information matrix or minimize the determinant of the variance-covariance matrix..
+//   // This function computes the log determinant of the information matrix using a Choleski decomposition.
+//   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
+//   // Input:
+//   //     X: design cube of dimensions (q, J, S)
+//   //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6
+//   //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
+//
+//   double eff_crit = 0.0; // We want to minimize this
+//
+//   int m = beta_mat.n_cols;
+//   int n_sims = beta_mat.n_rows;
+//
+//   arma::mat I(m-1, m-1, fill::zeros);
+//
+//   // Accumulator
+//   double acc = 0.0;
+//
+//   // Flag in case there's an error in the Cholesky decomposition
+//   bool error_flag = false;
+//
+//   // Iterate over all prior draws
+//   for(int i = 0; i < n_sims; i++){
+//     I = getInformationMatrixMNL(X, beta); // beta now is a vector. Should put a loop here.
+//     if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
+//
+//
+//     arma::mat L;
+//     try{
+//       L = chol(I);
+//       acc = acc - 2*sum(log(L.diag()));
+//     }
+//     catch(const std::runtime_error& e){
+//       // If Cholesky decomposition fails, it is likely because information matrix
+//       // was not numerically positive definite.
+//       // If this happens, it is probably because a numerical inestability.
+//       // The function then returns the efficiency value as a big positive number, this
+//       // way the algorithm does nothing in this iteration because the algorithm thinks
+//       // there was no improvement when swapping the proportions.
+//
+//       // If Cholesky decomposition failed, returns a flag to return a final value of 100
+//       error_flag = true;
+//       Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
+//       break;
+//     }
+//   }
+//
+//   if(err_flag){
+//     eff_crit = 100;
+//   } else{
+//     eff_crit = acc/n_sums;
+//   }
+//
+//
+//   return eff_crit;
+// }
+//
+//
+//
+//
+//
+// // [[Rcpp::export]]
+// double getICritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, arma::mat& W){
+//   int q = X.n_rows;
+//
+//   int m = beta_mat.n_cols;
+//
+//   arma::mat I(m-1, m-1, fill::zeros);
+//   I = getInformationMatrixMNL(X, beta); // beta now is a vector. Should put a loop here.
+//
+//   if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
+//
+//   double eff_crit; // We want to minimize this
+//
+//
+//   // Attempt to do a Cholesky decomposition on the information matrix
+//   arma::mat L;
+//   try{
+//     L = chol(I);
+//
+//     arma::mat A = solve(trimatl(L.t()), W);
+//     arma::mat C = solve(trimatu(L), A);
+//     eff_crit = log(trace(C));
+//   }
+//   catch(const std::runtime_error& e){
+//     // If Cholesky decomposition fails, it is likely because information matrix
+//     // was not numerically positive definite.
+//     // If this happens, it is probably because a numerical inestability.
+//     // The function then returns the efficiency value as a big positive number, this
+//     // way the algorithm does nothing in this iteration because the algorithm thinks
+//     // there was no improvement when swapping the proportions.
+//     eff_crit = 100;
+//     Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
+//   }
+//
+//   return eff_crit;
+// }
+
+
+
+
+
 // [[Rcpp::export]]
-double getDCritValueMNL(arma::cube& X, arma::vec& beta, int verbose){
-  // Function that returns the D criterion value for design cube X and parameter vector beta.
-  // The D-optimality criterion seeks to maximize the determinant of the information matrix or minimize the determinant of the variance-covariance matrix..
-  // This function computes the log determinant of the information matrix using a Choleski decomposition.
-  // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
-  // Input:
-  //     X: design cube of dimensions (q, J, S)
-  //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6
-  //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
-
-  double eff_crit = 0.0; // We want to minimize this
-
-  int m = beta.n_elem;
-  arma::mat I(m-1, m-1, fill::zeros);
-
-  I = getInformationMatrixMNL(X, beta);
-  if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
-
-
-  arma::mat L;
-  try{
-    L = chol(I);
-    eff_crit = -2*sum(log(L.diag()));
-  }
-  catch(const std::runtime_error& e){
-    // If Cholesky decomposition fails, it is likely because information matrix
-    // was not numerically positive definite.
-    // If this happens, it is probably because a numerical inestability.
-    // The function then returns the efficiency value as a big positive number, this
-    // way the algorithm does nothing in this iteration because the algorithm thinks
-    // there was no improvement when swapping the proportions.
-    eff_crit = 100;
-    Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
-  }
-
-  return eff_crit;
-}
-
-
-
-
-
-// [[Rcpp::export]]
-double getICritValueMNL(arma::cube& X, arma::vec& beta, int verbose, arma::mat& W){
-  int q = X.n_rows;
-
-  int m = beta.n_elem;
-
-  arma::mat I(m-1, m-1, fill::zeros);
-  I = getInformationMatrixMNL(X, beta);
-
-  if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
-
-  double eff_crit; // We want to minimize this
-
-
-  // Attempt to do a Cholesky decomposition on the information matrix
-  arma::mat L;
-  try{
-    L = chol(I);
-
-    arma::mat A = solve(trimatl(L.t()), W);
-    arma::mat C = solve(trimatu(L), A);
-    eff_crit = log(trace(C));
-  }
-  catch(const std::runtime_error& e){
-    // If Cholesky decomposition fails, it is likely because information matrix
-    // was not numerically positive definite.
-    // If this happens, it is probably because a numerical inestability.
-    // The function then returns the efficiency value as a big positive number, this
-    // way the algorithm does nothing in this iteration because the algorithm thinks
-    // there was no improvement when swapping the proportions.
-    eff_crit = 100;
-    Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
-  }
-
-  return eff_crit;
-}
-
-
-
-
-
-// [[Rcpp::export]]
-double getOptCritValueMNL(arma::cube& X, arma::vec& beta, int verbose, int opt_crit, arma::mat& W){
+double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int opt_crit, arma::mat& W){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
-  if(opt_crit == 0){
-    return(getDCritValueMNL(X, beta, verbose));
-  } else{
-    return(getICritValueMNL(X, beta, verbose, W));
+
+
+  int m = beta_mat.n_cols;
+  int n_sims = beta_mat.n_rows;
+
+
+
+  // Initialize information matrix with zeros
+  arma::mat I(m-1, m-1, fill::zeros);
+
+  // Final efficiency criterion value. We want to minimize this.
+  double eff_crit_val = 0.0;
+
+  // Accumulator
+  double acc = 0.0;
+
+  // Flag in case there's an error in the Cholesky decomposition
+  bool error_flag = false;
+
+  vec beta = zeros(m-1);
+
+  // Iterate over all prior draws
+  // This seems to intriduce overhead when there is only one row. It takes twice as long as before.
+  for(int i = 0; i < n_sims; i++){
+    beta = conv_to<vec>::from(beta_mat.row(i));
+    I = getInformationMatrixMNL(X, beta);
+    if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
+
+
+    arma::mat L;
+    try{
+      L = chol(I);
+
+      if(opt_crit == 0){
+        // D-optimality
+        acc = acc - 2*sum(log(L.diag()));
+      } else{
+        // I-optimality
+        arma::mat A = solve(trimatl(L.t()), W);
+        arma::mat C = solve(trimatu(L), A);
+        acc = acc + log(trace(C));
+      }
+    }
+
+    catch(const std::runtime_error& e){
+      // If Cholesky decomposition fails, it is likely because information matrix
+      // was not numerically positive definite.
+      // If this happens, it is probably because a numerical inestability.
+      // The function then returns the efficiency value as a big positive number, this
+      // way the algorithm does nothing in this iteration because the algorithm thinks
+      // there was no improvement when swapping the proportions.
+
+      // If Cholesky decomposition failed, returns a flag to return a final value of 100
+      error_flag = true;
+      Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit_val = ", eff_crit_val);
+      break;
+    }
   }
+
+  if(error_flag){
+    eff_crit_val = 100;
+  } else{
+    eff_crit_val = acc/n_sims;
+  }
+
+  return eff_crit_val;
 }
 
 
@@ -786,14 +868,14 @@ double getOptCritValueMNL(arma::cube& X, arma::vec& beta, int verbose, int opt_c
 
 
 // [[Rcpp::export]]
-arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& beta, int k, int s, double opt_crit_value_best, int verbose, int opt_crit, arma::mat& W) {
+arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::mat& beta_mat, int k, int s, double opt_crit_value_best, int verbose, int opt_crit, arma::mat& W) {
   // Function that returns the design that minimizes the optimality criterion value.
   // Returns a cube of dimension (q, J, S) with a design that minimizes the value of the optimality criterion value.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // Input:
   //     cox_dir: Matrix with Cox direction with q columns. Each row sums up to 1.
   //     X_in: design cube of dimensions (q, J, S).
-  //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6.
+  //     beta_mat: parameter matrix. If not Bayesian, must have m rows, with m = (q^3 + 5*q)/6.
   //     k: Cox direction index (1 to q).
   //     s: integer s, corresponding to a choice set in 1 to S.
   //     opt_crit_value_best: Efficiency value with which the new efficiencies are compared to.
@@ -824,7 +906,7 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
       Rcout << "\tj = " << j << " (of " << n_cox_points << "), ";
     }
 
-    opt_crit_value_j = getOptCritValueMNL(X, beta, verbose, opt_crit, W);
+    opt_crit_value_j = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W);
 
     if(verbose >= 4){
       Rcout << "opt_crit_value_j = "  << opt_crit_value_j << "\n";
@@ -852,17 +934,17 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::vec& be
 
 
 
-
+// To implement the Bayesian part, beta will have to be a vector of prior simulations
 
 // [[Rcpp::export]]
-Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n_cox_points, int max_it, int verbose, int opt_crit, arma::mat W){
+Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::mat beta_mat, int n_cox_points, int max_it, int verbose, int opt_crit, arma::mat W){
   // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // X: 3 dimensional cube with dimensions (q, J, S) where:
   //    q is the number of ingredient proportions
   //    J is the number of alternatives within a choice set
   //    S is the number of choice sets
-  // beta: vector of parameters. Should be of length (q^3 + 5*q)/6.
+  // beta_mat: Matrix of parameters. m = (q^3 + 5*q)/6.
   // n_cox_points: Number of points to use in the discretization of Cox direction.
   // max_it: Maximum number of iteration that the coordinate exchange algorithm will do.
   // verbose: level of verbosity. 6 levels, in which level prints the previous plus additional things:
@@ -896,8 +978,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
   // Vector of ingredient proportions
   arma::vec x(q);
 
-
-  double opt_crit_value_orig = getOptCritValueMNL(X, beta, verbose, opt_crit, W);
+  double opt_crit_value_orig = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W);
   double opt_crit_value_best = opt_crit_value_orig;
   double opt_crit_value_aux = 1e308; // +Inf
 
@@ -935,8 +1016,8 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::vec beta, int n
           }
 
           cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-          X = findBestCoxDirMNL(cox_dir, X, beta, k, s, opt_crit_value_best, verbose, opt_crit, W);
-          opt_crit_value_best = getOptCritValueMNL(X, beta, verbose, opt_crit, W);
+          X = findBestCoxDirMNL(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W);
+          opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W);
 
           if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
 
