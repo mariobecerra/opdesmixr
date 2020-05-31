@@ -41,23 +41,15 @@ getInformationMatrixMNL <- function(X, beta) {
     .Call(`_opdesmixr_getInformationMatrixMNL`, X, beta)
 }
 
-getDCritValueMNL <- function(X, beta, verbose) {
-    .Call(`_opdesmixr_getDCritValueMNL`, X, beta, verbose)
+getOptCritValueMNL <- function(X, beta_mat, verbose, opt_crit, W) {
+    .Call(`_opdesmixr_getOptCritValueMNL`, X, beta_mat, verbose, opt_crit, W)
 }
 
-getICritValueMNL <- function(X, beta, verbose, W) {
-    .Call(`_opdesmixr_getICritValueMNL`, X, beta, verbose, W)
+findBestCoxDirMNL <- function(cox_dir, X_in, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W) {
+    .Call(`_opdesmixr_findBestCoxDirMNL`, cox_dir, X_in, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W)
 }
 
-getOptCritValueMNL <- function(X, beta, verbose, opt_crit, W) {
-    .Call(`_opdesmixr_getOptCritValueMNL`, X, beta, verbose, opt_crit, W)
-}
-
-findBestCoxDirMNL <- function(cox_dir, X_in, beta, k, s, opt_crit_value_best, verbose, opt_crit, W) {
-    .Call(`_opdesmixr_findBestCoxDirMNL`, cox_dir, X_in, beta, k, s, opt_crit_value_best, verbose, opt_crit, W)
-}
-
-mixtureCoordinateExchangeMNL <- function(X_orig, beta, n_cox_points, max_it, verbose, opt_crit, W) {
-    .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta, n_cox_points, max_it, verbose, opt_crit, W)
+mixtureCoordinateExchangeMNL <- function(X_orig, beta_mat, n_cox_points, max_it, verbose, opt_crit, W) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta_mat, n_cox_points, max_it, verbose, opt_crit, W)
 }
 
