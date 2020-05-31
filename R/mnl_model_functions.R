@@ -66,7 +66,9 @@ get_opt_crit_value_MNL = function(X, beta, opt_crit = 0){
 #' @examples
 #' create_random_beta(3)
 #' @export
-create_random_beta = function(q){
+create_random_beta = function(q, seed = NULL){
+
+  if(!is.null(seed)) set.seed(seed)
 
   beta_1 = rnorm(q)
 
@@ -203,17 +205,18 @@ mixture_coord_ex_mnl = function(
     dim_X = dim(X)
 
     if(length(dim_X) != 3) stop("X must be a 3 dimensional array.")
-    if(!is.vector(beta)) stop("beta is not a vector. It must be a numerical or integer vector.")
-    if(!(is.numeric(beta) | !is.integer(beta))) stop("beta is not numeric or integer. It must be a numerical or integer vector.")
+    if(!(is.vector(beta) | is.matrix(beta))) stop("beta is not a vector or a matrix. It must be a numerical or integer vector or matrix.")
 
     q = dim_X[1]
 
     designs = list(X)
   }
 
+  if(is.vector(beta)) beta = matrix(beta, nrow = 1)
 
-  m = (q*q*q + 5*q)/6
-  if(m != length(beta)) stop("Incompatible length in beta and q: beta must be of length (q^3 + 5*q)/6")
+
+  # m = (q*q*q + 5*q)/6
+  # if(m != length(beta)) stop("Incompatible length in beta and q: beta must be of length (q^3 + 5*q)/6")
 
 
   # If criterion is D-optimality, send a matrix with only one zero element as a moment matrix
@@ -248,7 +251,7 @@ mixture_coord_ex_mnl = function(
     # If there was an error with this design, return whatever
     if(class(out) == "try-error"){
 
-      if(verbose > 0) cat("Design", i, "encountered an error.\n")
+      if(verbose > 0) cat("Design", i, "encountered the following error:", out, "\n")
       warning("Design ", i, " encountered an error.")
 
       out = list(
