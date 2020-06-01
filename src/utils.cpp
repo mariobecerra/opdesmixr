@@ -815,7 +815,9 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
   vec beta = zeros(m-1);
 
   // Iterate over all prior draws
-  // This seems to intriduce overhead when there is only one row. It takes twice as long as before.
+  // This seems to introduce overhead when there is only one row. It takes twice as long as before.
+  // I don't really get why it is longer. It's not the for loop or the creation of the vector from the row, since I've tested that.
+  // Don't know what's going on.
   for(int i = 0; i < n_sims; i++){
     beta = conv_to<vec>::from(beta_mat.row(i));
     I = getInformationMatrixMNL(X, beta);
