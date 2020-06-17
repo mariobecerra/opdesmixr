@@ -6,7 +6,7 @@ Rcpp::sourceCpp("src/utils.cpp")
 source("R/mnl_model_functions.R")
 source("R/general_functions.R")
 
-out_dir_1 = "tests/i_opt_d_opt_plots/"
+out_dir_1 = "tests/i_optimality_vs_d_optimality/out/"
 out_dir = paste0(out_dir_1, "rds_files/")
 dir.create(here(out_dir_1))
 dir.create(here(out_dir))
@@ -17,12 +17,12 @@ max_it = 3
 n_cores = parallel::detectCores()
 n_designs = 50
 
-# for(J in 2:5){
-#  for(S in 2:5){
-#   for(q in 3:5){
-for(S in 5:7){
-  for(J in 3:4){
-    for(q in 4:3){
+for(S in 2:7){
+  for(J in 2:5){
+    for(q in 5:3){
+      # for(S in 5:7){
+      #   for(J in 3:4){
+      #     for(q in 4:3){
 
       time_now = substring(as.character(Sys.time()), 12, 1000)
       cat("\n\n\n\n", "q = ", q, ", J = ", J, ", S = ", S, " (", time_now, ")", "\n", sep = "")
