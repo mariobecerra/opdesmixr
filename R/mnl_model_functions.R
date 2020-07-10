@@ -334,7 +334,7 @@ mnl_plot_result = function(res_alg){
     X_orig_mat = rbind(X_orig_mat, t(res_alg$X_orig[,,s]))
   }
 
-  X_final_mat = t(res_alg$X_orig[,,1])
+  X_final_mat = t(res_alg$X[,,1])
   for(s in 2:S){
     X_final_mat = rbind(X_final_mat, t(res_alg$X[,,s]))
   }
