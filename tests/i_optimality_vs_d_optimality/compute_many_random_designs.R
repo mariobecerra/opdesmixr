@@ -22,8 +22,10 @@ n_cores = parallel::detectCores()
 n_designs = 50
 
 for(J in 2:3){
-  for(S in c(35))# for(S in c(25, 35)){ #for(S in c(10, 6, 15)){
-    for(q in 6) #for(q in 5:6){ #for(q in 3:5){
+  for(S in c(35)){
+    # for(S in c(25, 35)){ #for(S in c(10, 6, 15)){
+    for(q in 6) {
+      #for(q in 5:6){ #for(q in 3:5){
 
       time_now = substring(as.character(Sys.time()), 12, 1000)
       cat("\n\n\n\n", "q = ", q, ", J = ", J, ", S = ", S, " (", time_now, ")", "\n", sep = "")
