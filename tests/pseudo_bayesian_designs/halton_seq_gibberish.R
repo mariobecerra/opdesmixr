@@ -253,6 +253,35 @@ t2 - t1
 
 
 
+halton_normal = function(n, dim = 1, mean = NULL, sd = NULL, usetime = F){
+
+  draws_unif = halton(n, dim = dim, usetime = usetime)
+
+  if(dim > 1){
+    if(length(mean) == 1) mean = rep(mean, dim)
+    if(length(sd) == 1) sd = rep(sd, dim)
+
+    draws_normal = matrix(rep(NA_real_, dim), ncol = dim)
+    for(i in 1:ncol(draws_normal)){
+      draws_normal[, i] = qnorm(draws_unif[, i], mean[i], sd[i])
+    }
+  } else{
+    draws_normal = qnorm(draws_unif, mean, sd)
+  }
+
+  return(draws_normal)
+}
+
+
+qplot(halton_normal(100, 1, 1, 1, usetime = T))
+
+
+
+
+
+
+
+
 ### Bayesian
 draws_unif_beta4_2 = halton(120, dim = length(beta4_2$beta))
 
