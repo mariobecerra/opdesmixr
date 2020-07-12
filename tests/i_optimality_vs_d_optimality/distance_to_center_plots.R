@@ -29,7 +29,7 @@ out_dir_1 = "tests/i_optimality_vs_d_optimality/out/"
 out_dir_2 = paste0(out_dir_1, "rds_files/")
 out_dir = paste0(out_dir_2, "many_random_designs/")
 
-file_names = list.files(out_dir)
+file_names = list.files(here(out_dir))
 
 
 average_distances = map_df(seq_along(file_names), function(i){
@@ -74,6 +74,9 @@ average_distances = map_df(seq_along(file_names), function(i){
 
 average_distances %>%
   filter(!is.na(diff)) %>%
+  mutate(n_runs = n()) %>%
+  ungroup() %>%
+  filter(n_runs > 10) %>%
   mutate(group = paste0("q = ", q, ", J = ", J, ", S = ", S)) %>%
   ggplot() +
   geom_boxplot(aes(group, diff)) +
