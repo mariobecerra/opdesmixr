@@ -46,6 +46,10 @@ efficiencies %>%
 
 efficiencies %>%
   filter(complete.cases(.)) %>%
+  group_by(q, J, S) %>%
+  mutate(n_runs = n()) %>%
+  ungroup() %>%
+  filter(n_runs > 10) %>%
   mutate(group = paste0("q = ", q, ", J = ", J, ", S = ", S)) %>%
   ggplot() +
   geom_boxplot(aes(group, ratio_d_eff)) +
@@ -57,6 +61,7 @@ efficiencies %>%
 
 
 efficiencies %>%
+  filter(complete.cases(.)) %>%
   mutate(group = paste0("q = ", q, ", J = ", J, ", S = ", S)) %>%
   ggplot() +
   geom_boxplot(aes(group, ratio_i_eff)) +

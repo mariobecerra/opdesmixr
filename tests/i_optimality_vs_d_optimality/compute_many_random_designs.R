@@ -19,9 +19,9 @@ n_rand_starts = 50# n_rand_starts = 100
 n_cox_points = 50
 max_it = 3
 n_cores = parallel::detectCores()
-n_designs = 50
+n_designs = 30
 
-for(J in 2:3){
+for(J in 3){
   for(S in c(35)){
     # for(S in c(25, 35)){ #for(S in c(10, 6, 15)){
     for(q in 6) {
