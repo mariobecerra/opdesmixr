@@ -53,3 +53,7 @@ mixtureCoordinateExchangeMNL <- function(X_orig, beta_mat, n_cox_points, max_it,
     .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta_mat, n_cox_points, max_it, verbose, opt_crit, W)
 }
 
+efficiency_cox_scheffe <- function(theta, X, j, i, order, opt_crit, W) {
+    .Call(`_opdesmixr_efficiency_cox_scheffe`, theta, X, j, i, order, opt_crit, W)
+}
+

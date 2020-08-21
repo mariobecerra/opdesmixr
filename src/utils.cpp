@@ -1,10 +1,12 @@
 // #include <Rcpp.h>
 #include <RcppArmadillo.h>
+#include "brent.hpp"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;
 using namespace arma;
+
 
 
 ////////////////////////////////////////
@@ -1064,6 +1066,77 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::mat beta_mat, i
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// [[Rcpp::export]]
+double efficiency_cox_scheffe(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W){
+  // Computes efficiency of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
+  // theta must be between 0 and 1 because it's an ingredient proportion.
+  // j and i are 0-indexed.
+
+  // Create new matrix Y that is identical to the one pointed by X.
+  // Note: This is the easiest way to do it because we have to modify a row in this matrix.
+  // A more computationally effective way would be to only store the new modified vector since
+  // we don't need a copy of the whole matrix. But to do that I would have to either modify some
+  // existing functions, or create some new ones, or both. IDK if the gain in performance is worth it.
+  arma::mat Y = X;
+  int q = Y.n_cols;
+
+  // Create a vector with the i-th row of the design matrix X
+  arma::vec x_i(q);
+  for(int col = 0; col < q; col++){
+    x_i(col) = X(i, col);
+  }
+
+  // delta = theta - x_i[i]
+  double delta = theta - x_i(j);
+
+  // recompute proportions:
+  vec setDiff_aux = linspace<vec>(0, q-1, q);
+  vec setDiff = removeElement(setDiff_aux, j);
+  int k;
+  double result;
+
+  for(int k_aux = 0; k_aux < setDiff.n_elem; k_aux++){
+    k = setDiff(k_aux);
+
+    if(abs(1 - x_i(j)) < 1e-16) {
+      // In case x_i(j) is numerically 1, it will return a numeric zero such that the vector sums up to 1
+      // Almost the same as doing result = 0;
+      result = (1 - x_i(j))/(q-1);
+    } else{
+      // Other case
+      result = x_i(k) - delta*x_i(k)/(1 - x_i(j));
+    }
+
+    x_i(k) = result;
+  }
+
+  x_i(j) = theta;
+
+  // replace x_i row with the recomputed proportions according to Cox direction
+  for(int col = 0; col < q; col++){
+    Y(j, col) = x_i(col);
+  }
+
+  double utility_funct = getOptCritValueGaussian(Y, order, q, opt_crit, W);
+
+  return(utility_funct);
+}
 
 
 

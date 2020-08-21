@@ -193,6 +193,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// efficiency_cox_scheffe
+double efficiency_cox_scheffe(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W);
+RcppExport SEXP _opdesmixr_efficiency_cox_scheffe(SEXP thetaSEXP, SEXP XSEXP, SEXP jSEXP, SEXP iSEXP, SEXP orderSEXP, SEXP opt_critSEXP, SEXP WSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type j(jSEXP);
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    Rcpp::traits::input_parameter< int >::type opt_crit(opt_critSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
+    rcpp_result_gen = Rcpp::wrap(efficiency_cox_scheffe(theta, X, j, i, order, opt_crit, W));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_opdesmixr_computeCoxDirection", (DL_FUNC) &_opdesmixr_computeCoxDirection, 4},
@@ -208,6 +225,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_opdesmixr_getOptCritValueMNL", (DL_FUNC) &_opdesmixr_getOptCritValueMNL, 5},
     {"_opdesmixr_findBestCoxDirMNL", (DL_FUNC) &_opdesmixr_findBestCoxDirMNL, 9},
     {"_opdesmixr_mixtureCoordinateExchangeMNL", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL, 7},
+    {"_opdesmixr_efficiency_cox_scheffe", (DL_FUNC) &_opdesmixr_efficiency_cox_scheffe, 7},
     {NULL, NULL, 0}
 };
 
