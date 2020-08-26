@@ -170,6 +170,8 @@ gaussian_plot_result = function(res_alg){
 
 
 
+
+
 #' TODO: write doc
 #' @export
 create_moment_matrix_gaussian = function(q){
@@ -231,21 +233,7 @@ create_moment_matrix_gaussian = function(q){
 
 
 
-
-
-
-
-
-
-#' Function that computes optimality criterion value for MNL model
-#'
-#' \code{get_opt_crit_value_MNL} computes optimality criterion value for MNL model
-#' @param X 3 dimensional array with dimensions (q, J, S) where:
-#'     q is the number of ingredient proportions,
-#'     J is the number of alternatives within a choice set,
-#'     S is the number of choice sets.
-#' @param opt_crit optimality criterion: 0 is D-optimality and 1 is I-optimality
-#' @return Returns the value of the optimality criterion for this particular design and this beta vector
+#' TODO: write doc
 #' @export
 get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
 
@@ -263,3 +251,73 @@ get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
 
   return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W))
 }
+
+
+
+
+
+
+
+
+#' Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
+#' TODO: write doc
+#' @export
+efficiency_cox_scheffe_gaussian = function(theta, X, j, i, order, opt_crit){
+  # // Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
+  # // theta must be between 0 and 1 because it's an ingredient proportion.
+  # // j and i are 0-indexed.
+  # // We want to minimize this.
+  #
+  # // Create new matrix Y that is identical to the one pointed by X.
+  # // Note: This is the easiest way to do it because we have to modify a row in this matrix.
+  # // A more computationally effective way would be to only store the new modified vector since
+  # // we don't need a copy of the whole matrix. But to do that I would have to either modify some
+  # // existing functions, or create some new ones, or both. IDK if the gain in performance is worth it.
+
+
+  q = dim(X)[2]
+
+  if(opt_crit == 0){
+    # "D-optimality"
+    W = matrix(0.0, nrow = 1)
+  } else{
+    # "I-optimality")
+    W = create_moment_matrix_gaussian(q)
+  }
+
+  return(efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W))
+
+}
+
+
+
+#' Minimizes the efficiency function for Scheffé model using Brent's method.
+#' R wrapper for BrentCoxScheffeGaussian in C++.
+#' TODO: write doc
+#' @export
+brent_cox_scheffe_gaussian = function(X, j, i, order, opt_crit,
+                                      lwr_bnd = 0, uppr_bnd = 1, tol = 0.0001){
+  # R wrapper for BrentCoxScheffeGaussian in C++
+  # Minimizes the efficiency function for Scheffé model using Brent's method
+
+  q = dim(X)[2]
+
+  if(opt_crit == 0){
+    # "D-optimality"
+    W = matrix(0.0, nrow = 1)
+  } else{
+    # "I-optimality")
+    W = create_moment_matrix_gaussian(q)
+  }
+
+  return(
+    BrentCoxScheffeGaussian(X, j, i, order, opt_crit, W,
+                          lwr_bnd,uppr_bnd, tol)
+  )
+}
+
+
+
+
+
+

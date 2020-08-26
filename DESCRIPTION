@@ -20,9 +20,9 @@ Imports:
     dplyr (>= 0.8.3),
     purrr (>= 0.3.3),
     Rcpp,
-    magrittr (>= 1.5)
-Depends:
-    ggplot2 (>= 3.2.1),
+    magrittr (>= 1.5),
     ggtern (>= 3.3.0)
+Depends:
+    ggplot2 (>= 3.2.1)
 Suggests: 
     testthat (>= 2.3.1)

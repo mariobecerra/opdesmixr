@@ -12,7 +12,7 @@ q is the number of ingredient proportions,
 J is the number of alternatives within a choice set,
 S is the number of choice sets.}
 
-\item{beta}{numeric vector containing the parameters. Should be of length (q^3 + 5*q)/6}
+\item{beta}{numeric vector containing the parameters. Should be of length (q^3 + 5*q)/6. Must extend to Bayesian case and have the option of it to be a matrix.}
 
 \item{opt_crit}{optimality criterion: 0 is D-optimality and 1 is I-optimality}
 }

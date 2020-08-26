@@ -1,13 +1,13 @@
-// #include <Rcpp.h>
 #include <RcppArmadillo.h>
 #include "brent.hpp"
+#include <functional>
 
-// [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;
 using namespace arma;
+using namespace std;
 
-
+// [[Rcpp::depends(RcppArmadillo)]]
 
 ////////////////////////////////////////
 // Auxiliary functions
@@ -1083,10 +1083,12 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::mat beta_mat, i
 
 
 // [[Rcpp::export]]
-double efficiency_cox_scheffe(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W){
-  // Computes efficiency of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
+double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order,
+                                    int opt_crit, arma::mat& W){
+  // Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
   // theta must be between 0 and 1 because it's an ingredient proportion.
   // j and i are 0-indexed.
+  // We want to minimize this.
 
   // Create new matrix Y that is identical to the one pointed by X.
   // Note: This is the easiest way to do it because we have to modify a row in this matrix.
@@ -1135,8 +1137,132 @@ double efficiency_cox_scheffe(double theta, arma::mat& X, int j, int i, int orde
 
   double utility_funct = getOptCritValueGaussian(Y, order, q, opt_crit, W);
 
+  // We want to minimize this
   return(utility_funct);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// [[Rcpp::export]]
+List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
+                             double lwr_bnd = 0, double uppr_bnd = 1, double tol = 0.0001){
+  auto f = [&X, j, i, order, opt_crit, &W](double theta){
+    return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
+    // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
+    };
+
+  double theta_star;
+  double f_star = brent::local_min_mb(lwr_bnd, uppr_bnd, tol, f, theta_star);
+  return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
+}
+
+
+
+
+
+
+
+
+
+
+
+// Banana function
+
+// Help from:
+// https://stackoverflow.com/questions/34994475/rcpp-function-to-construct-a-function
+// https://codereview.stackexchange.com/questions/103762/implementation-of-brents-algorithm-to-find-roots-of-a-polynomial
+
+// Thanks to Norma and Manuel who helped me out with lambda functions in C++:
+// https://github.com/NormaVTH
+// https://github.com/manuelalcantara52
+
+
+
+// [[Rcpp::export]]
+double banana_xy(double x, double y){
+  return (1 - x)*(1-x) + 100*(y - x*x)*(y - x*x);
+}
+
+
+std::function<double(double)> create_banana(double y) {
+  auto out = [y](double x) {
+    return(banana_xy(x, y));
+  };
+  return out;
+}
+
+// [[Rcpp::export]]
+double banana_x_y1(double x){
+  std::function<double(double)> foo = create_banana(1.0);
+  return(foo(x));
+}
+
+// [[Rcpp::export]]
+double banana_x_y2(double x){
+  std::function<double(double)> foo = create_banana(2.0);
+  return(foo(x));
+}
+
+
+
+// [[Rcpp::export]]
+List min_banana_x_y1(double lwr_bnd = -10, double uppr_bnd = 10, double tol = 0.0001){
+  double x_star;
+  double f_star = brent::local_min_mb(lwr_bnd, uppr_bnd, tol, banana_x_y1, x_star);
+  return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
+}
+
+
+
+
+// [[Rcpp::export]]
+List minimize_banana_fixed_y(double y = 1.0, double lwr_bnd = -10, double uppr_bnd = 10, double tol = 0.0001){
+  auto f = [y](double x){ return banana_xy(x, y); };
+
+  double x_star;
+  double f_star = brent::local_min_mb(lwr_bnd, uppr_bnd, tol, f, x_star);
+  return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
+}
+
+
+
+
+
+// [[Rcpp::export]]
+double banana_xy2(double x, double &y){
+  return (1 - x)*(1-x) + 100*(y - x*x)*(y - x*x);
+}
+
+
+// [[Rcpp::export]]
+List minimize_banana_fixed_y2(double &y,
+                              double lwr_bnd = -10, double uppr_bnd = 10, double tol = 0.0001){
+  auto f = [&y](double x){ return banana_xy2(x, y); };
+
+  double x_star;
+  double f_star = brent::local_min_mb(lwr_bnd, uppr_bnd, tol, f, x_star);
+  return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
+}
+
+
+
+
+
 
 
 

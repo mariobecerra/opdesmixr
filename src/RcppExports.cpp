@@ -193,9 +193,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// efficiency_cox_scheffe
-double efficiency_cox_scheffe(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W);
-RcppExport SEXP _opdesmixr_efficiency_cox_scheffe(SEXP thetaSEXP, SEXP XSEXP, SEXP jSEXP, SEXP iSEXP, SEXP orderSEXP, SEXP opt_critSEXP, SEXP WSEXP) {
+// efficiencyCoxScheffeGaussian
+double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W);
+RcppExport SEXP _opdesmixr_efficiencyCoxScheffeGaussian(SEXP thetaSEXP, SEXP XSEXP, SEXP jSEXP, SEXP iSEXP, SEXP orderSEXP, SEXP opt_critSEXP, SEXP WSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -206,7 +206,113 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type order(orderSEXP);
     Rcpp::traits::input_parameter< int >::type opt_crit(opt_critSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
-    rcpp_result_gen = Rcpp::wrap(efficiency_cox_scheffe(theta, X, j, i, order, opt_crit, W));
+    rcpp_result_gen = Rcpp::wrap(efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W));
+    return rcpp_result_gen;
+END_RCPP
+}
+// BrentCoxScheffeGaussian
+List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W, double lwr_bnd, double uppr_bnd, double tol);
+RcppExport SEXP _opdesmixr_BrentCoxScheffeGaussian(SEXP XSEXP, SEXP jSEXP, SEXP iSEXP, SEXP orderSEXP, SEXP opt_critSEXP, SEXP WSEXP, SEXP lwr_bndSEXP, SEXP uppr_bndSEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type j(jSEXP);
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    Rcpp::traits::input_parameter< int >::type opt_crit(opt_critSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
+    Rcpp::traits::input_parameter< double >::type lwr_bnd(lwr_bndSEXP);
+    Rcpp::traits::input_parameter< double >::type uppr_bnd(uppr_bndSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(BrentCoxScheffeGaussian(X, j, i, order, opt_crit, W, lwr_bnd, uppr_bnd, tol));
+    return rcpp_result_gen;
+END_RCPP
+}
+// banana_xy
+double banana_xy(double x, double y);
+RcppExport SEXP _opdesmixr_banana_xy(SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(banana_xy(x, y));
+    return rcpp_result_gen;
+END_RCPP
+}
+// banana_x_y1
+double banana_x_y1(double x);
+RcppExport SEXP _opdesmixr_banana_x_y1(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(banana_x_y1(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// banana_x_y2
+double banana_x_y2(double x);
+RcppExport SEXP _opdesmixr_banana_x_y2(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(banana_x_y2(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// min_banana_x_y1
+List min_banana_x_y1(double lwr_bnd, double uppr_bnd, double tol);
+RcppExport SEXP _opdesmixr_min_banana_x_y1(SEXP lwr_bndSEXP, SEXP uppr_bndSEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type lwr_bnd(lwr_bndSEXP);
+    Rcpp::traits::input_parameter< double >::type uppr_bnd(uppr_bndSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(min_banana_x_y1(lwr_bnd, uppr_bnd, tol));
+    return rcpp_result_gen;
+END_RCPP
+}
+// minimize_banana_fixed_y
+List minimize_banana_fixed_y(double y, double lwr_bnd, double uppr_bnd, double tol);
+RcppExport SEXP _opdesmixr_minimize_banana_fixed_y(SEXP ySEXP, SEXP lwr_bndSEXP, SEXP uppr_bndSEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type y(ySEXP);
+    Rcpp::traits::input_parameter< double >::type lwr_bnd(lwr_bndSEXP);
+    Rcpp::traits::input_parameter< double >::type uppr_bnd(uppr_bndSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(minimize_banana_fixed_y(y, lwr_bnd, uppr_bnd, tol));
+    return rcpp_result_gen;
+END_RCPP
+}
+// banana_xy2
+double banana_xy2(double x, double& y);
+RcppExport SEXP _opdesmixr_banana_xy2(SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double& >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(banana_xy2(x, y));
+    return rcpp_result_gen;
+END_RCPP
+}
+// minimize_banana_fixed_y2
+List minimize_banana_fixed_y2(double& y, double lwr_bnd, double uppr_bnd, double tol);
+RcppExport SEXP _opdesmixr_minimize_banana_fixed_y2(SEXP ySEXP, SEXP lwr_bndSEXP, SEXP uppr_bndSEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< double >::type lwr_bnd(lwr_bndSEXP);
+    Rcpp::traits::input_parameter< double >::type uppr_bnd(uppr_bndSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(minimize_banana_fixed_y2(y, lwr_bnd, uppr_bnd, tol));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -225,7 +331,15 @@ static const R_CallMethodDef CallEntries[] = {
     {"_opdesmixr_getOptCritValueMNL", (DL_FUNC) &_opdesmixr_getOptCritValueMNL, 5},
     {"_opdesmixr_findBestCoxDirMNL", (DL_FUNC) &_opdesmixr_findBestCoxDirMNL, 9},
     {"_opdesmixr_mixtureCoordinateExchangeMNL", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL, 7},
-    {"_opdesmixr_efficiency_cox_scheffe", (DL_FUNC) &_opdesmixr_efficiency_cox_scheffe, 7},
+    {"_opdesmixr_efficiencyCoxScheffeGaussian", (DL_FUNC) &_opdesmixr_efficiencyCoxScheffeGaussian, 7},
+    {"_opdesmixr_BrentCoxScheffeGaussian", (DL_FUNC) &_opdesmixr_BrentCoxScheffeGaussian, 9},
+    {"_opdesmixr_banana_xy", (DL_FUNC) &_opdesmixr_banana_xy, 2},
+    {"_opdesmixr_banana_x_y1", (DL_FUNC) &_opdesmixr_banana_x_y1, 1},
+    {"_opdesmixr_banana_x_y2", (DL_FUNC) &_opdesmixr_banana_x_y2, 1},
+    {"_opdesmixr_min_banana_x_y1", (DL_FUNC) &_opdesmixr_min_banana_x_y1, 3},
+    {"_opdesmixr_minimize_banana_fixed_y", (DL_FUNC) &_opdesmixr_minimize_banana_fixed_y, 4},
+    {"_opdesmixr_banana_xy2", (DL_FUNC) &_opdesmixr_banana_xy2, 2},
+    {"_opdesmixr_minimize_banana_fixed_y2", (DL_FUNC) &_opdesmixr_minimize_banana_fixed_y2, 4},
     {NULL, NULL, 0}
 };
 
