@@ -3,7 +3,14 @@ library(Rcpp)
 # library(RcppBrent)
 
 # sourceCpp("tests/brent_test.cpp")
-devtools::load_all(".")
+# devtools::load_all(".")
+library(opdesmixr)
+
+devtools::unload("ggtern")
+
+R.methodsS3::setMethodS3("print", "ggplot", ggplot2:::print.ggplot)
+R.methodsS3::setMethodS3("plot", "ggplot", ggplot2:::plot.ggplot)
+R.methodsS3::setMethodS3("grid.draw", "ggplot", ggplot2:::grid.draw.ggplot)
 
 # John Denker's implementation: https://people.sc.fsu.edu/~jburkardt/cpp_src/brent/brent.html
 # brent.cpp: https://people.sc.fsu.edu/~jburkardt/cpp_src/brent/brent.cpp
@@ -114,8 +121,8 @@ minimize_banana_fixed_y(2)
 
 
 library(tidyverse)
-# library(opdesmixr)
-devtools::load_all(".")
+library(opdesmixr)
+# devtools::load_all(".")
 
 X = opdesmixr::create_random_initial_design_gaussian(10, 3, seed = 4)
 get_opt_crit_value_Gaussian(X, order = 1, opt_crit = 0)
@@ -146,6 +153,8 @@ tibble(theta = 0:50/50) %>%
 
 
 
+
+
 fn_optimize = function(X, j, i, order, opt_crit){
   out_fn = function(theta){
     # efficiency_cox_scheffe_gaussian(theta = x, X = X2, j = 0, i = 0, order = 3, opt_crit = 1)
@@ -161,7 +170,70 @@ optim(0.5, f_i, method = "Brent", lower = 0, upper = 1)
 optimize(f_i, c(0, 1))
 optim(0, f_i, method = "Brent", lower = 0, upper = 1)
 BrentCoxScheffeGaussian(X = X2, j = 0, i = 0, order = 3, opt_crit = 0, W = matrix(0.0, nrow = 1))
-brent_cox_scheffe_gaussian(X = X2, j = 0, i = 0, order = 3, opt_crit = 0)
+
+brent_cox_scheffe_gaussian(
+  X = X2, j = 0, i = 0, order = 3, opt_crit = 0,
+  lower = 0, upper = 1, tol = 0.0001)
+
+brent_global_cox_scheffe_gaussian(
+  X = X2, j = 0, i = 0, order = 3, opt_crit = 0,
+  lower = 0,
+  upper = 1,
+  initial_guess = 0.5,
+  hessian_bound = 1e5,
+  abs_err_tol = 0.0001,
+  tol = 0.0001)
+
+
+
+
+microbenchmark::microbenchmark(
+  brent_cox_scheffe_gaussian(
+    X = X2, j = 0, i = 0, order = 3, opt_crit = 0,
+    lower = 0, upper = 1, tol = 0.001)
+
+  ,
+
+  brent_global_cox_scheffe_gaussian(
+    X = X2, j = 0, i = 0, order = 3, opt_crit = 0,
+    lower = 0,
+    upper = 1,
+    initial_guess = 0.5,
+    hessian_bound = 100,
+    abs_err_tol = 0.001,
+    tol = 0.0001)
+
+  ,
+
+
+  unit = "relative"
+)
+
+
+
+
+
+
+
+
+
+# Third degree
+res_alg_order_3_2 = mixture_coord_ex(
+  X = X2,
+  order = 3,
+  model = "Gaussian",
+  plot_designs = F,
+  n_cox_points = 100,
+  max_it = 2)
+
+X3 = res_alg_order_3_2$X
+
+
+tibble(theta = 0:50/50) %>%
+  mutate(u = map_dbl(theta, function(x) efficiency_cox_scheffe_gaussian(theta = x, X = X3, j = 0, i = 0, order = 3, opt_crit = 0))) %>%
+  ggplot() +
+  geom_line(aes(theta, u))
+
 
 
 

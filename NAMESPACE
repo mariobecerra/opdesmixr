@@ -2,6 +2,7 @@
 
 export("%>%")
 export(brent_cox_scheffe_gaussian)
+export(brent_global_cox_scheffe_gaussian)
 export(compute_cox_direction)
 export(create_moment_matrix_MNL)
 export(create_moment_matrix_gaussian)

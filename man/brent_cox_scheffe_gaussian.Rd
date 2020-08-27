@@ -2,7 +2,7 @@
 % Please edit documentation in R/gaussian_model_functions.R
 \name{brent_cox_scheffe_gaussian}
 \alias{brent_cox_scheffe_gaussian}
-\title{Minimizes the efficiency function for Scheffé model using Brent's method.
+\title{Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
 R wrapper for BrentCoxScheffeGaussian in C++.
 TODO: write doc}
 \usage{
@@ -12,13 +12,13 @@ brent_cox_scheffe_gaussian(
   i,
   order,
   opt_crit,
-  lwr_bnd = 0,
-  uppr_bnd = 1,
+  lower = 0,
+  upper = 1,
   tol = 1e-04
 )
 }
 \description{
-Minimizes the efficiency function for Scheffé model using Brent's method.
+Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
 R wrapper for BrentCoxScheffeGaussian in C++.
 TODO: write doc
 }

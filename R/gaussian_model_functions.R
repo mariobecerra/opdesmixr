@@ -143,10 +143,10 @@ gaussian_plot_result = function(res_alg){
     res_alg$X_orig %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
-      ggtern(aes(c1, c2, c3)) +
+      ggtern::ggtern(ggtern::aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
-      theme_nomask() +
+      ggtern::theme_nomask() +
       ggtitle(
         label = paste0("Criterion: ", res_alg$opt_crit),
         subtitle = paste0("Value = ", round(res_alg$opt_crit_value_orig, 3)))
@@ -154,10 +154,10 @@ gaussian_plot_result = function(res_alg){
     res_alg$X %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
-      ggtern(aes(c1, c2, c3)) +
+      ggtern::ggtern(ggtern::aes(c1, c2, c3)) +
       geom_point(shape = "x", size = 4) +
       theme_minimal() +
-      theme_nomask() +
+      ggtern::theme_nomask() +
       ggtitle(label = paste0("Criterion: ", res_alg$opt_crit),
               subtitle = paste0("Value = ", round(res_alg$opt_crit_value, 3)))
     ,
@@ -291,12 +291,12 @@ efficiency_cox_scheffe_gaussian = function(theta, X, j, i, order, opt_crit){
 
 
 
-#' Minimizes the efficiency function for Scheffé model using Brent's method.
+#' Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
 #' R wrapper for BrentCoxScheffeGaussian in C++.
 #' TODO: write doc
 #' @export
 brent_cox_scheffe_gaussian = function(X, j, i, order, opt_crit,
-                                      lwr_bnd = 0, uppr_bnd = 1, tol = 0.0001){
+                                      lower = 0, upper = 1, tol = 0.0001){
   # R wrapper for BrentCoxScheffeGaussian in C++
   # Minimizes the efficiency function for Scheffé model using Brent's method
 
@@ -312,7 +312,45 @@ brent_cox_scheffe_gaussian = function(X, j, i, order, opt_crit,
 
   return(
     BrentCoxScheffeGaussian(X, j, i, order, opt_crit, W,
-                          lwr_bnd,uppr_bnd, tol)
+                            lower,upper, tol)
+  )
+}
+
+
+
+
+
+#' Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
+#' R wrapper for BrentGloCoxScheffeGaussian in C++.
+#' TODO: write doc
+#' @export
+brent_global_cox_scheffe_gaussian = function(
+  X, j, i, order, opt_crit,
+  lower = 0,
+  upper = 1,
+  initial_guess = 0.5,
+  hessian_bound = 1e5,
+  abs_err_tol = 0.0001,
+  tol = 0.0001){
+
+  q = dim(X)[2]
+
+  if(opt_crit == 0){
+    # "D-optimality"
+    W = matrix(0.0, nrow = 1)
+  } else{
+    # "I-optimality")
+    W = create_moment_matrix_gaussian(q)
+  }
+
+  return(
+    BrentGloCoxScheffeGaussian(X, j, i, order, opt_crit, W,
+                               lower,
+                               upper,
+                               initial_guess,
+                               hessian_bound,
+                               abs_err_tol,
+                               tol)
   )
 }
 

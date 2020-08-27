@@ -12,7 +12,13 @@ namespace brent {
   // double local_min ( double a, double b, double t, func_base& f,
   //   double &x );
 
-  double local_min_mb ( double a, double b, double t, std::function<double (double)> f, double &x);
+  double local_min_mb (
+      double a, double b, double t,
+      std::function<double (double)> f, double &x);
+
+  double glomin_mb (
+      double a, double b, double c, double m, double e, double t,
+      std::function<double (double)> f, double &x );
 
   double r8_epsilon ( );
   double r8_max ( double x, double y );

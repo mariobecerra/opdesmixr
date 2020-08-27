@@ -57,8 +57,12 @@ efficiencyCoxScheffeGaussian <- function(theta, X, j, i, order, opt_crit, W) {
     .Call(`_opdesmixr_efficiencyCoxScheffeGaussian`, theta, X, j, i, order, opt_crit, W)
 }
 
-BrentCoxScheffeGaussian <- function(X, j, i, order, opt_crit, W, lwr_bnd = 0, uppr_bnd = 1, tol = 0.0001) {
-    .Call(`_opdesmixr_BrentCoxScheffeGaussian`, X, j, i, order, opt_crit, W, lwr_bnd, uppr_bnd, tol)
+BrentCoxScheffeGaussian <- function(X, j, i, order, opt_crit, W, lower = 0, upper = 1, tol = 0.0001) {
+    .Call(`_opdesmixr_BrentCoxScheffeGaussian`, X, j, i, order, opt_crit, W, lower, upper, tol)
+}
+
+BrentGloCoxScheffeGaussian <- function(X, j, i, order, opt_crit, W, lower = 0, upper = 1, initial_guess = 0.5, hessian_bound = 1e5, abs_err_tol = 0.0001, tol = 0.0001) {
+    .Call(`_opdesmixr_BrentGloCoxScheffeGaussian`, X, j, i, order, opt_crit, W, lower, upper, initial_guess, hessian_bound, abs_err_tol, tol)
 }
 
 banana_xy <- function(x, y) {
@@ -73,19 +77,19 @@ banana_x_y2 <- function(x) {
     .Call(`_opdesmixr_banana_x_y2`, x)
 }
 
-min_banana_x_y1 <- function(lwr_bnd = -10, uppr_bnd = 10, tol = 0.0001) {
-    .Call(`_opdesmixr_min_banana_x_y1`, lwr_bnd, uppr_bnd, tol)
+min_banana_x_y1 <- function(lower = -10, upper = 10, tol = 0.0001) {
+    .Call(`_opdesmixr_min_banana_x_y1`, lower, upper, tol)
 }
 
-minimize_banana_fixed_y <- function(y = 1.0, lwr_bnd = -10, uppr_bnd = 10, tol = 0.0001) {
-    .Call(`_opdesmixr_minimize_banana_fixed_y`, y, lwr_bnd, uppr_bnd, tol)
+minimize_banana_fixed_y <- function(y = 1.0, lower = -10, upper = 10, tol = 0.0001) {
+    .Call(`_opdesmixr_minimize_banana_fixed_y`, y, lower, upper, tol)
 }
 
 banana_xy2 <- function(x, y) {
     .Call(`_opdesmixr_banana_xy2`, x, y)
 }
 
-minimize_banana_fixed_y2 <- function(y, lwr_bnd = -10, uppr_bnd = 10, tol = 0.0001) {
-    .Call(`_opdesmixr_minimize_banana_fixed_y2`, y, lwr_bnd, uppr_bnd, tol)
+minimize_banana_fixed_y2 <- function(y, lower = -10, upper = 10, tol = 0.0001) {
+    .Call(`_opdesmixr_minimize_banana_fixed_y2`, y, lower, upper, tol)
 }
 

@@ -1160,17 +1160,40 @@ double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, in
 
 // [[Rcpp::export]]
 List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
-                             double lwr_bnd = 0, double uppr_bnd = 1, double tol = 0.0001){
+                             double lower = 0, double upper = 1, double tol = 0.0001){
   auto f = [&X, j, i, order, opt_crit, &W](double theta){
     return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
     // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
-    };
+  };
 
   double theta_star;
-  double f_star = brent::local_min_mb(lwr_bnd, uppr_bnd, tol, f, theta_star);
+  double f_star = brent::local_min_mb(lower, upper, tol, f, theta_star);
   return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
 }
 
+
+
+
+
+
+// [[Rcpp::export]]
+List BrentGloCoxScheffeGaussian(
+    arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
+    double lower = 0, double upper = 1,
+    double initial_guess = 0.5,
+    double hessian_bound = 1e5,
+    double abs_err_tol = 0.0001,
+    double tol = 0.0001){
+  auto f = [&X, j, i, order, opt_crit, &W](double theta){
+    return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
+    // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
+  };
+
+  double theta_star;
+  double f_star = brent::glomin_mb(
+    lower, upper, initial_guess, hessian_bound, abs_err_tol, tol, f, theta_star);
+  return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
+}
 
 
 
@@ -1221,9 +1244,9 @@ double banana_x_y2(double x){
 
 
 // [[Rcpp::export]]
-List min_banana_x_y1(double lwr_bnd = -10, double uppr_bnd = 10, double tol = 0.0001){
+List min_banana_x_y1(double lower = -10, double upper = 10, double tol = 0.0001){
   double x_star;
-  double f_star = brent::local_min_mb(lwr_bnd, uppr_bnd, tol, banana_x_y1, x_star);
+  double f_star = brent::local_min_mb(lower, upper, tol, banana_x_y1, x_star);
   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
 }
 
@@ -1231,11 +1254,11 @@ List min_banana_x_y1(double lwr_bnd = -10, double uppr_bnd = 10, double tol = 0.
 
 
 // [[Rcpp::export]]
-List minimize_banana_fixed_y(double y = 1.0, double lwr_bnd = -10, double uppr_bnd = 10, double tol = 0.0001){
+List minimize_banana_fixed_y(double y = 1.0, double lower = -10, double upper = 10, double tol = 0.0001){
   auto f = [y](double x){ return banana_xy(x, y); };
 
   double x_star;
-  double f_star = brent::local_min_mb(lwr_bnd, uppr_bnd, tol, f, x_star);
+  double f_star = brent::local_min_mb(lower, upper, tol, f, x_star);
   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
 }
 
@@ -1251,11 +1274,11 @@ double banana_xy2(double x, double &y){
 
 // [[Rcpp::export]]
 List minimize_banana_fixed_y2(double &y,
-                              double lwr_bnd = -10, double uppr_bnd = 10, double tol = 0.0001){
+                              double lower = -10, double upper = 10, double tol = 0.0001){
   auto f = [&y](double x){ return banana_xy2(x, y); };
 
   double x_star;
-  double f_star = brent::local_min_mb(lwr_bnd, uppr_bnd, tol, f, x_star);
+  double f_star = brent::local_min_mb(lower, upper, tol, f, x_star);
   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
 }
 
