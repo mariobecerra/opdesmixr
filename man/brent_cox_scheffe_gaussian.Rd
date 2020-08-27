@@ -2,8 +2,9 @@
 % Please edit documentation in R/gaussian_model_functions.R
 \name{brent_cox_scheffe_gaussian}
 \alias{brent_cox_scheffe_gaussian}
-\title{Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
-R wrapper for BrentCoxScheffeGaussian in C++.
+\title{R wrapper for BrentCoxScheffeGaussian in C++.
+Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
+The function also checks the edge cases (in normal mixtures it's 0 and 1) to see if the minimizers are there.
 TODO: write doc}
 \usage{
 brent_cox_scheffe_gaussian(
@@ -18,7 +19,8 @@ brent_cox_scheffe_gaussian(
 )
 }
 \description{
-Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
 R wrapper for BrentCoxScheffeGaussian in C++.
+Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
+The function also checks the edge cases (in normal mixtures it's 0 and 1) to see if the minimizers are there.
 TODO: write doc
 }

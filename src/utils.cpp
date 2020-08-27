@@ -1144,22 +1144,8 @@ double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, in
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // [[Rcpp::export]]
-List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
+List BrentCoxScheffeGaussianNoEdge(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
                              double lower = 0, double upper = 1, double tol = 0.0001){
   auto f = [&X, j, i, order, opt_crit, &W](double theta){
     return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
@@ -1171,6 +1157,36 @@ List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit
   return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
 }
 
+
+
+
+
+// [[Rcpp::export]]
+List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
+                             double lower = 0.0, double upper = 1.0, double tol = 0.0001){
+  auto f = [&X, j, i, order, opt_crit, &W](double theta){
+    return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
+  };
+
+  double theta_brent, theta_star, f_star;
+  double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
+  // Check edge cases
+  double f_lower = efficiencyCoxScheffeGaussian(lower, X, j, i, order, opt_crit, W);
+  double f_upper = efficiencyCoxScheffeGaussian(upper, X, j, i, order, opt_crit, W);
+
+  f_star = std::min({f_lower, f_upper, f_brent});
+
+  if(f_star == f_brent){
+    theta_star = theta_brent;
+  } else{
+    if(f_star == f_lower){
+      theta_star = lower;
+    } else{
+      theta_star = upper;
+    }
+  }
+  return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
+}
 
 
 

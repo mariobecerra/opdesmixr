@@ -210,6 +210,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// BrentCoxScheffeGaussianNoEdge
+List BrentCoxScheffeGaussianNoEdge(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W, double lower, double upper, double tol);
+RcppExport SEXP _opdesmixr_BrentCoxScheffeGaussianNoEdge(SEXP XSEXP, SEXP jSEXP, SEXP iSEXP, SEXP orderSEXP, SEXP opt_critSEXP, SEXP WSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type j(jSEXP);
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    Rcpp::traits::input_parameter< int >::type opt_crit(opt_critSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
+    Rcpp::traits::input_parameter< double >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< double >::type upper(upperSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(BrentCoxScheffeGaussianNoEdge(X, j, i, order, opt_crit, W, lower, upper, tol));
+    return rcpp_result_gen;
+END_RCPP
+}
 // BrentCoxScheffeGaussian
 List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W, double lower, double upper, double tol);
 RcppExport SEXP _opdesmixr_BrentCoxScheffeGaussian(SEXP XSEXP, SEXP jSEXP, SEXP iSEXP, SEXP orderSEXP, SEXP opt_critSEXP, SEXP WSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP) {
@@ -354,6 +373,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_opdesmixr_findBestCoxDirMNL", (DL_FUNC) &_opdesmixr_findBestCoxDirMNL, 9},
     {"_opdesmixr_mixtureCoordinateExchangeMNL", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL, 7},
     {"_opdesmixr_efficiencyCoxScheffeGaussian", (DL_FUNC) &_opdesmixr_efficiencyCoxScheffeGaussian, 7},
+    {"_opdesmixr_BrentCoxScheffeGaussianNoEdge", (DL_FUNC) &_opdesmixr_BrentCoxScheffeGaussianNoEdge, 9},
     {"_opdesmixr_BrentCoxScheffeGaussian", (DL_FUNC) &_opdesmixr_BrentCoxScheffeGaussian, 9},
     {"_opdesmixr_BrentGloCoxScheffeGaussian", (DL_FUNC) &_opdesmixr_BrentGloCoxScheffeGaussian, 12},
     {"_opdesmixr_banana_xy", (DL_FUNC) &_opdesmixr_banana_xy, 2},

@@ -236,6 +236,18 @@ tibble(theta = 0:50/50) %>%
 
 
 
+brent_cox_scheffe_gaussian(
+  X = X3, j = 0, i = 0, order = 3, opt_crit = 0,
+  lower = 0, upper = 1, tol = 0.0001)
+
+brent_global_cox_scheffe_gaussian(
+  X = X3, j = 0, i = 0, order = 3, opt_crit = 0,
+  lower = 0,
+  upper = 1,
+  initial_guess = 0.5,
+  hessian_bound = 1e5,
+  abs_err_tol = 0.0001,
+  tol = 0.0001)
 
 
 

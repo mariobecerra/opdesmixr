@@ -57,7 +57,11 @@ efficiencyCoxScheffeGaussian <- function(theta, X, j, i, order, opt_crit, W) {
     .Call(`_opdesmixr_efficiencyCoxScheffeGaussian`, theta, X, j, i, order, opt_crit, W)
 }
 
-BrentCoxScheffeGaussian <- function(X, j, i, order, opt_crit, W, lower = 0, upper = 1, tol = 0.0001) {
+BrentCoxScheffeGaussianNoEdge <- function(X, j, i, order, opt_crit, W, lower = 0, upper = 1, tol = 0.0001) {
+    .Call(`_opdesmixr_BrentCoxScheffeGaussianNoEdge`, X, j, i, order, opt_crit, W, lower, upper, tol)
+}
+
+BrentCoxScheffeGaussian <- function(X, j, i, order, opt_crit, W, lower = 0.0, upper = 1.0, tol = 0.0001) {
     .Call(`_opdesmixr_BrentCoxScheffeGaussian`, X, j, i, order, opt_crit, W, lower, upper, tol)
 }
 

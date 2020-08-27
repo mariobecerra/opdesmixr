@@ -2,8 +2,9 @@
 % Please edit documentation in R/gaussian_model_functions.R
 \name{brent_global_cox_scheffe_gaussian}
 \alias{brent_global_cox_scheffe_gaussian}
-\title{Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
-R wrapper for BrentGloCoxScheffeGaussian in C++.
+\title{R wrapper for BrentGloCoxScheffeGaussian in C++.
+Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
+Needs a bound for the second derivative.
 TODO: write doc}
 \usage{
 brent_global_cox_scheffe_gaussian(
@@ -21,7 +22,8 @@ brent_global_cox_scheffe_gaussian(
 )
 }
 \description{
-Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
 R wrapper for BrentGloCoxScheffeGaussian in C++.
+Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
+Needs a bound for the second derivative.
 TODO: write doc
 }

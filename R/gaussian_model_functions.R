@@ -291,14 +291,13 @@ efficiency_cox_scheffe_gaussian = function(theta, X, j, i, order, opt_crit){
 
 
 
-#' Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
 #' R wrapper for BrentCoxScheffeGaussian in C++.
+#' Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
+#' The function also checks the edge cases (in normal mixtures it's 0 and 1) to see if the minimizers are there.
 #' TODO: write doc
 #' @export
 brent_cox_scheffe_gaussian = function(X, j, i, order, opt_crit,
                                       lower = 0, upper = 1, tol = 0.0001){
-  # R wrapper for BrentCoxScheffeGaussian in C++
-  # Minimizes the efficiency function for Scheffé model using Brent's method
 
   q = dim(X)[2]
 
@@ -320,8 +319,9 @@ brent_cox_scheffe_gaussian = function(X, j, i, order, opt_crit,
 
 
 
-#' Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
 #' R wrapper for BrentGloCoxScheffeGaussian in C++.
+#' Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
+#' Needs a bound for the second derivative.
 #' TODO: write doc
 #' @export
 brent_global_cox_scheffe_gaussian = function(
