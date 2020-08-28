@@ -218,15 +218,43 @@ microbenchmark::microbenchmark(
 
 
 # Third degree
-res_alg_order_3_2 = mixture_coord_ex(
-  X = X2,
-  order = 3,
-  model = "Gaussian",
-  plot_designs = F,
-  n_cox_points = 100,
-  max_it = 2)
+# res_alg_order_3_2 = mixture_coord_ex(
+#   X = X2,
+#   order = 3,
+#   model = "Gaussian",
+#   plot_designs = F,
+#   n_cox_points = 100,
+#   max_it = 2)
+
+# res_alg_order_3_2 = mixture_coord_ex_gaussian(
+#   X = X2,
+#   order = 3,
+#   opt_crit = 0,
+#   plot_designs = F,
+#   n_cox_points = 100,
+#   max_it = 2,
+#   verbose = 0,
+#   opt_method = 1)
+
+res_alg_order_3_2 = mixtureCoordinateExchangeGaussian(
+  X_orig = X2,
+  order = 3, n_cox_points = 100, max_it = 2, verbose = 0, opt_crit = 0,
+  W = matrix(0.0, nrow = 1),
+  method = 1)
 
 X3 = res_alg_order_3_2$X
+
+
+res_alg_order_3_3 = mixtureCoordinateExchangeGaussian(
+  X_orig = X2,
+  order = 3, n_cox_points = 100, max_it = 2, verbose = 0, opt_crit = 0,
+  W = matrix(0.0, nrow = 1),
+  method = 0)
+
+X3_2 = res_alg_order_3_3$X
+
+
+
 
 
 tibble(theta = 0:50/50) %>%

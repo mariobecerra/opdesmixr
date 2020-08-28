@@ -21,8 +21,16 @@ getOptCritValueGaussian <- function(X, order, q, opt_crit, W) {
     .Call(`_opdesmixr_getOptCritValueGaussian`, X, order, q, opt_crit, W)
 }
 
-mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose, opt_crit, W) {
-    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, n_cox_points, max_it, verbose, opt_crit, W)
+changeIngredientDesign <- function(theta, X, i, j) {
+    .Call(`_opdesmixr_changeIngredientDesign`, theta, X, i, j)
+}
+
+efficiencyCoxScheffeGaussian <- function(theta, X, i, j, order, opt_crit, W) {
+    .Call(`_opdesmixr_efficiencyCoxScheffeGaussian`, theta, X, i, j, order, opt_crit, W)
+}
+
+mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose, opt_crit, W, method) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, n_cox_points, max_it, verbose, opt_crit, W, method)
 }
 
 getXsMNL <- function(X, s) {
@@ -51,49 +59,5 @@ findBestCoxDirMNL <- function(cox_dir, X_in, beta_mat, k, s, opt_crit_value_best
 
 mixtureCoordinateExchangeMNL <- function(X_orig, beta_mat, n_cox_points, max_it, verbose, opt_crit, W) {
     .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta_mat, n_cox_points, max_it, verbose, opt_crit, W)
-}
-
-efficiencyCoxScheffeGaussian <- function(theta, X, j, i, order, opt_crit, W) {
-    .Call(`_opdesmixr_efficiencyCoxScheffeGaussian`, theta, X, j, i, order, opt_crit, W)
-}
-
-BrentCoxScheffeGaussianNoEdge <- function(X, j, i, order, opt_crit, W, lower = 0, upper = 1, tol = 0.0001) {
-    .Call(`_opdesmixr_BrentCoxScheffeGaussianNoEdge`, X, j, i, order, opt_crit, W, lower, upper, tol)
-}
-
-BrentCoxScheffeGaussian <- function(X, j, i, order, opt_crit, W, lower = 0.0, upper = 1.0, tol = 0.0001) {
-    .Call(`_opdesmixr_BrentCoxScheffeGaussian`, X, j, i, order, opt_crit, W, lower, upper, tol)
-}
-
-BrentGloCoxScheffeGaussian <- function(X, j, i, order, opt_crit, W, lower = 0, upper = 1, initial_guess = 0.5, hessian_bound = 1e5, abs_err_tol = 0.0001, tol = 0.0001) {
-    .Call(`_opdesmixr_BrentGloCoxScheffeGaussian`, X, j, i, order, opt_crit, W, lower, upper, initial_guess, hessian_bound, abs_err_tol, tol)
-}
-
-banana_xy <- function(x, y) {
-    .Call(`_opdesmixr_banana_xy`, x, y)
-}
-
-banana_x_y1 <- function(x) {
-    .Call(`_opdesmixr_banana_x_y1`, x)
-}
-
-banana_x_y2 <- function(x) {
-    .Call(`_opdesmixr_banana_x_y2`, x)
-}
-
-min_banana_x_y1 <- function(lower = -10, upper = 10, tol = 0.0001) {
-    .Call(`_opdesmixr_min_banana_x_y1`, lower, upper, tol)
-}
-
-minimize_banana_fixed_y <- function(y = 1.0, lower = -10, upper = 10, tol = 0.0001) {
-    .Call(`_opdesmixr_minimize_banana_fixed_y`, y, lower, upper, tol)
-}
-
-banana_xy2 <- function(x, y) {
-    .Call(`_opdesmixr_banana_xy2`, x, y)
-}
-
-minimize_banana_fixed_y2 <- function(y, lower = -10, upper = 10, tol = 0.0001) {
-    .Call(`_opdesmixr_minimize_banana_fixed_y2`, y, lower, upper, tol)
 }
 

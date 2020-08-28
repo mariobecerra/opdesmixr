@@ -28,6 +28,7 @@ mixture_coord_ex_gaussian = function(
   X = NULL,
   order = 1,
   n_cox_points = 30,
+  opt_method = 1,
   max_it = 10,
   plot_designs = F,
   verbose = 1,
@@ -82,7 +83,7 @@ mixture_coord_ex_gaussian = function(
 
     out = try(
       mixtureCoordinateExchangeGaussian(
-        X, order, n_cox_points, max_it, verbose, opt_crit, W
+        X, order, n_cox_points, max_it, verbose, opt_crit, W, opt_method
       ),
       silent = T)
 

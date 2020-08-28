@@ -43,7 +43,8 @@ arma::mat computeCoxDirection(arma::vec& x, int comp, int n_points, int verbose)
   // Returns a matrix of dimension (cox_dir_n_elems, q), where cox_dir_n_elems is roughly equal to n_points and q is the length of x.
   // Input:
   //     x: q dimensional vector of proportions. Must sum up to 1.
-  //        There's no input check of this because this operation is done many times in the coordinate exchange algorithm and because the x vector is fed by another function.
+  //        There's no input check of this because this operation is done many times in the coordinate exchange algorithm and
+  //         because the x vector is fed by another function.
   //     comp: component in which the Cox direction is computed. Must be an integer between 1 and q.
   //     n_points: Number of points to use in the discretization.
   //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
@@ -343,7 +344,9 @@ double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arm
 
 
 
-arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int order, double opt_crit_value_best, int opt_crit, arma::mat& W) {
+arma::mat findBestCoxDirGaussianDiscrete(
+    arma::mat& cox_dir, arma::mat& X_in, int k, int order, double opt_crit_value_best,
+    int opt_crit, arma::mat& W) {
   arma::mat X = X_in;
   int n_col_X = X.n_cols;
   arma::vec x_k(n_col_X);
@@ -384,8 +387,135 @@ arma::mat findBestCoxDirGaussian(arma::mat& cox_dir, arma::mat& X_in, int k, int
 
 
 
+
+
 // [[Rcpp::export]]
-Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose, int opt_crit, arma::mat W){
+arma::mat changeIngredientDesign(double theta, arma::mat& X, int i, int j){
+  // Returns a new design matrix Y changing the j-th ingredient in i-th observation is changed to theta
+  // in the original design matrix X.
+  // theta must be between 0 and 1 because it's an ingredient proportion.
+  // j and i are 0-indexed.
+
+
+  // Create new matrix Y that is identical to the one pointed by X.
+  // Note: This is the easiest way to do it because we have to modify a row in this matrix.
+  // A more computationally effective way would be to only store the new modified vector since
+  // we don't need a copy of the whole matrix. But to do that I would have to either modify some
+  // existing functions, or create some new ones, or both. IDK if the gain in performance is worth it.
+  arma::mat Y = X;
+  int q = Y.n_cols;
+
+  // Create a vector with the i-th row of the design matrix X
+  arma::vec x_i(q);
+  for(int col = 0; col < q; col++){
+    x_i(col) = X(i, col);
+  }
+
+  // delta = theta - x_i[i]
+  double delta = theta - x_i(j);
+
+  // recompute proportions:
+  vec setDiff_aux = linspace<vec>(0, q-1, q);
+  vec setDiff = removeElement(setDiff_aux, j);
+  int k;
+  double result;
+
+  for(int k_aux = 0; k_aux < setDiff.n_elem; k_aux++){
+    k = setDiff(k_aux);
+
+    if(abs(1 - x_i(j)) < 1e-16) {
+      // In case x_i(j) is numerically 1, it will return a numeric zero such that the vector sums up to 1
+      // Almost the same as doing result = 0;
+      result = (1 - x_i(j))/(q-1);
+    } else{
+      // Other case
+      result = x_i(k) - delta*x_i(k)/(1 - x_i(j));
+    }
+
+    x_i(k) = result;
+  }
+
+  x_i(j) = theta;
+
+  // replace x_i row with the recomputed proportions according to Cox direction
+  for(int col = 0; col < q; col++){
+    Y(i, col) = x_i(col);
+  }
+
+  return(Y);
+
+}
+
+
+
+
+// [[Rcpp::export]]
+double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int i, int j, int order,
+                                    int opt_crit, arma::mat& W){
+  // Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
+  // theta must be between 0 and 1 because it's an ingredient proportion.
+  // j and i are 0-indexed.
+  // We want to minimize this.
+
+  arma::mat Y = changeIngredientDesign(theta, X, i, j);
+  int q = Y.n_cols;
+
+  // Return utility function value. We want to minimize this.
+  return(getOptCritValueGaussian(Y, order, q, opt_crit, W));
+}
+
+
+
+// Help from:
+// https://stackoverflow.com/questions/34994475/rcpp-function-to-construct-a-function
+// https://codereview.stackexchange.com/questions/103762/implementation-of-brents-algorithm-to-find-roots-of-a-polynomial
+
+// Thanks to Norma and Manuel who helped me out with lambda functions in C++:
+// https://github.com/NormaVTH
+// https://github.com/manuelalcantara52
+
+
+
+
+arma::mat findBestCoxDirGaussianBrent(
+    arma::mat& X, int i, int j, int order, int opt_crit, arma::mat& W,
+    double lower = 0, double upper = 1, double tol = 0.0001) {
+
+  auto f = [&X, i, j, order, opt_crit, &W](double theta){
+    return efficiencyCoxScheffeGaussian(theta, X, i, j, order, opt_crit, W);
+  };
+
+  double theta_brent, theta_star, f_star;
+  double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
+  // Check edge cases
+  double f_lower = efficiencyCoxScheffeGaussian(lower, X, i, j, order, opt_crit, W);
+  double f_upper = efficiencyCoxScheffeGaussian(upper, X, i, j, order, opt_crit, W);
+
+  f_star = std::min({f_lower, f_upper, f_brent});
+
+  if(f_star == f_brent){
+    theta_star = theta_brent;
+  } else{
+    if(f_star == f_lower){
+      theta_star = lower;
+    } else{
+      theta_star = upper;
+    }
+  }
+
+  return(changeIngredientDesign(theta_star, X, i, j));
+
+}
+
+
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::List mixtureCoordinateExchangeGaussian(
+    arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose, int opt_crit,
+    arma::mat W, int opt_method){
   // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // X: armadillo matrix with dimensions (n, q) where:
@@ -401,6 +531,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
   //    5: Print the resulting X and information matrix after each subiteration
   //    6: Print the resulting X or each point in the Cox direction discretization
   // opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  // opt_method: optimization method (0 for Brent, 1 for discrete approximation).
   // W: moment matrix for I-optimality
   //
   // Returns an Rcpp::List object with the following objects:
@@ -456,8 +587,16 @@ Rcpp::List mixtureCoordinateExchangeGaussian(arma::mat X_orig, int order, int n_
           x(l) = X(k-1, l);
         }
 
-        cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-        X = findBestCoxDirGaussian(cox_dir, X, k, order, opt_crit_value_best, opt_crit, W);
+        if(opt_method == 0){
+          // arma::mat& X, int i, int j, int order, int opt_crit, arma::mat& W,
+          // double lower = 0, double upper = 1, double tol = 0.0001
+          X = findBestCoxDirGaussianBrent(X, k-1, i, order, opt_crit, W, 0, 1, 0.0001);
+
+        } else{
+          cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
+          X = findBestCoxDirGaussianDiscrete(cox_dir, X, k, order, opt_crit_value_best, opt_crit, W);
+        }
+
 
         opt_crit_value_best = getOptCritValueGaussian(X, order, q, opt_crit, W);
 
@@ -690,7 +829,8 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta){
 // // [[Rcpp::export]]
 // double getDCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose){
 //   // Function that returns the D criterion value for design cube X and parameter vector beta.
-//   // The D-optimality criterion seeks to maximize the determinant of the information matrix or minimize the determinant of the variance-covariance matrix..
+//   // The D-optimality criterion seeks to maximize the determinant of the information matrix or
+//   //   minimize the determinant of the variance-covariance matrix..
 //   // This function computes the log determinant of the information matrix using a Choleski decomposition.
 //   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
 //   // Input:
@@ -818,7 +958,8 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
 
   // Iterate over all prior draws
   // This seems to introduce overhead when there is only one row. It takes twice as long as before.
-  // I don't really get why it is longer. It's not the for loop or the creation of the vector from the row, since I've tested that.
+  // I don't really get why it is longer. It's not the for loop or the creation of the vector from the
+  // row, since I've tested that.
   // Don't know what's going on.
   for(int i = 0; i < n_sims; i++){
     beta = conv_to<vec>::from(beta_mat.row(i));
@@ -872,10 +1013,14 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
 
 
 // [[Rcpp::export]]
-arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::mat& beta_mat, int k, int s, double opt_crit_value_best, int verbose, int opt_crit, arma::mat& W) {
+arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::mat& beta_mat,
+                             int k, int s, double opt_crit_value_best,
+                             int verbose, int opt_crit, arma::mat& W) {
   // Function that returns the design that minimizes the optimality criterion value.
-  // Returns a cube of dimension (q, J, S) with a design that minimizes the value of the optimality criterion value.
-  // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
+  // Returns a cube of dimension (q, J, S) with a design that minimizes the value of the
+  //         optimality criterion value.
+  // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal
+  //         choice designs for mixtures (2017)
   // Input:
   //     cox_dir: Matrix with Cox direction with q columns. Each row sums up to 1.
   //     X_in: design cube of dimensions (q, J, S).
@@ -883,7 +1028,8 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::mat& be
   //     k: Cox direction index (1 to q).
   //     s: integer s, corresponding to a choice set in 1 to S.
   //     opt_crit_value_best: Efficiency value with which the new efficiencies are compared to.
-  //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
+  //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and
+  //           too much useful by itself.
   //     opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
   //     W: moment matrix
 
@@ -1077,226 +1223,149 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::mat beta_mat, i
 
 
 
-
-
-
-
-
-// [[Rcpp::export]]
-double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order,
-                                    int opt_crit, arma::mat& W){
-  // Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
-  // theta must be between 0 and 1 because it's an ingredient proportion.
-  // j and i are 0-indexed.
-  // We want to minimize this.
-
-  // Create new matrix Y that is identical to the one pointed by X.
-  // Note: This is the easiest way to do it because we have to modify a row in this matrix.
-  // A more computationally effective way would be to only store the new modified vector since
-  // we don't need a copy of the whole matrix. But to do that I would have to either modify some
-  // existing functions, or create some new ones, or both. IDK if the gain in performance is worth it.
-  arma::mat Y = X;
-  int q = Y.n_cols;
-
-  // Create a vector with the i-th row of the design matrix X
-  arma::vec x_i(q);
-  for(int col = 0; col < q; col++){
-    x_i(col) = X(i, col);
-  }
-
-  // delta = theta - x_i[i]
-  double delta = theta - x_i(j);
-
-  // recompute proportions:
-  vec setDiff_aux = linspace<vec>(0, q-1, q);
-  vec setDiff = removeElement(setDiff_aux, j);
-  int k;
-  double result;
-
-  for(int k_aux = 0; k_aux < setDiff.n_elem; k_aux++){
-    k = setDiff(k_aux);
-
-    if(abs(1 - x_i(j)) < 1e-16) {
-      // In case x_i(j) is numerically 1, it will return a numeric zero such that the vector sums up to 1
-      // Almost the same as doing result = 0;
-      result = (1 - x_i(j))/(q-1);
-    } else{
-      // Other case
-      result = x_i(k) - delta*x_i(k)/(1 - x_i(j));
-    }
-
-    x_i(k) = result;
-  }
-
-  x_i(j) = theta;
-
-  // replace x_i row with the recomputed proportions according to Cox direction
-  for(int col = 0; col < q; col++){
-    Y(j, col) = x_i(col);
-  }
-
-  double utility_funct = getOptCritValueGaussian(Y, order, q, opt_crit, W);
-
-  // We want to minimize this
-  return(utility_funct);
-}
-
-
-
-
-// [[Rcpp::export]]
-List BrentCoxScheffeGaussianNoEdge(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
-                             double lower = 0, double upper = 1, double tol = 0.0001){
-  auto f = [&X, j, i, order, opt_crit, &W](double theta){
-    return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
-    // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
-  };
-
-  double theta_star;
-  double f_star = brent::local_min_mb(lower, upper, tol, f, theta_star);
-  return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
-}
-
-
-
-
-
-// [[Rcpp::export]]
-List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
-                             double lower = 0.0, double upper = 1.0, double tol = 0.0001){
-  auto f = [&X, j, i, order, opt_crit, &W](double theta){
-    return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
-  };
-
-  double theta_brent, theta_star, f_star;
-  double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
-  // Check edge cases
-  double f_lower = efficiencyCoxScheffeGaussian(lower, X, j, i, order, opt_crit, W);
-  double f_upper = efficiencyCoxScheffeGaussian(upper, X, j, i, order, opt_crit, W);
-
-  f_star = std::min({f_lower, f_upper, f_brent});
-
-  if(f_star == f_brent){
-    theta_star = theta_brent;
-  } else{
-    if(f_star == f_lower){
-      theta_star = lower;
-    } else{
-      theta_star = upper;
-    }
-  }
-  return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
-}
-
-
-
-
-
-// [[Rcpp::export]]
-List BrentGloCoxScheffeGaussian(
-    arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
-    double lower = 0, double upper = 1,
-    double initial_guess = 0.5,
-    double hessian_bound = 1e5,
-    double abs_err_tol = 0.0001,
-    double tol = 0.0001){
-  auto f = [&X, j, i, order, opt_crit, &W](double theta){
-    return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
-    // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
-  };
-
-  double theta_star;
-  double f_star = brent::glomin_mb(
-    lower, upper, initial_guess, hessian_bound, abs_err_tol, tol, f, theta_star);
-  return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
-}
-
-
-
-
-
-
-
-
-
-
-// Banana function
-
-// Help from:
-// https://stackoverflow.com/questions/34994475/rcpp-function-to-construct-a-function
-// https://codereview.stackexchange.com/questions/103762/implementation-of-brents-algorithm-to-find-roots-of-a-polynomial
-
-// Thanks to Norma and Manuel who helped me out with lambda functions in C++:
-// https://github.com/NormaVTH
-// https://github.com/manuelalcantara52
-
-
-
-// [[Rcpp::export]]
-double banana_xy(double x, double y){
-  return (1 - x)*(1-x) + 100*(y - x*x)*(y - x*x);
-}
-
-
-std::function<double(double)> create_banana(double y) {
-  auto out = [y](double x) {
-    return(banana_xy(x, y));
-  };
-  return out;
-}
-
-// [[Rcpp::export]]
-double banana_x_y1(double x){
-  std::function<double(double)> foo = create_banana(1.0);
-  return(foo(x));
-}
-
-// [[Rcpp::export]]
-double banana_x_y2(double x){
-  std::function<double(double)> foo = create_banana(2.0);
-  return(foo(x));
-}
-
-
-
-// [[Rcpp::export]]
-List min_banana_x_y1(double lower = -10, double upper = 10, double tol = 0.0001){
-  double x_star;
-  double f_star = brent::local_min_mb(lower, upper, tol, banana_x_y1, x_star);
-  return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
-}
-
-
-
-
-// [[Rcpp::export]]
-List minimize_banana_fixed_y(double y = 1.0, double lower = -10, double upper = 10, double tol = 0.0001){
-  auto f = [y](double x){ return banana_xy(x, y); };
-
-  double x_star;
-  double f_star = brent::local_min_mb(lower, upper, tol, f, x_star);
-  return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
-}
-
-
-
-
-
-// [[Rcpp::export]]
-double banana_xy2(double x, double &y){
-  return (1 - x)*(1-x) + 100*(y - x*x)*(y - x*x);
-}
-
-
-// [[Rcpp::export]]
-List minimize_banana_fixed_y2(double &y,
-                              double lower = -10, double upper = 10, double tol = 0.0001){
-  auto f = [&y](double x){ return banana_xy2(x, y); };
-
-  double x_star;
-  double f_star = brent::local_min_mb(lower, upper, tol, f, x_star);
-  return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
-}
+// // [[Rcpp::export]]
+// List BrentCoxScheffeGaussianNoEdge(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
+//                              double lower = 0, double upper = 1, double tol = 0.0001){
+//   auto f = [&X, j, i, order, opt_crit, &W](double theta){
+//     return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
+//     // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
+//   };
+//
+//   double theta_star;
+//   double f_star = brent::local_min_mb(lower, upper, tol, f, theta_star);
+//   return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
+// }
+//
+//
+//
+//
+//
+// // [[Rcpp::export]]
+// List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
+//                              double lower = 0.0, double upper = 1.0, double tol = 0.0001){
+//   auto f = [&X, j, i, order, opt_crit, &W](double theta){
+//     return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
+//   };
+//
+//   double theta_brent, theta_star, f_star;
+//   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
+//   // Check edge cases
+//   double f_lower = efficiencyCoxScheffeGaussian(lower, X, j, i, order, opt_crit, W);
+//   double f_upper = efficiencyCoxScheffeGaussian(upper, X, j, i, order, opt_crit, W);
+//
+//   f_star = std::min({f_lower, f_upper, f_brent});
+//
+//   if(f_star == f_brent){
+//     theta_star = theta_brent;
+//   } else{
+//     if(f_star == f_lower){
+//       theta_star = lower;
+//     } else{
+//       theta_star = upper;
+//     }
+//   }
+//   return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
+// }
+//
+//
+//
+//
+//
+// // [[Rcpp::export]]
+// List BrentGloCoxScheffeGaussian(
+//     arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
+//     double lower = 0, double upper = 1,
+//     double initial_guess = 0.5,
+//     double hessian_bound = 1e5,
+//     double abs_err_tol = 0.0001,
+//     double tol = 0.0001){
+//   auto f = [&X, j, i, order, opt_crit, &W](double theta){
+//     return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
+//     // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
+//   };
+//
+//   double theta_star;
+//   double f_star = brent::glomin_mb(
+//     lower, upper, initial_guess, hessian_bound, abs_err_tol, tol, f, theta_star);
+//   return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
+// }
+
+
+
+
+
+
+
+
+
+
+// // Banana function
+//
+// // [[Rcpp::export]]
+// double banana_xy(double x, double y){
+//   return (1 - x)*(1-x) + 100*(y - x*x)*(y - x*x);
+// }
+//
+//
+// std::function<double(double)> create_banana(double y) {
+//   auto out = [y](double x) {
+//     return(banana_xy(x, y));
+//   };
+//   return out;
+// }
+//
+// // [[Rcpp::export]]
+// double banana_x_y1(double x){
+//   std::function<double(double)> foo = create_banana(1.0);
+//   return(foo(x));
+// }
+//
+// // [[Rcpp::export]]
+// double banana_x_y2(double x){
+//   std::function<double(double)> foo = create_banana(2.0);
+//   return(foo(x));
+// }
+//
+//
+//
+// // [[Rcpp::export]]
+// List min_banana_x_y1(double lower = -10, double upper = 10, double tol = 0.0001){
+//   double x_star;
+//   double f_star = brent::local_min_mb(lower, upper, tol, banana_x_y1, x_star);
+//   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
+// }
+//
+//
+//
+//
+// // [[Rcpp::export]]
+// List minimize_banana_fixed_y(double y = 1.0, double lower = -10, double upper = 10, double tol = 0.0001){
+//   auto f = [y](double x){ return banana_xy(x, y); };
+//
+//   double x_star;
+//   double f_star = brent::local_min_mb(lower, upper, tol, f, x_star);
+//   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
+// }
+//
+//
+//
+//
+//
+// // [[Rcpp::export]]
+// double banana_xy2(double x, double &y){
+//   return (1 - x)*(1-x) + 100*(y - x*x)*(y - x*x);
+// }
+//
+//
+// // [[Rcpp::export]]
+// List minimize_banana_fixed_y2(double &y,
+//                               double lower = -10, double upper = 10, double tol = 0.0001){
+//   auto f = [&y](double x){ return banana_xy2(x, y); };
+//
+//   double x_star;
+//   double f_star = brent::local_min_mb(lower, upper, tol, f, x_star);
+//   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
+// }
 
 
 
