@@ -240,7 +240,7 @@ res_alg_order_3_2 = mixtureCoordinateExchangeGaussian(
   X_orig = X2,
   order = 3, n_cox_points = 100, max_it = 2, verbose = 0, opt_crit = 0,
   W = matrix(0.0, nrow = 1),
-  method = 1)
+  opt_method = 1, lower = 0, upper = 1, tol = 0.0001)
 
 X3 = res_alg_order_3_2$X
 
@@ -249,7 +249,7 @@ res_alg_order_3_3 = mixtureCoordinateExchangeGaussian(
   X_orig = X2,
   order = 3, n_cox_points = 100, max_it = 2, verbose = 0, opt_crit = 0,
   W = matrix(0.0, nrow = 1),
-  method = 0)
+  opt_method = 0, lower = 0, upper = 1, tol = 0.0001)
 
 X3_2 = res_alg_order_3_3$X
 
@@ -279,5 +279,134 @@ brent_global_cox_scheffe_gaussian(
 
 
 
+
+
+
+
+aaa = mixture_coord_ex_gaussian(
+  n_runs = 30,
+  q = 3,
+  n_random_starts = 100,
+  X = NULL,
+  order = 3,
+  opt_method = "B",
+  max_it = 10,
+  tol = 0.0001,
+  n_cox_points = NULL,
+  plot_designs = T,
+  verbose = 0,
+  opt_crit = 0,
+  seed = 10,
+  n_cores = 8)
+
+n_runs = 30
+q = 3
+n_random_starts = 1
+X = NULL
+order = 3
+opt_method = "B"
+max_it = 10
+tol = 0.0001
+n_cox_points = NULL
+plot_designs = T
+verbose = 1
+opt_crit = 0
+seed = 10
+n_cores = 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mixture_coord_ex_gaussian(
+  n_runs = 30,
+  q = 3,
+  n_random_starts = 100,
+  X = NULL,
+  order = 3,
+  opt_method = "B",
+  max_it = 10,
+  tol = 0.0001,
+  n_cox_points = NULL,
+  plot_designs = T,
+  verbose = 0,
+  opt_crit = "D",
+  seed = 10,
+  n_cores = 8)
+
+
+
+
+mixture_coord_ex_gaussian(
+  n_runs = 30,
+  q = 3,
+  n_random_starts = 100,
+  X = NULL,
+  order = 3,
+  opt_method = "B",
+  max_it = 10,
+  tol = 0.0001,
+  n_cox_points = NULL,
+  plot_designs = T,
+  verbose = 0,
+  opt_crit = "I",
+  seed = 10,
+  n_cores = 8)
+
+
+
+
+
+
+microbenchmark::microbenchmark(
+
+  mixture_coord_ex_gaussian(
+    n_runs = 30,
+    q = 3,
+    n_random_starts = 50,
+    X = NULL,
+    order = 3,
+    opt_method = "B",
+    max_it = 5,
+    tol = 0.0001,
+    n_cox_points = NULL,
+    plot_designs = F,
+    verbose = 0,
+    opt_crit = "D",
+    seed = 10,
+    n_cores = 8)
+
+  ,
+
+
+
+  mixture_coord_ex_gaussian(
+    n_runs = 30,
+    q = 3,
+    n_random_starts = 50,
+    X = NULL,
+    order = 3,
+    opt_method = "D",
+    max_it = 5,
+    tol = 0.0001,
+    n_cox_points = 100,
+    plot_designs = F,
+    verbose = 0,
+    opt_crit = "D",
+    seed = 10,
+    n_cores = 8),
+
+  times = 30
+
+)
 
 

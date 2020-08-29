@@ -2,7 +2,7 @@
 % Please edit documentation in R/gaussian_model_functions.R
 \name{mixture_coord_ex_gaussian}
 \alias{mixture_coord_ex_gaussian}
-\title{TODO: write doc}
+\title{Coordinate exchange algorithm for a mixture model assuming Gaussian iid errors.}
 \usage{
 mixture_coord_ex_gaussian(
   n_runs = NULL,
@@ -10,8 +10,10 @@ mixture_coord_ex_gaussian(
   n_random_starts = 100,
   X = NULL,
   order = 1,
-  n_cox_points = 30,
+  opt_method = "B",
   max_it = 10,
+  tol = 1e-04,
+  n_cox_points = NULL,
   plot_designs = F,
   verbose = 1,
   opt_crit = 0,
@@ -19,6 +21,50 @@ mixture_coord_ex_gaussian(
   n_cores = 1
 )
 }
+\arguments{
+\item{n_runs}{number of runs}
+
+\item{q}{number of ingredient proportions}
+
+\item{n_random_starts}{number or random starts. Defaults to 100.}
+
+\item{X}{User supplied design matrix. Must be of size (n_runs, q) where:
+n_runs is the number of runs
+q is the number of ingredient proportions.}
+
+\item{order}{Order of the Scheffé model (1, 2, or 3).}
+
+\item{opt_method}{Optimization method in each step of the coordinate exchange algorithm.
+It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
+
+\item{max_it}{integer for maximum number of iterations that the coordinate exchange algorithm will do}
+
+\item{tol}{A positive error tolerance in Brent's method.}
+
+\item{n_cox_points}{number of points to use in the discretization of Cox direction}
+
+\item{plot_designs}{boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3.}
+
+\item{verbose}{level of verbosity.}
+
+\item{opt_crit}{optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1)}
+
+\item{seed}{Seed for reproducibility}
+
+\item{n_cores}{Number of cores for parallel processing}
+}
+\value{
+list with 5 elements. See below for details.
+
+Return list has 5 elements:
+\itemize{
+\item X_orig: The original design. Matrix of size (n_runs, q).
+\item X: The optimized design. Matrix of size (n_runs, q).
+\item opt_crit_value_orig: efficiency of the original design.
+\item opt_crit_value: efficiency of the optimized design.
+\item n_iter: Number of iterations performed.
+}
+}
 \description{
-TODO: write doc
+\code{mixture_coord_ex_gaussian} Performs the coordinate exchange algorithm for a Scheffé mixture model. It can have many different random starts, or the coordinate exchange algorithm can be performed in a user-supplied matrix.
 }

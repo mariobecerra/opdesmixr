@@ -514,8 +514,8 @@ arma::mat findBestCoxDirGaussianBrent(
 
 // [[Rcpp::export]]
 Rcpp::List mixtureCoordinateExchangeGaussian(
-    arma::mat X_orig, int order, int n_cox_points, int max_it, int verbose, int opt_crit,
-    arma::mat W, int opt_method){
+    arma::mat X_orig, int order, int max_it, int verbose, int opt_crit,
+    arma::mat W, int opt_method, double lower, double upper, double tol, int n_cox_points){
   // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // X: armadillo matrix with dimensions (n, q) where:
@@ -590,7 +590,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
         if(opt_method == 0){
           // arma::mat& X, int i, int j, int order, int opt_crit, arma::mat& W,
           // double lower = 0, double upper = 1, double tol = 0.0001
-          X = findBestCoxDirGaussianBrent(X, k-1, i, order, opt_crit, W, 0, 1, 0.0001);
+          X = findBestCoxDirGaussianBrent(X, k-1, i, order, opt_crit, W, lower, upper, tol);
 
         } else{
           cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);

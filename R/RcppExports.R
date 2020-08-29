@@ -29,8 +29,8 @@ efficiencyCoxScheffeGaussian <- function(theta, X, i, j, order, opt_crit, W) {
     .Call(`_opdesmixr_efficiencyCoxScheffeGaussian`, theta, X, i, j, order, opt_crit, W)
 }
 
-mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose, opt_crit, W, method) {
-    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, n_cox_points, max_it, verbose, opt_crit, W, method)
+mixtureCoordinateExchangeGaussian <- function(X_orig, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points)
 }
 
 getXsMNL <- function(X, s) {

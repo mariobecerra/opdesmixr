@@ -19,7 +19,38 @@ create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
 
 
 
-#' TODO: write doc
+#' Coordinate exchange algorithm for a mixture model assuming Gaussian iid errors.
+#'
+#' \code{mixture_coord_ex_gaussian} Performs the coordinate exchange algorithm for a Scheffé mixture model. It can have many different random starts, or the coordinate exchange algorithm can be performed in a user-supplied matrix.
+#' @param n_runs number of runs
+#' @param q number of ingredient proportions
+#' @param n_random_starts number or random starts. Defaults to 100.
+#' @param X User supplied design matrix. Must be of size (n_runs, q) where:
+#'     n_runs is the number of runs
+#'     q is the number of ingredient proportions.
+#' @param order Order of the Scheffé model (1, 2, or 3).
+#' @param opt_method Optimization method in each step of the coordinate exchange algorithm.
+#'      It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)
+#' @param max_it integer for maximum number of iterations that the coordinate exchange algorithm will do
+#' @param tol A positive error tolerance in Brent's method.
+#' @param n_cox_points number of points to use in the discretization of Cox direction
+#' @param plot_designs boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3.
+#' @param verbose level of verbosity.
+#' @param opt_crit optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1)
+#' @param seed Seed for reproducibility
+#' @param n_cores Number of cores for parallel processing
+#' @return list with 5 elements. See below for details.
+#'
+#'
+#' Return list has 5 elements:
+#' \itemize{
+#'     \item X_orig: The original design. Matrix of size (n_runs, q).
+#'     \item X: The optimized design. Matrix of size (n_runs, q).
+#'     \item opt_crit_value_orig: efficiency of the original design.
+#'     \item opt_crit_value: efficiency of the optimized design.
+#'     \item n_iter: Number of iterations performed.
+#'  }
+#'
 #' @export
 mixture_coord_ex_gaussian = function(
   n_runs = NULL,
@@ -27,9 +58,10 @@ mixture_coord_ex_gaussian = function(
   n_random_starts = 100,
   X = NULL,
   order = 1,
-  n_cox_points = 30,
-  opt_method = 1,
+  opt_method = "B",
   max_it = 10,
+  tol = 0.0001,
+  n_cox_points = NULL,
   plot_designs = F,
   verbose = 1,
   opt_crit = 0,
@@ -37,7 +69,48 @@ mixture_coord_ex_gaussian = function(
   n_cores = 1){
 
 
+  #############################################
+  ## Check that optimality criterion is okay
+  #############################################
+  if(!(opt_crit %in% c(0, 1) | opt_crit %in% c("D", "I"))){
+    stop('Unknown optimality criterion. Must be either "D" or 0 for D-optimality, or "I" or 1 for I-optimality.' )
+  }
 
+  # Recode opt_crit
+  if(opt_crit == "D") opt_crit = 0
+  if(opt_crit == "I") opt_crit = 1
+
+
+
+  if(!(opt_method %in% c("B", "D"))){
+    stop('Unknown optimization method. Must be either "B" for Brent or "D" for discretization of Cox direction.' )
+  }
+
+
+
+  #############################################
+  ## Check that optimization method is okay
+  #############################################
+
+  if(opt_method == "B" & !is.null(n_cox_points)){
+    warning("n_cox_points provided but ignoring because optimization method is Brent.")
+  }
+
+  # Make n_cox_points an integer otherwise C++ will throw an error
+  if(is.null(n_cox_points)) n_cox_points = 2
+
+  if(opt_method == "B") opt_method = 0
+  if(opt_method == "D") opt_method = 1
+
+  # if(opt_method == "D" & !is.null(tol)){
+  #   warning("tol provided but ignoring because optimization method is discretization of Cox direction.")
+  # }
+
+
+  #############################################
+  ## Create random initial designs or check that
+  ## the provide design is okay.
+  #############################################
   if(is.null(X)){
     if(!is.null(seed)) set.seed(seed)
 
@@ -63,6 +136,10 @@ mixture_coord_ex_gaussian = function(
 
 
 
+  #############################################
+  ## Moments matrices
+  #############################################
+
   # If criterion is D-optimality, send a matrix with only one zero element as a moment matrix
   # Maybe a NULL value would be better. Gotta check.
   if(opt_crit == 0){
@@ -73,9 +150,17 @@ mixture_coord_ex_gaussian = function(
     W = create_moment_matrix_gaussian(q)
   }
 
+  #############################################
+  ## Check operating system for parallel processing
+  #############################################
+
   if(.Platform$OS.type != "unix") n_cores = 1
 
-  # Apply the coordinate exchange algorithm to all the designs generated
+
+  #############################################
+  ## Apply the coordinate exchange algorithm
+  #############################################
+
   results = parallel::mclapply(seq_along(designs), function(i){
     X = designs[[i]]
 
@@ -83,8 +168,17 @@ mixture_coord_ex_gaussian = function(
 
     out = try(
       mixtureCoordinateExchangeGaussian(
-        X, order, n_cox_points, max_it, verbose, opt_crit, W, opt_method
-      ),
+        X_orig = X,
+        order = order,
+        max_it = max_it,
+        verbose = verbose,
+        opt_crit = opt_crit,
+        W = W,
+        opt_method = opt_method,
+        lower = 0,
+        upper = 1,
+        tol = tol,
+        n_cox_points = n_cox_points),
       silent = T)
 
 
