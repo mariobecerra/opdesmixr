@@ -342,8 +342,6 @@ get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
     W = create_moment_matrix_gaussian(q)
   }
 
-
-
   return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W))
 }
 
@@ -354,102 +352,103 @@ get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
 
 
 
-#' Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
-#' TODO: write doc
-#' @export
-efficiency_cox_scheffe_gaussian = function(theta, X, j, i, order, opt_crit){
-  # // Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
-  # // theta must be between 0 and 1 because it's an ingredient proportion.
-  # // j and i are 0-indexed.
-  # // We want to minimize this.
-  #
-  # // Create new matrix Y that is identical to the one pointed by X.
-  # // Note: This is the easiest way to do it because we have to modify a row in this matrix.
-  # // A more computationally effective way would be to only store the new modified vector since
-  # // we don't need a copy of the whole matrix. But to do that I would have to either modify some
-  # // existing functions, or create some new ones, or both. IDK if the gain in performance is worth it.
-
-
-  q = dim(X)[2]
-
-  if(opt_crit == 0){
-    # "D-optimality"
-    W = matrix(0.0, nrow = 1)
-  } else{
-    # "I-optimality")
-    W = create_moment_matrix_gaussian(q)
-  }
-
-  return(efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W))
-
-}
-
-
-
-#' R wrapper for BrentCoxScheffeGaussian in C++.
-#' Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
-#' The function also checks the edge cases (in normal mixtures it's 0 and 1) to see if the minimizers are there.
-#' TODO: write doc
-#' @export
-brent_cox_scheffe_gaussian = function(X, j, i, order, opt_crit,
-                                      lower = 0, upper = 1, tol = 0.0001){
-
-  q = dim(X)[2]
-
-  if(opt_crit == 0){
-    # "D-optimality"
-    W = matrix(0.0, nrow = 1)
-  } else{
-    # "I-optimality")
-    W = create_moment_matrix_gaussian(q)
-  }
-
-  return(
-    BrentCoxScheffeGaussian(X, j, i, order, opt_crit, W,
-                            lower,upper, tol)
-  )
-}
-
-
-
-
-
-#' R wrapper for BrentGloCoxScheffeGaussian in C++.
-#' Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
-#' Needs a bound for the second derivative.
-#' TODO: write doc
-#' @export
-brent_global_cox_scheffe_gaussian = function(
-  X, j, i, order, opt_crit,
-  lower = 0,
-  upper = 1,
-  initial_guess = 0.5,
-  hessian_bound = 1e5,
-  abs_err_tol = 0.0001,
-  tol = 0.0001){
-
-  q = dim(X)[2]
-
-  if(opt_crit == 0){
-    # "D-optimality"
-    W = matrix(0.0, nrow = 1)
-  } else{
-    # "I-optimality")
-    W = create_moment_matrix_gaussian(q)
-  }
-
-  return(
-    BrentGloCoxScheffeGaussian(X, j, i, order, opt_crit, W,
-                               lower,
-                               upper,
-                               initial_guess,
-                               hessian_bound,
-                               abs_err_tol,
-                               tol)
-  )
-}
-
-
+# #' Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
+# #' TODO: write doc
+# #' @export
+# efficiency_cox_scheffe_gaussian = function(theta, X, j, i, order, opt_crit){
+#   # // Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
+#   # // theta must be between 0 and 1 because it's an ingredient proportion.
+#   # // j and i are 0-indexed.
+#   # // We want to minimize this.
+#   #
+#   # // Create new matrix Y that is identical to the one pointed by X.
+#   # // Note: This is the easiest way to do it because we have to modify a row in this matrix.
+#   # // A more computationally effective way would be to only store the new modified vector since
+#   # // we don't need a copy of the whole matrix. But to do that I would have to either modify some
+#   # // existing functions, or create some new ones, or both. IDK if the gain in performance is worth it.
+#
+#
+#   q = dim(X)[2]
+#
+#   if(opt_crit == 0){
+#     # "D-optimality"
+#     W = matrix(0.0, nrow = 1)
+#   } else{
+#     # "I-optimality")
+#     W = create_moment_matrix_gaussian(q)
+#   }
+#
+#   return(efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W))
+#
+# }
+#
+#
+#
+#
+#
+#
+# #' R wrapper for BrentCoxScheffeGaussian in C++.
+# #' Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
+# #' The function also checks the edge cases (in normal mixtures it's 0 and 1) to see if the minimizers are there.
+# #' TODO: write doc
+# #' @export
+# brent_cox_scheffe_gaussian = function(X, j, i, order, opt_crit,
+#                                       lower = 0, upper = 1, tol = 0.0001){
+#
+#   q = dim(X)[2]
+#
+#   if(opt_crit == 0){
+#     # "D-optimality"
+#     W = matrix(0.0, nrow = 1)
+#   } else{
+#     # "I-optimality")
+#     W = create_moment_matrix_gaussian(q)
+#   }
+#
+#   return(
+#     BrentCoxScheffeGaussian(X, j, i, order, opt_crit, W,
+#                             lower,upper, tol)
+#   )
+# }
+#
+#
+#
+#
+#
+# #' R wrapper for BrentGloCoxScheffeGaussian in C++.
+# #' Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
+# #' Needs a bound for the second derivative.
+# #' TODO: write doc
+# #' @export
+# brent_global_cox_scheffe_gaussian = function(
+#   X, j, i, order, opt_crit,
+#   lower = 0,
+#   upper = 1,
+#   initial_guess = 0.5,
+#   hessian_bound = 1e5,
+#   abs_err_tol = 0.0001,
+#   tol = 0.0001){
+#
+#   q = dim(X)[2]
+#
+#   if(opt_crit == 0){
+#     # "D-optimality"
+#     W = matrix(0.0, nrow = 1)
+#   } else{
+#     # "I-optimality")
+#     W = create_moment_matrix_gaussian(q)
+#   }
+#
+#   return(
+#     BrentGloCoxScheffeGaussian(X, j, i, order, opt_crit, W,
+#                                lower,
+#                                upper,
+#                                initial_guess,
+#                                hessian_bound,
+#                                abs_err_tol,
+#                                tol)
+#   )
+# }
 
 
 
