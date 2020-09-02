@@ -117,17 +117,24 @@ create_random_beta = function(q, seed = NULL){
 #' Coordinate exchange algorithm for a Multinomial Logit Scheffé model.
 #'
 #' \code{mixture_coord_ex_mnl} Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
-#' @param X 3 dimensional array with dimensions (q, J, S) where:
-#'     q is the number of ingredient proportions,
-#'     J is the number of alternatives within a choice set,
-#'     S is the number of choice sets.
-#' @param beta numeric vector containing the parameters. Should be of length (q^3 + 5*q)/6
-#' @param n_cox_points integer representing the umber of points to use in the discretization of Cox direction
+#' @param q number of ingredient proportions.
+#' @param J number of alternatives within a choice set.
+#' @param S number of choice sets.
+#' @param n_random_starts number or random starts. Defaults to 100.
+#' @param X If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.
+#' @param beta Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.
+#' @param opt_method Optimization method in each step of the coordinate exchange algorithm.
+#'      It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)
 #' @param max_it integer for maximum number of iterations that the coordinate exchange algorithm will do
+#' @param tol A positive error tolerance in Brent's method.
+#' @param n_cox_points number of points to use in the discretization of Cox direction. Ignored if opt_method is Brent.
 #' @param plot_designs boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3.
-#' @param verbose level of verbosity. 6 levels. See below for details.
-#' @param opt_crit optimality criterion: 0 (D-optimality) or 1 (I-optimality)
-#' @return list with 5 elements. See below for details.
+#' @param verbose level of verbosity. See below for details.
+#' @param opt_crit optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1).
+#' @param seed Seed for reproducibility.
+#' @param n_cores Number of cores for parallel processing.
+#'
+#' @return list with 6 elements. See below for details.
 #'
 #' Verbosity levels: each level prints the previous plus additional things:
 #' \enumerate{
@@ -139,13 +146,14 @@ create_random_beta = function(q, seed = NULL){
 #'     \item Print the resulting X or each point in the Cox direction discretization
 #'  }
 #'
-#' Return list has 5 elements:
+#' Return list has 6 elements:
 #' \itemize{
 #'     \item X_orig: The original design. Array with dimensions (q, J, S).
 #'     \item X: The optimized design. Array with dimensions (q, J, S).
-#'     \item d_eff_orig: log D-efficiency of the original design.
-#'     \item d_eff: log D-efficiency of the optimized design.
+#'     \item opt_crit_value_orig: efficiency of the original design.
+#'     \item opt_crit_value: efficiency of the optimized design.
 #'     \item n_iter: Number of iterations performed.
+#'     \item opt_crit: The optimality criterion used.
 #'  }
 #'
 #' @export
@@ -156,8 +164,10 @@ mixture_coord_ex_mnl = function(
   n_random_starts = 100,
   X = NULL,
   beta,
-  n_cox_points = 30,
+  opt_method = "B",
   max_it = 10,
+  tol = 0.0001,
+  n_cox_points = NULL,
   plot_designs = F,
   verbose = 1,
   opt_crit = 0,
@@ -190,7 +200,51 @@ mixture_coord_ex_mnl = function(
   #    n_iter: Number of iterations performed.
 
 
-  # If initial design was not provided, create list of random designs
+
+  #############################################
+  ## Check that optimality criterion is okay
+  #############################################
+  if(!(opt_crit %in% c(0, 1) | opt_crit %in% c("D", "I"))){
+    stop('Unknown optimality criterion. Must be either "D" or 0 for D-optimality, or "I" or 1 for I-optimality.' )
+  }
+
+  # Recode opt_crit
+  if(opt_crit == "D") opt_crit = 0
+  if(opt_crit == "I") opt_crit = 1
+
+
+
+  if(!(opt_method %in% c("B", "D"))){
+    stop('Unknown optimization method. Must be either "B" for Brent or "D" for discretization of Cox direction.' )
+  }
+
+
+
+  #############################################
+  ## Check that optimization method is okay
+  #############################################
+
+  if(opt_method == "B" & !is.null(n_cox_points)){
+    warning("n_cox_points provided but ignoring because optimization method is Brent.")
+  }
+
+  # Make n_cox_points an integer otherwise C++ will throw an error
+  if(is.null(n_cox_points)) n_cox_points = 2
+
+  if(opt_method == "B") opt_method = 0
+  if(opt_method == "D") opt_method = 1
+
+  # if(opt_method == "D" & !is.null(tol)){
+  #   warning("tol provided but ignoring because optimization method is discretization of Cox direction.")
+  # }
+
+
+  #############################################
+  ## Create random initial designs or check that
+  ## the provide design is okay.
+  #############################################
+
+
   if(is.null(X)){
 
     if(!is.null(seed)) set.seed(seed)
@@ -220,6 +274,9 @@ mixture_coord_ex_mnl = function(
   # m = (q*q*q + 5*q)/6
   # if(m != length(beta)) stop("Incompatible length in beta and q: beta must be of length (q^3 + 5*q)/6")
 
+  #############################################
+  ## Moments matrices
+  #############################################
 
   # If criterion is D-optimality, send a matrix with only one zero element as a moment matrix
   # Maybe a NULL value would be better. Gotta check.
@@ -231,9 +288,16 @@ mixture_coord_ex_mnl = function(
     W = create_moment_matrix_MNL(q)
   }
 
+  #############################################
+  ## Check operating system for parallel processing
+  #############################################
+
   if(.Platform$OS.type != "unix") n_cores = 1
 
-  # Apply the coordinate exchange algorithm to all the designs generated
+  #############################################
+  ## Apply the coordinate exchange algorithm to all the created designs
+  #############################################
+
   results = parallel::mclapply(seq_along(designs), function(i){
     X = designs[[i]]
 
@@ -243,11 +307,15 @@ mixture_coord_ex_mnl = function(
       mixtureCoordinateExchangeMNL(
         X_orig = X,
         beta = beta,
-        n_cox_points = n_cox_points,
         max_it = max_it,
         verbose = verbose,
-        opt_crit,
-        W
+        opt_crit = opt_crit,
+        W = W,
+        opt_method = opt_method,
+        lower = 0,
+        upper = 1,
+        tol = tol,
+        n_cox_points = n_cox_points
       ), silent = T)
 
     # If there was an error with this design, return whatever

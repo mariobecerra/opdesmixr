@@ -54,15 +54,16 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{n_cores}{Number of cores for parallel processing}
 }
 \value{
-list with 5 elements. See below for details.
+list with 6 elements. See below for details.
 
-Return list has 5 elements:
+Return list has 6 elements:
 \itemize{
 \item X_orig: The original design. Matrix of size (n_runs, q).
 \item X: The optimized design. Matrix of size (n_runs, q).
 \item opt_crit_value_orig: efficiency of the original design.
 \item opt_crit_value: efficiency of the optimized design.
 \item n_iter: Number of iterations performed.
+\item opt_crit: The optimality criterion used.
 }
 }
 \description{

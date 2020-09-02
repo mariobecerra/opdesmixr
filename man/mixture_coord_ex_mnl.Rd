@@ -11,8 +11,10 @@ mixture_coord_ex_mnl(
   n_random_starts = 100,
   X = NULL,
   beta,
-  n_cox_points = 30,
+  opt_method = "B",
   max_it = 10,
+  tol = 1e-04,
+  n_cox_points = NULL,
   plot_designs = F,
   verbose = 1,
   opt_crit = 0,
@@ -21,25 +23,39 @@ mixture_coord_ex_mnl(
 )
 }
 \arguments{
-\item{X}{3 dimensional array with dimensions (q, J, S) where:
-q is the number of ingredient proportions,
-J is the number of alternatives within a choice set,
-S is the number of choice sets.}
+\item{q}{number of ingredient proportions.}
 
-\item{beta}{numeric vector containing the parameters. Should be of length (q^3 + 5*q)/6}
+\item{J}{number of alternatives within a choice set.}
 
-\item{n_cox_points}{integer representing the umber of points to use in the discretization of Cox direction}
+\item{S}{number of choice sets.}
+
+\item{n_random_starts}{number or random starts. Defaults to 100.}
+
+\item{X}{If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.}
+
+\item{beta}{Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.}
+
+\item{opt_method}{Optimization method in each step of the coordinate exchange algorithm.
+It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 
 \item{max_it}{integer for maximum number of iterations that the coordinate exchange algorithm will do}
 
+\item{tol}{A positive error tolerance in Brent's method.}
+
+\item{n_cox_points}{number of points to use in the discretization of Cox direction. Ignored if opt_method is Brent.}
+
 \item{plot_designs}{boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3.}
 
-\item{verbose}{level of verbosity. 6 levels. See below for details.}
+\item{verbose}{level of verbosity. See below for details.}
 
-\item{opt_crit}{optimality criterion: 0 (D-optimality) or 1 (I-optimality)}
+\item{opt_crit}{optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1).}
+
+\item{seed}{Seed for reproducibility.}
+
+\item{n_cores}{Number of cores for parallel processing.}
 }
 \value{
-list with 5 elements. See below for details.
+list with 6 elements. See below for details.
 
 Verbosity levels: each level prints the previous plus additional things:
 \enumerate{
@@ -51,13 +67,14 @@ Verbosity levels: each level prints the previous plus additional things:
 \item Print the resulting X or each point in the Cox direction discretization
 }
 
-Return list has 5 elements:
+Return list has 6 elements:
 \itemize{
 \item X_orig: The original design. Array with dimensions (q, J, S).
 \item X: The optimized design. Array with dimensions (q, J, S).
-\item d_eff_orig: log D-efficiency of the original design.
-\item d_eff: log D-efficiency of the optimized design.
+\item opt_crit_value_orig: efficiency of the original design.
+\item opt_crit_value: efficiency of the optimized design.
 \item n_iter: Number of iterations performed.
+\item opt_crit: The optimality criterion used.
 }
 }
 \description{

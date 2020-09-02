@@ -390,7 +390,7 @@ arma::mat findBestCoxDirGaussianDiscrete(
 
 
 // [[Rcpp::export]]
-arma::mat changeIngredientDesign(double theta, arma::mat& X, int i, int j){
+arma::mat changeIngredientDesignGaussian(double theta, arma::mat& X, int i, int j){
   // Returns a new design matrix Y changing the j-th ingredient in i-th observation is changed to theta
   // in the original design matrix X.
   // theta must be between 0 and 1 because it's an ingredient proportion.
@@ -457,7 +457,7 @@ double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int i, int j, in
   // j and i are 0-indexed.
   // We want to minimize this.
 
-  arma::mat Y = changeIngredientDesign(theta, X, i, j);
+  arma::mat Y = changeIngredientDesignGaussian(theta, X, i, j);
   int q = Y.n_cols;
 
   // Return utility function value. We want to minimize this.
@@ -487,7 +487,7 @@ arma::mat findBestCoxDirGaussianBrent(
 
   double theta_brent, theta_star, f_star;
   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
-  // Check edge cases
+  // Check end points
   double f_lower = efficiencyCoxScheffeGaussian(lower, X, i, j, order, opt_crit, W);
   double f_upper = efficiencyCoxScheffeGaussian(upper, X, i, j, order, opt_crit, W);
 
@@ -503,7 +503,7 @@ arma::mat findBestCoxDirGaussianBrent(
     }
   }
 
-  return(changeIngredientDesign(theta_star, X, i, j));
+  return(changeIngredientDesignGaussian(theta_star, X, i, j));
 
 }
 
@@ -1013,7 +1013,7 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
 
 
 // [[Rcpp::export]]
-arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::mat& beta_mat,
+arma::cube findBestCoxDirMNLDiscrete(arma::mat& cox_dir, arma::cube& X_in, arma::mat& beta_mat,
                              int k, int s, double opt_crit_value_best,
                              int verbose, int opt_crit, arma::mat& W) {
   // Function that returns the design that minimizes the optimality criterion value.
@@ -1084,10 +1084,127 @@ arma::cube findBestCoxDirMNL(arma::mat& cox_dir, arma::cube& X_in, arma::mat& be
 
 
 
+// [[Rcpp::export]]
+arma::cube changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, int s){
+  // Returns a new design cube Y changing the i-th ingredient in the j-th
+  // alternative in s-th choice set is changed to theta in the original design cube X.
+  // Since theta is an ingredient proportion, it must be between 0 and 1.
+  // Indices i, j and k are 0-indexed.
+
+
+  // Create new cube Y that is identical to the one pointed by X.
+  // Note: This may not be the most computationally effective way, but ut's the easiest at the moment.
+  arma::cube Y = X;
+
+  // Number of ingredients
+  int q = Y.n_rows;
+
+  // Create a vector with the ingredients of the j-th alternative of the s-th choice set.
+  arma::vec x = X(arma::span::all, arma::span(j), arma::span(s));
+
+  double delta = theta - x(i);
+
+  // recompute proportions:
+  vec setDiff_aux = linspace<vec>(0, q-1, q);
+  vec setDiff = removeElement(setDiff_aux, i);
+  int k;
+  double result;
+
+  for(int k_aux = 0; k_aux < setDiff.n_elem; k_aux++){
+    k = setDiff(k_aux);
+
+    if(abs(1 - x(i)) < 1e-16) {
+      // In case x(i) is numerically 1, it will return a numeric zero such that the vector sums up to 1
+      // Almost the same as doing result = 0;
+      result = (1 - x(i))/(q-1);
+    } else{
+      // Other case
+      result = x(k) - delta*x(k)/(1 - x(i));
+    }
+
+    x(k) = result;
+  }
+
+  x(i) = theta;
+
+  // Replace the design Y with the recomputed proportions according to Cox direction
+  for(int l = 0; l < q; l++){
+    Y(l, j, s) = x(l);
+  }
+
+  return(Y);
+
+}
+
+
+
+
+// [[Rcpp::export]]
+double efficiencyCoxScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
+                               int i, int j, int s,
+                               int opt_crit, arma::mat& W){
+  // Computes efficiency criterion of a design cube X but where the i-th ingredient in the j-th
+  // alternative in s-th choice set is changed to theta.
+  // Since theta is an ingredient proportion, it must be between 0 and 1.
+  // Indices i, j and k are 0-indexed.
+  // We want to minimize this.
+
+  arma::cube Y = changeIngredientDesignMNL(theta, X, i, j, s);
+
+
+  // Return utility function value. We want to minimize this.
+  return(getOptCritValueMNL(Y, beta_mat, 0, opt_crit, W));
+}
+
+
+
+arma::cube findBestCoxDirMNLBrent(
+    arma::cube& X, arma::mat& beta_mat, int i, int j, int s, int opt_crit, arma::mat& W,
+    double lower = 0, double upper = 1, double tol = 0.0001) {
+
+  auto f = [&X, &beta_mat, i, j, s, opt_crit, &W](double theta){
+    return efficiencyCoxScheffeMNL(theta, X, beta_mat, i, j, s, opt_crit, W);
+  };
+
+  double theta_brent, theta_star, f_star;
+  double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
+
+  // Check end points:
+  double f_lower = efficiencyCoxScheffeMNL(lower, X, beta_mat, i, j, s, opt_crit, W);
+  double f_upper = efficiencyCoxScheffeMNL(upper, X, beta_mat, i, j, s, opt_crit, W);
+
+  f_star = std::min({f_lower, f_upper, f_brent});
+
+  if(f_star == f_brent){
+    theta_star = theta_brent;
+  } else{
+    if(f_star == f_lower){
+      theta_star = lower;
+    } else{
+      theta_star = upper;
+    }
+  }
+
+  return(changeIngredientDesignMNL(theta_star, X, i, j, s));
+
+}
+
+
+
+
+
+
+
+
+
+
+
 // To implement the Bayesian part, beta will have to be a vector of prior simulations
 
 // [[Rcpp::export]]
-Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::mat beta_mat, int n_cox_points, int max_it, int verbose, int opt_crit, arma::mat W){
+Rcpp::List mixtureCoordinateExchangeMNL(
+    arma::cube X_orig, arma::mat beta_mat, int max_it, int verbose, int opt_crit, arma::mat W,
+    int opt_method, double lower, double upper, double tol, int n_cox_points){
   // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // X: 3 dimensional cube with dimensions (q, J, S) where:
@@ -1165,8 +1282,13 @@ Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::mat beta_mat, i
             x(l) = X(l, k-1, s-1);
           }
 
-          cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-          X = findBestCoxDirMNL(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W);
+          if(opt_method == 0){
+            X = findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, W, lower, upper, tol);
+          } else{
+            cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
+            X = findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W);
+          }
+
           opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W);
 
           if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;

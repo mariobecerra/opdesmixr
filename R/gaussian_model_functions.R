@@ -39,16 +39,17 @@ create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
 #' @param opt_crit optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1)
 #' @param seed Seed for reproducibility
 #' @param n_cores Number of cores for parallel processing
-#' @return list with 5 elements. See below for details.
+#' @return list with 6 elements. See below for details.
 #'
 #'
-#' Return list has 5 elements:
+#' Return list has 6 elements:
 #' \itemize{
 #'     \item X_orig: The original design. Matrix of size (n_runs, q).
 #'     \item X: The optimized design. Matrix of size (n_runs, q).
 #'     \item opt_crit_value_orig: efficiency of the original design.
 #'     \item opt_crit_value: efficiency of the optimized design.
 #'     \item n_iter: Number of iterations performed.
+#'     \item opt_crit: The optimality criterion used.
 #'  }
 #'
 #' @export
@@ -352,41 +353,7 @@ get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
 
 
 
-# #' Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
-# #' TODO: write doc
-# #' @export
-# efficiency_cox_scheffe_gaussian = function(theta, X, j, i, order, opt_crit){
-#   # // Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
-#   # // theta must be between 0 and 1 because it's an ingredient proportion.
-#   # // j and i are 0-indexed.
-#   # // We want to minimize this.
-#   #
-#   # // Create new matrix Y that is identical to the one pointed by X.
-#   # // Note: This is the easiest way to do it because we have to modify a row in this matrix.
-#   # // A more computationally effective way would be to only store the new modified vector since
-#   # // we don't need a copy of the whole matrix. But to do that I would have to either modify some
-#   # // existing functions, or create some new ones, or both. IDK if the gain in performance is worth it.
-#
-#
-#   q = dim(X)[2]
-#
-#   if(opt_crit == 0){
-#     # "D-optimality"
-#     W = matrix(0.0, nrow = 1)
-#   } else{
-#     # "I-optimality")
-#     W = create_moment_matrix_gaussian(q)
-#   }
-#
-#   return(efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W))
-#
-# }
-#
-#
-#
-#
-#
-#
+
 # #' R wrapper for BrentCoxScheffeGaussian in C++.
 # #' Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
 # #' The function also checks the edge cases (in normal mixtures it's 0 and 1) to see if the minimizers are there.
