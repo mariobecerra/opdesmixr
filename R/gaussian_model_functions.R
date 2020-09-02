@@ -103,10 +103,6 @@ mixture_coord_ex_gaussian = function(
   if(opt_method == "B") opt_method = 0
   if(opt_method == "D") opt_method = 1
 
-  # if(opt_method == "D" & !is.null(tol)){
-  #   warning("tol provided but ignoring because optimization method is discretization of Cox direction.")
-  # }
-
 
   #############################################
   ## Create random initial designs or check that
@@ -134,7 +130,6 @@ mixture_coord_ex_gaussian = function(
 
     designs = list(X)
   }
-
 
 
   #############################################
@@ -206,9 +201,6 @@ mixture_coord_ex_gaussian = function(
 
   # Return the result with the best optimality criterion
   X_result = results[[which.min(optimality_values)]]
-
-  # # Coordinate exchanges:
-  # X_result = mixtureCoordinateExchangeGaussian(X, order, n_cox_points, max_it, verbose, opt_crit, W)
 
   out_list = list(
     X_orig = X_result$X_orig,
@@ -351,71 +343,6 @@ get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
 
 
 
-
-
-
-# #' R wrapper for BrentCoxScheffeGaussian in C++.
-# #' Minimizes the efficiency function for Scheffé model using Brent's method for local optima.
-# #' The function also checks the edge cases (in normal mixtures it's 0 and 1) to see if the minimizers are there.
-# #' TODO: write doc
-# #' @export
-# brent_cox_scheffe_gaussian = function(X, j, i, order, opt_crit,
-#                                       lower = 0, upper = 1, tol = 0.0001){
-#
-#   q = dim(X)[2]
-#
-#   if(opt_crit == 0){
-#     # "D-optimality"
-#     W = matrix(0.0, nrow = 1)
-#   } else{
-#     # "I-optimality")
-#     W = create_moment_matrix_gaussian(q)
-#   }
-#
-#   return(
-#     BrentCoxScheffeGaussian(X, j, i, order, opt_crit, W,
-#                             lower,upper, tol)
-#   )
-# }
-#
-#
-#
-#
-#
-# #' R wrapper for BrentGloCoxScheffeGaussian in C++.
-# #' Minimizes the efficiency function for Scheffé model using Brent's method for global optima.
-# #' Needs a bound for the second derivative.
-# #' TODO: write doc
-# #' @export
-# brent_global_cox_scheffe_gaussian = function(
-#   X, j, i, order, opt_crit,
-#   lower = 0,
-#   upper = 1,
-#   initial_guess = 0.5,
-#   hessian_bound = 1e5,
-#   abs_err_tol = 0.0001,
-#   tol = 0.0001){
-#
-#   q = dim(X)[2]
-#
-#   if(opt_crit == 0){
-#     # "D-optimality"
-#     W = matrix(0.0, nrow = 1)
-#   } else{
-#     # "I-optimality")
-#     W = create_moment_matrix_gaussian(q)
-#   }
-#
-#   return(
-#     BrentGloCoxScheffeGaussian(X, j, i, order, opt_crit, W,
-#                                lower,
-#                                upper,
-#                                initial_guess,
-#                                hessian_bound,
-#                                abs_err_tol,
-#                                tol)
-#   )
-# }
 
 
 

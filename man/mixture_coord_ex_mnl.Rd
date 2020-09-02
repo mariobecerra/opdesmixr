@@ -55,22 +55,23 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{n_cores}{Number of cores for parallel processing.}
 }
 \value{
-list with 6 elements. See below for details.
+list with 7 elements. See below for details.
 
 Verbosity levels: each level prints the previous plus additional things:
 \enumerate{
-\item Print the log D efficiency in each iteration and a final summary
-\item Print the values of k, s, i, and log D efficiency in each subiteration
+\item Print the efficiency value in each iteration and a final summary
+\item Print the values of k, s, i, and efficiency value in each subiteration
 \item Print the resulting X after each iteration, i.e., after each complete pass on the data
-\item Print log D efficiency for each point in the Cox direction discretization
+\item Print efficiency value for each point in the Cox direction discretization
 \item Print the resulting X and information matrix after each subiteration
 \item Print the resulting X or each point in the Cox direction discretization
 }
 
-Return list has 6 elements:
+Return list has 7 elements:
 \itemize{
 \item X_orig: The original design. Array with dimensions (q, J, S).
 \item X: The optimized design. Array with dimensions (q, J, S).
+\item beta: The original beta vector or matrix.
 \item opt_crit_value_orig: efficiency of the original design.
 \item opt_crit_value: efficiency of the optimized design.
 \item n_iter: Number of iterations performed.

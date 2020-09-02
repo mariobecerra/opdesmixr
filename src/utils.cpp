@@ -452,10 +452,12 @@ arma::mat changeIngredientDesignGaussian(double theta, arma::mat& X, int i, int 
 // [[Rcpp::export]]
 double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int i, int j, int order,
                                     int opt_crit, arma::mat& W){
-  // Computes efficiency criterion of a design matrix X but where the j-th ingredient in i-th observation is changed to theta.
-  // theta must be between 0 and 1 because it's an ingredient proportion.
-  // j and i are 0-indexed.
+  // Computes efficiency criterion of a design matrix X but where the j-th ingredient in the
+  // i-th observation is changed to theta.
+  // Since theta is an ingredient proportion, it must be between 0 and 1.
+  // INdices j and i are 0-indexed.
   // We want to minimize this.
+
 
   arma::mat Y = changeIngredientDesignGaussian(theta, X, i, j);
   int q = Y.n_cols;
@@ -516,30 +518,22 @@ arma::mat findBestCoxDirGaussianBrent(
 Rcpp::List mixtureCoordinateExchangeGaussian(
     arma::mat X_orig, int order, int max_it, int verbose, int opt_crit,
     arma::mat W, int opt_method, double lower, double upper, double tol, int n_cox_points){
-  // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
-  // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
-  // X: armadillo matrix with dimensions (n, q) where:
-  //    q is the number of ingredient proportions
-  //    n is the number of runs
-  // n_cox_points: Number of points to use in the discretization of Cox direction.
-  // max_it: Maximum number of iteration that the coordinate exchange algorithm will do.
-  // verbose: level of verbosity. 6 levels, in which level prints the previous plus additional things:
-  //    1: Print the optimality criterion value in each iteration and a final summary
-  //    2: Print the values of k, s, i, and optimality criterion value in each subiteration
-  //    3: Print the resulting X after each iteration, i.e., after each complete pass on the data
-  //    4: Print optimality criterion value for each point in the Cox direction discretization
-  //    5: Print the resulting X and information matrix after each subiteration
-  //    6: Print the resulting X or each point in the Cox direction discretization
-  // opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
-  // opt_method: optimization method (0 for Brent, 1 for discrete approximation).
-  // W: moment matrix for I-optimality
-  //
-  // Returns an Rcpp::List object with the following objects:
-  //    X_orig: The original design. Armadillo matrix with dimensions (n, q).
-  //    X: The optimized design. Armadillo matrix with dimensions (n, q).
-  //    opt_crit_value_orig: optimality criterion value of the original design.
-  //    opt_crit_value: optimality criterion value of the optimized design.
-  //    n_iter: Number of iterations performed.
+  // Performs the coordinate exchange algorithm for a Scheffé model with Gaussian errors.
+
+  // n_runs: number of runs
+  // q: number of ingredient proportions
+  // n_random_starts: number or random starts. Defaults to 100.
+  // X: User supplied design matrix.
+  // order: Order of the Scheffé model (1, 2, or 3).
+  // opt_method: Optimization method in each step of the coordinate exchange algorithm.
+  //    0 for Brent, 1 for Cox's direction discretization.
+  // max_it: integer for maximum number of iterations that the coordinate exchange algorithm will do
+  // tol: A positive error tolerance in Brent's method.
+  // n_cox_points: number of points to use in the discretization of Cox direction
+  // verbose level of verbosity.
+  // opt_crit optimality criterion: D-optimality (0) or I-optimality (1)
+  // W: moment matrix
+
 
   // Does not do input checks because the R wrapper function does them.
 
@@ -588,8 +582,6 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
         }
 
         if(opt_method == 0){
-          // arma::mat& X, int i, int j, int order, int opt_crit, arma::mat& W,
-          // double lower = 0, double upper = 1, double tol = 0.0001
           X = findBestCoxDirGaussianBrent(X, k-1, i, order, opt_crit, W, lower, upper, tol);
 
         } else{
@@ -1199,36 +1191,26 @@ arma::cube findBestCoxDirMNLBrent(
 
 
 
-// To implement the Bayesian part, beta will have to be a vector of prior simulations
 
 // [[Rcpp::export]]
 Rcpp::List mixtureCoordinateExchangeMNL(
     arma::cube X_orig, arma::mat beta_mat, int max_it, int verbose, int opt_crit, arma::mat W,
     int opt_method, double lower, double upper, double tol, int n_cox_points){
-  // Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
-  // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
-  // X: 3 dimensional cube with dimensions (q, J, S) where:
-  //    q is the number of ingredient proportions
-  //    J is the number of alternatives within a choice set
-  //    S is the number of choice sets
-  // beta_mat: Matrix of parameters. m = (q^3 + 5*q)/6.
-  // n_cox_points: Number of points to use in the discretization of Cox direction.
-  // max_it: Maximum number of iteration that the coordinate exchange algorithm will do.
-  // verbose: level of verbosity. 6 levels, in which level prints the previous plus additional things:
-  //    1: Print the optimality criterion value in each iteration and a final summary
-  //    2: Print the values of k, s, i, and optimality criterion value in each subiteration
-  //    3: Print the resulting X after each iteration, i.e., after each complete pass on the data
-  //    4: Print optimality criterion value for each point in the Cox direction discretization
-  //    5: Print the resulting X and information matrix after each subiteration
-  //    6: Print the resulting X or each point in the Cox direction discretization
-  //    opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
-  //    W: moment matrix
-  // Returns an Rcpp::List object with the following objects:
-  //    X_orig: The original design. Cube with dimensions (q, J, S).
-  //    X: The optimized design. Cube with dimensions (q, J, S).
-  //    opt_crit_value_orig: Optimality criterion value of the original design.
-  //    opt_crit_value: Optimality criterion value of the optimized design.
-  //    n_iter: Number of iterations performed.
+  // See mixture_coord_ex_mnl() in R for details.
+  // q: number of ingredient proportions.
+  // J: number of alternatives within a choice set.
+  // S: number of choice sets.
+  // n_random_starts: number or random starts. Defaults to 100.
+  // X_orig: If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.
+  // beta: Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.
+  // opt_method: Optimization method in each step of the coordinate exchange algorithm.
+  //  0 for Brent, 1 for Cox's direction discretization.
+  // max_it: integer for maximum number of iterations that the coordinate exchange algorithm will do
+  // tol: A positive error tolerance in Brent's method.
+  // n_cox_points: number of points to use in the discretization of Cox direction. Ignored if opt_method is Brent.
+  // verbose: level of verbosity.
+  // opt_crit: optimality criterion: D-optimality (0) or I-optimality (1).
+  // W: momens matrix
 
   // Does not do input checks because the R wrapper function does them.
 
@@ -1336,158 +1318,6 @@ Rcpp::List mixtureCoordinateExchangeMNL(
 
 
 
-
-
-
-
-
-
-
-
-
-// // [[Rcpp::export]]
-// List BrentCoxScheffeGaussianNoEdge(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
-//                              double lower = 0, double upper = 1, double tol = 0.0001){
-//   auto f = [&X, j, i, order, opt_crit, &W](double theta){
-//     return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
-//     // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
-//   };
-//
-//   double theta_star;
-//   double f_star = brent::local_min_mb(lower, upper, tol, f, theta_star);
-//   return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
-// }
-//
-//
-//
-//
-//
-// // [[Rcpp::export]]
-// List BrentCoxScheffeGaussian(arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
-//                              double lower = 0.0, double upper = 1.0, double tol = 0.0001){
-//   auto f = [&X, j, i, order, opt_crit, &W](double theta){
-//     return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
-//   };
-//
-//   double theta_brent, theta_star, f_star;
-//   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
-//   // Check edge cases
-//   double f_lower = efficiencyCoxScheffeGaussian(lower, X, j, i, order, opt_crit, W);
-//   double f_upper = efficiencyCoxScheffeGaussian(upper, X, j, i, order, opt_crit, W);
-//
-//   f_star = std::min({f_lower, f_upper, f_brent});
-//
-//   if(f_star == f_brent){
-//     theta_star = theta_brent;
-//   } else{
-//     if(f_star == f_lower){
-//       theta_star = lower;
-//     } else{
-//       theta_star = upper;
-//     }
-//   }
-//   return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
-// }
-//
-//
-//
-//
-//
-// // [[Rcpp::export]]
-// List BrentGloCoxScheffeGaussian(
-//     arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W,
-//     double lower = 0, double upper = 1,
-//     double initial_guess = 0.5,
-//     double hessian_bound = 1e5,
-//     double abs_err_tol = 0.0001,
-//     double tol = 0.0001){
-//   auto f = [&X, j, i, order, opt_crit, &W](double theta){
-//     return efficiencyCoxScheffeGaussian(theta, X, j, i, order, opt_crit, W);
-//     // double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int j, int i, int order, int opt_crit, arma::mat& W)
-//   };
-//
-//   double theta_star;
-//   double f_star = brent::glomin_mb(
-//     lower, upper, initial_guess, hessian_bound, abs_err_tol, tol, f, theta_star);
-//   return List::create(Named("minimizer") = theta_star, Named("objective_func") = f_star);
-// }
-
-
-
-
-
-
-
-
-
-
-// // Banana function
-//
-// // [[Rcpp::export]]
-// double banana_xy(double x, double y){
-//   return (1 - x)*(1-x) + 100*(y - x*x)*(y - x*x);
-// }
-//
-//
-// std::function<double(double)> create_banana(double y) {
-//   auto out = [y](double x) {
-//     return(banana_xy(x, y));
-//   };
-//   return out;
-// }
-//
-// // [[Rcpp::export]]
-// double banana_x_y1(double x){
-//   std::function<double(double)> foo = create_banana(1.0);
-//   return(foo(x));
-// }
-//
-// // [[Rcpp::export]]
-// double banana_x_y2(double x){
-//   std::function<double(double)> foo = create_banana(2.0);
-//   return(foo(x));
-// }
-//
-//
-//
-// // [[Rcpp::export]]
-// List min_banana_x_y1(double lower = -10, double upper = 10, double tol = 0.0001){
-//   double x_star;
-//   double f_star = brent::local_min_mb(lower, upper, tol, banana_x_y1, x_star);
-//   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
-// }
-//
-//
-//
-//
-// // [[Rcpp::export]]
-// List minimize_banana_fixed_y(double y = 1.0, double lower = -10, double upper = 10, double tol = 0.0001){
-//   auto f = [y](double x){ return banana_xy(x, y); };
-//
-//   double x_star;
-//   double f_star = brent::local_min_mb(lower, upper, tol, f, x_star);
-//   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
-// }
-//
-//
-//
-//
-//
-// // [[Rcpp::export]]
-// double banana_xy2(double x, double &y){
-//   return (1 - x)*(1-x) + 100*(y - x*x)*(y - x*x);
-// }
-//
-//
-// // [[Rcpp::export]]
-// List minimize_banana_fixed_y2(double &y,
-//                               double lower = -10, double upper = 10, double tol = 0.0001){
-//   auto f = [&y](double x){ return banana_xy2(x, y); };
-//
-//   double x_star;
-//   double f_star = brent::local_min_mb(lower, upper, tol, f, x_star);
-//   return List::create(Named("minimizer") = x_star, Named("objective_func") = f_star);
-// }
 
 
 

@@ -134,22 +134,23 @@ create_random_beta = function(q, seed = NULL){
 #' @param seed Seed for reproducibility.
 #' @param n_cores Number of cores for parallel processing.
 #'
-#' @return list with 6 elements. See below for details.
+#' @return list with 7 elements. See below for details.
 #'
 #' Verbosity levels: each level prints the previous plus additional things:
 #' \enumerate{
-#'     \item Print the log D efficiency in each iteration and a final summary
-#'     \item Print the values of k, s, i, and log D efficiency in each subiteration
+#'     \item Print the efficiency value in each iteration and a final summary
+#'     \item Print the values of k, s, i, and efficiency value in each subiteration
 #'     \item Print the resulting X after each iteration, i.e., after each complete pass on the data
-#'     \item Print log D efficiency for each point in the Cox direction discretization
+#'     \item Print efficiency value for each point in the Cox direction discretization
 #'     \item Print the resulting X and information matrix after each subiteration
 #'     \item Print the resulting X or each point in the Cox direction discretization
 #'  }
 #'
-#' Return list has 6 elements:
+#' Return list has 7 elements:
 #' \itemize{
 #'     \item X_orig: The original design. Array with dimensions (q, J, S).
 #'     \item X: The optimized design. Array with dimensions (q, J, S).
+#'     \item beta: The original beta vector or matrix.
 #'     \item opt_crit_value_orig: efficiency of the original design.
 #'     \item opt_crit_value: efficiency of the optimized design.
 #'     \item n_iter: Number of iterations performed.
@@ -174,30 +175,6 @@ mixture_coord_ex_mnl = function(
   seed = NULL,
   n_cores = 1
 ){
-  # Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
-  # X: 3 dimensional array with dimensions (q, J, S) where:
-  #    q is the number of ingredient proportions
-  #    J is the number of alternatives within a choice set
-  #    S is the number of choice sets
-  # beta: vector of parameters. Should be of length (q^3 + 5*q)/6
-  # n_cox_points: Number of points to use in the discretization of Cox direction
-  # max_it: Maximum number of iterations that the coordinate exchange algorithm will do
-  # plot_designs: If TRUE, shows a plot of the initial and the final design. Only works if q is 3.
-  # verbose: level of verbosity. 6 levels, in which level prints the previous plus additional things:
-  #    1: Print the log D efficiency in each iteration and a final summary
-  #    2: Print the values of k, s, i, and log D efficiency in each subiteration
-  #    3: Print the resulting X after each iteration, i.e., after each complete pass on the data
-  #    4: Print log D efficiency for each point in the Cox direction discretization
-  #    5: Print the resulting X and information matrix after each subiteration
-  #    6: Print the resulting X or each point in the Cox direction discretization
-  # opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
-  #
-  # Returns alist with the following objects:
-  #    X_orig: The original design. Array with dimensions (q, J, S).
-  #    X: The optimized design. Array with dimensions (q, J, S).
-  #    d_eff_orig: log D-efficiency of the original design.
-  #    d_eff: log D-efficiency of the optimized design.
-  #    n_iter: Number of iterations performed.
 
 
 
@@ -234,14 +211,10 @@ mixture_coord_ex_mnl = function(
   if(opt_method == "B") opt_method = 0
   if(opt_method == "D") opt_method = 1
 
-  # if(opt_method == "D" & !is.null(tol)){
-  #   warning("tol provided but ignoring because optimization method is discretization of Cox direction.")
-  # }
-
 
   #############################################
   ## Create random initial designs or check that
-  ## the provide design is okay.
+  ## the provide design is okay. Also check betas.
   #############################################
 
 
@@ -268,11 +241,17 @@ mixture_coord_ex_mnl = function(
     designs = list(X)
   }
 
-  if(is.vector(beta)) beta = matrix(beta, nrow = 1)
+
+  m = (q*q*q + 5*q)/6
+  if(is.vector(beta) & m != length(beta)) stop("Incompatible size in beta and q: beta must be of length (q^3 + 5*q)/6")
+
+  if(is.matrix(beta) & m != ncol(beta)) stop("Incompatible size in beta and q: beta must have (q^3 + 5*q)/6 columns")
 
 
-  # m = (q*q*q + 5*q)/6
-  # if(m != length(beta)) stop("Incompatible length in beta and q: beta must be of length (q^3 + 5*q)/6")
+  if(is.vector(beta)) beta_mat = matrix(beta, nrow = 1)
+  else beta_mat = beta
+
+
 
   #############################################
   ## Moments matrices
@@ -306,7 +285,7 @@ mixture_coord_ex_mnl = function(
     out = try(
       mixtureCoordinateExchangeMNL(
         X_orig = X,
-        beta = beta,
+        beta = beta_mat,
         max_it = max_it,
         verbose = verbose,
         opt_crit = opt_crit,
@@ -344,29 +323,10 @@ mixture_coord_ex_mnl = function(
   X_result = results[[which.min(optimality_values)]]
 
 
-
-
-  # # Call to C++ function
-  # # Note: In the future use a C++ implementation of Brent's method like the following
-  # # https://people.sc.fsu.edu/~jburkardt/cpp_src/brent/brent.html
-  # # https://github.com/fditraglia/RcppBrent
-  # # It has the implementation of the algorithm in Chapter 6 of Brent's book
-  # # (Ch 6: Global Minimization Given an Upper Bound on the Second Derivative)
-  # X_result = mixtureCoordinateExchangeMNL(
-  #   X_orig = X,
-  #   beta = beta,
-  #   n_cox_points = n_cox_points,
-  #   max_it = max_it,
-  #   verbose = verbose,
-  #   opt_crit,
-  #   W
-  # )
-
-
-
   out_list = list(
     X_orig = X_result$X_orig,
     X = X_result$X,
+    beta = beta,
     opt_crit_value_orig = X_result$opt_crit_value_orig,
     opt_crit_value = X_result$opt_crit_value,
     n_iter = X_result$n_iter,
