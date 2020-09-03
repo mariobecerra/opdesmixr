@@ -1,0 +1,524 @@
+---
+title: "Basic usage"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{my_1st_vignette}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  cache = T, 
+  fig.width = 10
+)
+```
+
+
+```{r setup}
+library(opdesmixr)
+library(tidyverse)
+```
+
+## Plot Cox direction
+
+```{r}
+
+##########################################################
+##########################################################
+## Tests functions common to both models
+##########################################################
+##########################################################
+
+x_in = c(0.4725440, 0.2627838, 0.2646722)
+plot_cox_direction(x_in, 1)
+plot_cox_direction(x_in, 1:3)
+
+plot_cox_direction(c(1, 0, 0), 1:3)
+plot_cox_direction(c(0, 1, 0), 1:3)
+plot_cox_direction(c(0, 0, 1), 1:3)
+
+
+# plot several Cox's directions for random designs
+# Don't understand why the plots are not right when arranged in a grid with gridExtra
+# I need to use ggtern's own grid.arrange
+# https://stackoverflow.com/questions/42825983/issue-when-using-grid-arrange-with-ggtern-generated-plots
+# do.call("grid.arrange", c(cox_direction_plots, ncol = 4)) # This works with ggtern::grid.arrange
+random_designs = create_random_initial_design_gaussian(8, q = 3, seed = 1)
+
+cox_direction_plots = lapply(1:nrow(random_designs), function(i){
+  return(plot_cox_direction(random_designs[i,], 1:3))
+})
+
+ggtern::grid.arrange(grobs = cox_direction_plots, ncol = 4)
+
+
+```
+
+Detect number of cores.
+
+```{r}
+n_cores = parallel::detectCores()
+```
+
+
+## Gaussian model
+
+Create a D-optimal design for a Scheffé model with 30 runs and 3 ingredients using 100 initial random designs. On the left side we see the initial random design and on the right the optimal one.
+
+Order 1:
+
+```{r}
+(t1 = Sys.time())
+mixture_coord_ex_gaussian(
+  n_runs = 30, 
+  q = 3, 
+  n_random_starts = 100,
+  order = 1, 
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0,
+  n_cores = n_cores)
+(t2 = Sys.time())
+t2 - t1
+```
+
+Order 2:
+
+```{r}
+(t1 = Sys.time())
+mixture_coord_ex_gaussian(
+  n_runs = 30, 
+  q = 3, 
+  n_random_starts = 100,
+  order = 2, 
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0,
+  n_cores = n_cores)
+(t2 = Sys.time())
+t2 - t1
+```
+
+
+Order 3:
+
+```{r}
+(t1 = Sys.time())
+mixture_coord_ex_gaussian(
+  n_runs = 30, 
+  q = 3, 
+  n_random_starts = 100,
+  order = 3, 
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0,
+  n_cores = n_cores)
+(t2 = Sys.time())
+t2 - t1
+```
+
+
+We can feed it an initial design. Here we create one:
+
+```{r}
+X_1 = create_random_initial_design_gaussian(n_runs = 30, q = 3, seed = 10)
+```
+
+Find D-optimal design for each degree.
+
+```{r}
+
+res_alg_order_1_1_D = mixture_coord_ex_gaussian(
+  X = X_1,
+  order = 1,
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0)
+
+res_alg_order_1_2_D = mixture_coord_ex_gaussian(
+  X = X_1,
+  order = 2,
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0)
+
+res_alg_order_1_3_D = mixture_coord_ex_gaussian(
+  X = X_1,
+  order = 3,
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0)
+
+```
+
+Also works for I-optimality, but only for Scheffé models of order 3.
+
+
+```{r}
+
+res_alg_order_1_3_I = mixture_coord_ex_gaussian(
+  X = X_1,
+  order = 3,
+  opt_crit = "I",
+  plot_designs = T,
+  verbose = 0)
+
+
+```
+
+
+Compare Brent's method with a discretization of Cox direction. Brent's method is much faster.
+
+```{r}
+
+# Discretization of Cox direction using 100 points
+(t1 = Sys.time())
+des_disc_D = mixture_coord_ex_gaussian(
+  n_runs = 30,
+  q = 3,
+  n_random_starts = 50,
+  X = NULL,
+  order = 3,
+  opt_method = "D",
+  max_it = 10,
+  n_cox_points = 100,
+  plot_designs = T,
+  verbose = 0,
+  opt_crit = "D",
+  seed = 10,
+  n_cores = 8)
+(t2 = Sys.time())
+t2 - t1
+
+
+
+(t1 = Sys.time())
+des_brent_D = mixture_coord_ex_gaussian(
+  n_runs = 30,
+  q = 3,
+  n_random_starts = 50,
+  X = NULL,
+  order = 3,
+  opt_method = "B",
+  max_it = 10,
+  n_cox_points = NULL,
+  plot_designs = T,
+  verbose = 0,
+  opt_crit = "D",
+  seed = 10,
+  n_cores = 8)
+(t2 = Sys.time())
+t2 - t1
+
+
+```
+
+Using microbenchmark. This result shows that Brent's method is around 8 times faster for this type and size of problems.
+
+```{r, eval = F}
+microbenchmark::microbenchmark(
+
+  mixture_coord_ex_gaussian(
+    n_runs = 30,
+    q = 3,
+    n_random_starts = 50,
+    X = NULL,
+    order = 3,
+    opt_method = "B",
+    max_it = 5,
+    tol = 0.0001,
+    n_cox_points = NULL,
+    plot_designs = F,
+    verbose = 0,
+    opt_crit = "D",
+    seed = 10,
+    n_cores = 8)
+
+  ,
+
+
+
+  mixture_coord_ex_gaussian(
+    n_runs = 30,
+    q = 3,
+    n_random_starts = 50,
+    X = NULL,
+    order = 3,
+    opt_method = "D",
+    max_it = 5,
+    tol = 0.0001,
+    n_cox_points = 100,
+    plot_designs = F,
+    verbose = 0,
+    opt_crit = "D",
+    seed = 10,
+    n_cores = 8),
+
+  times = 30
+
+)
+```
+
+
+## MNL model
+
+
+```{r}
+q = 3
+J = 3
+S = 8
+X2 = create_random_initial_MNL_design(q, J, S, seed = 4)
+beta2 = rep(0, (q*q*q + 5*q)/6)
+
+
+(t1 = Sys.time())
+opt2_des_beta2_D = mixture_coord_ex_mnl(
+  q = q, J = J, S = S, 
+  n_random_starts = 50,
+  beta = beta2,
+  opt_crit = "D",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 20,
+  seed = 10,
+  n_cores = n_cores
+)
+(t2 = Sys.time())
+t2 - t1
+
+opt2_des_beta2_D
+
+
+
+
+
+(t1 = Sys.time())
+opt2_des_beta2_I = mixture_coord_ex_mnl(
+  q = q, J = J, S = S, 
+  n_random_starts = 50,
+  beta = beta2,
+  opt_crit = "I",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 20,
+  seed = 10,
+  n_cores = n_cores
+)
+(t2 = Sys.time())
+t2 - t1
+
+opt2_des_beta2_I
+
+```
+
+Supply a random initial design
+
+```{r}
+
+X2 = create_random_initial_MNL_design(q, J, S, seed = 4)
+
+X2_opt_beta2_D = mixture_coord_ex_mnl(
+  X = X2,
+  beta = beta2,
+  opt_crit = "D",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 100
+)
+
+
+X2_opt_beta2_I = mixture_coord_ex_mnl(
+  X = X2,
+  beta = beta2,
+  opt_crit = "I",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 100
+)
+
+
+
+```
+
+
+Supplying random betas.
+
+```{r}
+# With only one initial random design
+q = 3
+J = 3
+S = 6
+X3 = create_random_initial_MNL_design(q, J, S, seed = 3)
+beta3_2 = create_random_beta(q)
+
+
+
+X3_2_opt_D = mixture_coord_ex_mnl(
+  X = X3,
+  beta = beta3_2$beta,
+  opt_crit = "D",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 50,
+)
+
+
+X3_2_opt_I = mixture_coord_ex_mnl(
+  X = X3,
+  beta = beta3_2$beta,
+  opt_crit = "I",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 50,
+)
+
+
+
+```
+
+
+```{r}
+
+# With 50 initial random designs
+
+(t1 = Sys.time())
+opt2_des_beta3_D = mixture_coord_ex_mnl(
+  q = q, J = J, S = S, 
+  n_random_starts = 50,
+  beta = beta3_2$beta,
+  opt_crit = "D",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 20,
+  seed = 10,
+  n_cores = n_cores
+)
+(t2 = Sys.time())
+t2 - t1
+
+
+
+
+(t1 = Sys.time())
+opt2_des_beta3_I = mixture_coord_ex_mnl(
+  q = q, J = J, S = S, 
+  n_random_starts = 50,
+  beta = beta3_2$beta,
+  opt_crit = "I",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 20,
+  seed = 10,
+  n_cores = n_cores
+)
+(t2 = Sys.time())
+t2 - t1
+
+
+
+
+
+
+```
+
+
+# Pseudo-Bayesian designs
+
+```{r}
+
+library(randtoolbox)
+
+
+
+
+q = 3
+J = 5
+S = 4
+X4 = create_random_initial_MNL_design(q, J, S, seed = 3)
+beta4_2 = create_random_beta(q)
+
+
+
+
+
+
+draws_unif_beta4_2 = halton(120, dim = length(beta4_2$beta))
+
+beta4_2_prior_draws = matrix(rep(NA_real_, length(draws_unif_beta4_2)), ncol = ncol(draws_unif_beta4_2))
+for(i in 1:ncol(beta4_2_prior_draws)){
+  beta4_2_prior_draws[, i] = qnorm(draws_unif_beta4_2[, i], beta4_2$beta[i], 3)
+}
+
+
+beta4_2_prior_draws %>%
+  as.data.frame() %>%
+  pivot_longer(starts_with("V")) %>%
+  ggplot() +
+  geom_density(aes(value)) +
+  facet_wrap(~name)
+
+
+
+
+
+# 25 secs
+(t1 = Sys.time())
+X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta4_2_prior_draws,
+  n_cox_points = 20,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "D",
+  opt_method = "D"
+)
+(t2 = Sys.time())
+t2 - t1
+
+
+
+
+# 16 seconds
+(t1 = Sys.time())
+X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta4_2_prior_draws,
+  n_cox_points = 20,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "D",
+  opt_method = "B"
+)
+(t2 = Sys.time())
+t2 - t1
+
+
+
+
+
+
+
+
+
+```
+
+
+
+

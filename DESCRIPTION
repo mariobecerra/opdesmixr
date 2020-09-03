@@ -25,4 +25,7 @@ Imports:
 Depends:
     ggplot2 (>= 3.2.1)
 Suggests: 
-    testthat (>= 2.3.1)
+    testthat (>= 2.3.1),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
