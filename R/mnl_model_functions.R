@@ -243,9 +243,9 @@ mixture_coord_ex_mnl = function(
 
 
   m = (q*q*q + 5*q)/6
-  if(is.vector(beta) & m != length(beta)) stop("Incompatible size in beta and q: beta must be of length (q^3 + 5*q)/6")
+  if(is.vector(beta)) if(m != length(beta)) stop("Incompatible size in beta and q: beta must be of length (q^3 + 5*q)/6")
 
-  if(is.matrix(beta) & m != ncol(beta)) stop("Incompatible size in beta and q: beta must have (q^3 + 5*q)/6 columns")
+  if(is.matrix(beta)) if(m != ncol(beta)) stop("Incompatible size in beta and q: beta must have (q^3 + 5*q)/6 columns")
 
 
   if(is.vector(beta)) beta_mat = matrix(beta, nrow = 1)
