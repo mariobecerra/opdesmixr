@@ -1,0 +1,148 @@
+---
+title: "vignette_02_locally_optimal_mnl"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{vignette_02_locally_optimal_mnl}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  cache = T, 
+  fig.width = 8
+)
+```
+
+
+```{r setup}
+library(opdesmixr)
+library(tidyverse)
+
+n_cores = parallel::detectCores()
+```
+
+
+```{r}
+q = 3
+J = 3
+S = 8
+X2 = create_random_initial_MNL_design(q, J, S, seed = 4)
+beta2 = rep(0, (q*q*q + 5*q)/6)
+(t1 = Sys.time())
+opt2_des_beta2_D = mixture_coord_ex_mnl(
+  q = q, J = J, S = S, 
+  n_random_starts = 50,
+  beta = beta2,
+  opt_crit = "D",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 20,
+  seed = 10,
+  n_cores = n_cores
+)
+(t2 = Sys.time())
+t2 - t1
+opt2_des_beta2_D
+(t1 = Sys.time())
+opt2_des_beta2_I = mixture_coord_ex_mnl(
+  q = q, J = J, S = S, 
+  n_random_starts = 50,
+  beta = beta2,
+  opt_crit = "I",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 20,
+  seed = 10,
+  n_cores = n_cores
+)
+(t2 = Sys.time())
+t2 - t1
+opt2_des_beta2_I
+```
+
+Supply a random initial design
+
+```{r}
+X2 = create_random_initial_MNL_design(q, J, S, seed = 4)
+X2_opt_beta2_D = mixture_coord_ex_mnl(
+  X = X2,
+  beta = beta2,
+  opt_crit = "D",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 100
+)
+X2_opt_beta2_I = mixture_coord_ex_mnl(
+  X = X2,
+  beta = beta2,
+  opt_crit = "I",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 100
+)
+```
+
+
+Supplying random betas.
+
+```{r}
+# With only one initial random design
+q = 3
+J = 3
+S = 6
+X3 = create_random_initial_MNL_design(q, J, S, seed = 3)
+beta3_2 = create_random_beta(q)
+X3_2_opt_D = mixture_coord_ex_mnl(
+  X = X3,
+  beta = beta3_2$beta,
+  opt_crit = "D",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 50,
+)
+X3_2_opt_I = mixture_coord_ex_mnl(
+  X = X3,
+  beta = beta3_2$beta,
+  opt_crit = "I",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 50,
+)
+```
+
+
+```{r}
+# With 50 initial random designs
+(t1 = Sys.time())
+opt2_des_beta3_D = mixture_coord_ex_mnl(
+  q = q, J = J, S = S, 
+  n_random_starts = 50,
+  beta = beta3_2$beta,
+  opt_crit = "D",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 20,
+  seed = 10,
+  n_cores = n_cores
+)
+(t2 = Sys.time())
+t2 - t1
+(t1 = Sys.time())
+opt2_des_beta3_I = mixture_coord_ex_mnl(
+  q = q, J = J, S = S, 
+  n_random_starts = 50,
+  beta = beta3_2$beta,
+  opt_crit = "I",
+  verbose = 0,
+  plot_designs = T,
+  max_it = 20,
+  seed = 10,
+  n_cores = n_cores
+)
+(t2 = Sys.time())
+t2 - t1
+```
+

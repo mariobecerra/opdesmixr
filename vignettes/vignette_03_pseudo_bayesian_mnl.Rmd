@@ -1,0 +1,105 @@
+---
+title: "vignette_03_pseudo_bayesian_mnl"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{vignette_03_pseudo_bayesian_mnl}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  cache = T, 
+  fig.width = 8
+)
+```
+
+
+```{r setup}
+library(opdesmixr)
+library(tidyverse)
+library(randtoolbox)
+
+n_cores = parallel::detectCores()
+```
+
+
+
+
+```{r}
+
+
+q = 3
+J = 5
+S = 4
+X4 = create_random_initial_MNL_design(q, J, S, seed = 3)
+beta4_2 = create_random_beta(q)
+
+
+
+
+
+
+draws_unif_beta4_2 = halton(120, dim = length(beta4_2$beta))
+
+beta4_2_prior_draws = matrix(rep(NA_real_, length(draws_unif_beta4_2)), ncol = ncol(draws_unif_beta4_2))
+for(i in 1:ncol(beta4_2_prior_draws)){
+  beta4_2_prior_draws[, i] = qnorm(draws_unif_beta4_2[, i], beta4_2$beta[i], 3)
+}
+
+
+beta4_2_prior_draws %>%
+  as.data.frame() %>%
+  pivot_longer(starts_with("V")) %>%
+  ggplot() +
+  geom_density(aes(value)) +
+  facet_wrap(~name)
+
+
+
+
+
+# 25 secs
+X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta4_2_prior_draws,
+  n_cox_points = 20,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "D",
+  opt_method = "D"
+)
+
+
+
+
+
+# 16 seconds
+X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta4_2_prior_draws,
+  n_cox_points = 20,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "D",
+  opt_method = "B"
+)
+
+
+
+```
+
