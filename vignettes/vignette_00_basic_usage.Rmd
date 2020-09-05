@@ -9,6 +9,12 @@ editor_options:
   chunk_output_type: console
 ---
 
+
+```{r, eval = F, include = F}
+rmarkdown::render(here::here("vignettes/vignette_00_basic_usage.Rmd"))
+```
+
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,

@@ -10,6 +10,11 @@ editor_options:
 ---
 
 
+```{r, eval = F, include = F}
+rmarkdown::render(here::here("vignettes/vignette_01_normal_mixture_models.Rmd"))
+```
+
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
