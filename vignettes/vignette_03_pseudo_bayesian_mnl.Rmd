@@ -326,8 +326,11 @@ beta4_2_prior_draws %>%
 
 
 
+```
 
+```{r}
 # 25 secs
+# 56 secs
 X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
   n_random_starts = 8,
   q = q,
@@ -349,6 +352,7 @@ X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
 
 
 # 16 seconds
+# 40 secs
 X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
   n_random_starts = 8,
   q = q,
@@ -365,7 +369,47 @@ X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
   opt_method = "B"
 )
 
+```
 
+
+```{r}
+# 100 secs
+X_q3_J5_s4_I_bayes = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta4_2_prior_draws,
+  n_cox_points = 20,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "I",
+  opt_method = "D"
+)
+
+
+
+
+
+# 70 secs
+X_q3_J5_s4_I_bayes = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta4_2_prior_draws,
+  n_cox_points = 20,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "I",
+  opt_method = "B"
+)
 
 ```
 
