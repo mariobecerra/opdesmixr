@@ -70,6 +70,15 @@ mixture_coord_ex_gaussian = function(
   n_cores = 1){
 
 
+
+  #############################################
+  ## Check that the order is okay
+  #############################################
+  if(order != 1 & order != 2 & order != 3){
+    stop("Inadmissible value for order. Must be 1, 2 or 3")
+  }
+
+
   #############################################
   ## Check that optimality criterion is okay
   #############################################
@@ -143,7 +152,7 @@ mixture_coord_ex_gaussian = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = create_moment_matrix_gaussian(q)
+    W = create_moment_matrix_Gaussian(q, order)
   }
 
   #############################################
@@ -260,11 +269,52 @@ gaussian_plot_result = function(res_alg){
 
 
 
+
+
+
+
+
 #' TODO: write doc
 #' @export
-create_moment_matrix_gaussian = function(q){
+get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
 
-  m = (q^3+ 5*q)/6
+  q = dim(X)[2]
+
+  if(opt_crit == 0){
+    # "D-optimality"
+    W = matrix(0.0, nrow = 1)
+  } else{
+    # "I-optimality")
+    W = create_moment_matrix_Gaussian(q, order)
+  }
+
+  return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W))
+}
+
+
+
+
+
+
+
+
+
+
+#' TODO: write doc
+#' @export
+create_moment_matrix_Gaussian = function(q, order = 3){
+
+  stopifnot(order %in% 1:3)
+
+  if(order == 1){
+    m = q
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q
+    } else{
+      m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+    }
+  }
 
   f = lapply(1:m, function(x) rep(0, q))
 
@@ -275,24 +325,29 @@ create_moment_matrix_gaussian = function(q){
     f[[counter]][i] = 1
   }
 
+
   # Fill indicators of second part of the model expansion
-  for(i in 1:(q-1)){
-    for(j in (i+1):q){
-      counter = counter + 1
-      f[[counter]][i] = 1
-      f[[counter]][j] = 1
+  if(order >= 2){
+    for(i in 1:(q-1)){
+      for(j in (i+1):q){
+        counter = counter + 1
+        f[[counter]][i] = 1
+        f[[counter]][j] = 1
+      }
     }
   }
 
 
   # Fill indicators of third part of the model expansion
-  for(i in 1:(q-2)){
-    for(j in (i+1):(q-1)){
-      for(k in (j+1):q){
-        counter = counter + 1
-        f[[counter]][i] = 1
-        f[[counter]][j] = 1
-        f[[counter]][k] = 1
+  if(order >= 3){
+    for(i in 1:(q-2)){
+      for(j in (i+1):(q-1)){
+        for(k in (j+1):q){
+          counter = counter + 1
+          f[[counter]][i] = 1
+          f[[counter]][j] = 1
+          f[[counter]][k] = 1
+        }
       }
     }
   }
@@ -312,38 +367,3 @@ create_moment_matrix_gaussian = function(q){
 
   return(W)
 }
-
-
-
-
-
-
-
-
-
-#' TODO: write doc
-#' @export
-get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
-
-  q = dim(X)[2]
-
-  if(opt_crit == 0){
-    # "D-optimality"
-    W = matrix(0.0, nrow = 1)
-  } else{
-    # "I-optimality")
-    W = create_moment_matrix_gaussian(q)
-  }
-
-  return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W))
-}
-
-
-
-
-
-
-
-
-
-

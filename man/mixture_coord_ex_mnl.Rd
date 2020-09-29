@@ -11,6 +11,7 @@ mixture_coord_ex_mnl(
   n_random_starts = 100,
   X = NULL,
   beta,
+  order = 3,
   opt_method = "B",
   max_it = 10,
   tol = 1e-04,

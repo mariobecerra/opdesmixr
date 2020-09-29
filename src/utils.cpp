@@ -235,13 +235,6 @@ arma::mat getScheffeGaussianOrder3(arma::mat& X){
 // [[Rcpp::export]]
 arma::mat getScheffeGaussian(arma::mat& X, int order){
 
-  // not the most elegant, but works
-  bool flag = (order != 1 & order != 2 & order != 3);
-
-  if(flag){
-    stop("Inadmissible value for order. Must be 1, 2 or 3");
-  }
-
   arma::mat X_m;
 
   if(order == 1)  X_m = X;
@@ -295,7 +288,7 @@ double getDCritValueGaussian(arma::mat& X, int order){
 // [[Rcpp::export]]
 double getICritValueGaussian(arma::mat& X, int order, int q, arma::mat& W){
 
-  if(order != 3) stop("Only special cubic models are allowed (i.e., order = 3).");
+  // if(order != 3) stop("Only special cubic models are allowed (i.e., order = 3).");
 
   arma::mat X_m = getScheffeGaussian(X, order);
   arma::mat X_mT = trans(X_m);
@@ -653,14 +646,27 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
 
 
 // [[Rcpp::export]]
-arma::mat getXsMNL(arma::cube& X, int s){
+arma::mat getXsMNL(arma::cube& X, int s, int order){
   // Function that returns the design matrix of choice set s.
-  // Final matrix is of dimension (J, m-1) with m = (q^3 + 5*q)/6
+  // Final matrix is of dimension (J, m-1) with m = (q^3 + 5*q)/6 (if 3rd ordder Scheffe)
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
-  // Input should be a design cube X of dimensions (q, J, S) and integer s, corresponding to a choice set in 1 to S.
+  // Input should be
+  //     X: design cube of dimensions (q, J, S) integer s, corresponding to a choice set in 1 to S.
+  //     order: order of Scheffe model
   int q = X.n_rows;
   int J = X.n_cols;
-  int m = (q*q*q + 5*q)/6;
+  int m;
+
+
+  if(order == 1){
+    m = q;
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q;
+    } else{
+      m = (q*q*q + 5*q)/6; // = q + q*(q-1)/2 + q*(q-1)*(q-2)/6 = (q^3+ 5*q)/6
+    }
+  }
 
   // Initialize array with zeros
   arma::mat Xs(J, m-1, fill::zeros);
@@ -677,24 +683,29 @@ arma::mat getXsMNL(arma::cube& X, int s){
     col_counter++;
   }
 
-  // second part
-  for(int i = 0; i < q-1; i++){
-    for(int k = i+1; k < q; k++){
-      for(int j = 0; j < J; j++){
-        Xs(j, col_counter) = X(i, j, s-1)*X(k, j, s-1);
+  if(order >= 2){
+    // second part
+    for(int i = 0; i < q-1; i++){
+      for(int k = i+1; k < q; k++){
+        for(int j = 0; j < J; j++){
+          Xs(j, col_counter) = X(i, j, s-1)*X(k, j, s-1);
+        }
+        col_counter++;
       }
-      col_counter++;
     }
   }
 
-  // third part
-  for(int i = 0; i < q-2; i++){
-    for(int k = i+1; k < q-1; k++){
-      for(int l = k+1; l < q; l++){
-        for(int j = 0; j < J; j++){
-          Xs(j, col_counter) = X(i, j, s-1)*X(k, j, s-1)*X(l, j, s-1);
+
+  if(order >= 3){
+    // third part
+    for(int i = 0; i < q-2; i++){
+      for(int k = i+1; k < q-1; k++){
+        for(int l = k+1; l < q; l++){
+          for(int j = 0; j < J; j++){
+            Xs(j, col_counter) = X(i, j, s-1)*X(k, j, s-1)*X(l, j, s-1);
+          }
+          col_counter++;
         }
-        col_counter++;
       }
     }
   }
@@ -780,14 +791,15 @@ arma::vec getPsMNL(arma::cube& X, arma::vec& beta, int s, arma::mat& Xs){
 
 
 // [[Rcpp::export]]
-arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta){
+arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order){
   // Function that returns the information matrix for design cube X and parameter vector beta.
   // It is the sum of the information matrices of the S choice sets.
   // Final matrix is of dimension (m-1, m-1), with m = (q^3 + 5*q)/6
   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
   // Input:
   //     X: design cube of dimensions (q, J, S)
-  //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6
+  //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6 (if 3rd order Scheffe)
+  //     order: order of Scheffe model
 
   int J = X.n_cols;
   int S = X.n_elem/(X.n_cols*X.n_rows);
@@ -802,7 +814,7 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta){
 
   // Compute information matrix for each choice set s, and sum.
   for(int s = 1; s <= S; s++){
-    Xs = getXsMNL(X, s);
+    Xs = getXsMNL(X, s, order);
     ps = getPsMNL(X, beta, s, Xs);;
     ps_ps_t = ps*ps.t();
     middle = ps_ps_t;
@@ -925,7 +937,7 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta){
 
 
 // [[Rcpp::export]]
-double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int opt_crit, arma::mat& W){
+double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int opt_crit, arma::mat& W, int order){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
 
 
@@ -955,7 +967,7 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
   // Don't know what's going on.
   for(int i = 0; i < n_sims; i++){
     beta = conv_to<vec>::from(beta_mat.row(i));
-    I = getInformationMatrixMNL(X, beta);
+    I = getInformationMatrixMNL(X, beta, order);
     if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
 
 
@@ -1007,7 +1019,7 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
 // [[Rcpp::export]]
 arma::cube findBestCoxDirMNLDiscrete(arma::mat& cox_dir, arma::cube& X_in, arma::mat& beta_mat,
                              int k, int s, double opt_crit_value_best,
-                             int verbose, int opt_crit, arma::mat& W) {
+                             int verbose, int opt_crit, arma::mat& W, int order) {
   // Function that returns the design that minimizes the optimality criterion value.
   // Returns a cube of dimension (q, J, S) with a design that minimizes the value of the
   //         optimality criterion value.
@@ -1016,7 +1028,7 @@ arma::cube findBestCoxDirMNLDiscrete(arma::mat& cox_dir, arma::cube& X_in, arma:
   // Input:
   //     cox_dir: Matrix with Cox direction with q columns. Each row sums up to 1.
   //     X_in: design cube of dimensions (q, J, S).
-  //     beta_mat: parameter matrix. If not Bayesian, must have m rows, with m = (q^3 + 5*q)/6.
+  //     beta_mat: parameter matrix. If not Bayesian, must have m rows, with m = (q^3 + 5*q)/6. (if order 3 Scheffe)
   //     k: Cox direction index (1 to q).
   //     s: integer s, corresponding to a choice set in 1 to S.
   //     opt_crit_value_best: Efficiency value with which the new efficiencies are compared to.
@@ -1024,6 +1036,7 @@ arma::cube findBestCoxDirMNLDiscrete(arma::mat& cox_dir, arma::cube& X_in, arma:
   //           too much useful by itself.
   //     opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
   //     W: moment matrix
+  //     order: order of Scheffe model
 
   // // Create new cube, otherwise it is modified in R too
   arma::cube X = X_in;
@@ -1048,7 +1061,7 @@ arma::cube findBestCoxDirMNLDiscrete(arma::mat& cox_dir, arma::cube& X_in, arma:
       Rcout << "\tj = " << j << " (of " << n_cox_points << "), ";
     }
 
-    opt_crit_value_j = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W);
+    opt_crit_value_j = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order);
 
     if(verbose >= 4){
       Rcout << "opt_crit_value_j = "  << opt_crit_value_j << "\n";
@@ -1134,7 +1147,7 @@ arma::cube changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, 
 // [[Rcpp::export]]
 double efficiencyCoxScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
                                int i, int j, int s,
-                               int opt_crit, arma::mat& W){
+                               int opt_crit, arma::mat& W, int order){
   // Computes efficiency criterion of a design cube X but where the i-th ingredient in the j-th
   // alternative in s-th choice set is changed to theta.
   // Since theta is an ingredient proportion, it must be between 0 and 1.
@@ -1145,25 +1158,26 @@ double efficiencyCoxScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
 
 
   // Return utility function value. We want to minimize this.
-  return(getOptCritValueMNL(Y, beta_mat, 0, opt_crit, W));
+  return(getOptCritValueMNL(Y, beta_mat, 0, opt_crit, W, order));
 }
 
 
 
 arma::cube findBestCoxDirMNLBrent(
-    arma::cube& X, arma::mat& beta_mat, int i, int j, int s, int opt_crit, arma::mat& W,
+    arma::cube& X, arma::mat& beta_mat, int i, int j, int s, int opt_crit, int order, arma::mat& W,
     double lower = 0, double upper = 1, double tol = 0.0001) {
+  // Finds the best point in the Cox direction using Brent's optimization method
 
-  auto f = [&X, &beta_mat, i, j, s, opt_crit, &W](double theta){
-    return efficiencyCoxScheffeMNL(theta, X, beta_mat, i, j, s, opt_crit, W);
+  auto f = [&X, &beta_mat, i, j, s, opt_crit, &W, order](double theta){
+    return efficiencyCoxScheffeMNL(theta, X, beta_mat, i, j, s, opt_crit, W, order);
   };
 
   double theta_brent, theta_star, f_star;
   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
 
   // Check end points:
-  double f_lower = efficiencyCoxScheffeMNL(lower, X, beta_mat, i, j, s, opt_crit, W);
-  double f_upper = efficiencyCoxScheffeMNL(upper, X, beta_mat, i, j, s, opt_crit, W);
+  double f_lower = efficiencyCoxScheffeMNL(lower, X, beta_mat, i, j, s, opt_crit, W, order);
+  double f_upper = efficiencyCoxScheffeMNL(upper, X, beta_mat, i, j, s, opt_crit, W, order);
 
   f_star = std::min({f_lower, f_upper, f_brent});
 
@@ -1194,7 +1208,7 @@ arma::cube findBestCoxDirMNLBrent(
 
 // [[Rcpp::export]]
 Rcpp::List mixtureCoordinateExchangeMNL(
-    arma::cube X_orig, arma::mat beta_mat, int max_it, int verbose, int opt_crit, arma::mat W,
+    arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W,
     int opt_method, double lower, double upper, double tol, int n_cox_points){
   // See mixture_coord_ex_mnl() in R for details.
   // q: number of ingredient proportions.
@@ -1202,7 +1216,9 @@ Rcpp::List mixtureCoordinateExchangeMNL(
   // S: number of choice sets.
   // n_random_starts: number or random starts. Defaults to 100.
   // X_orig: If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.
-  // beta: Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.
+  // beta: Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design,
+  //       it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws,
+  //       i.e., there is a prior draw per row.
   // opt_method: Optimization method in each step of the coordinate exchange algorithm.
   //  0 for Brent, 1 for Cox's direction discretization.
   // max_it: integer for maximum number of iterations that the coordinate exchange algorithm will do
@@ -1227,7 +1243,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(
   // Vector of ingredient proportions
   arma::vec x(q);
 
-  double opt_crit_value_orig = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W);
+  double opt_crit_value_orig = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order);
   double opt_crit_value_best = opt_crit_value_orig;
   double opt_crit_value_aux = 1e308; // +Inf
 
@@ -1265,13 +1281,13 @@ Rcpp::List mixtureCoordinateExchangeMNL(
           }
 
           if(opt_method == 0){
-            X = findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, W, lower, upper, tol);
+            X = findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, order, W, lower, upper, tol);
           } else{
             cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-            X = findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W);
+            X = findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order);
           }
 
-          opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W);
+          opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order);
 
           if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
 

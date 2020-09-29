@@ -39,7 +39,7 @@ create_random_initial_MNL_design = function(q, J, S, seed = NULL){
 #' @param opt_crit optimality criterion: 0 is D-optimality and 1 is I-optimality
 #' @return Returns the value of the optimality criterion for this particular design and this beta vector
 #' @export
-get_opt_crit_value_MNL = function(X, beta, opt_crit = 0){
+get_opt_crit_value_MNL = function(X, beta, order, opt_crit = 0){
 
   q = dim(X)[1]
 
@@ -48,7 +48,7 @@ get_opt_crit_value_MNL = function(X, beta, opt_crit = 0){
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = create_moment_matrix_MNL(q)
+    W = create_moment_matrix_MNL(q, order)
   }
 
   beta_mat = matrix(beta, byrow = T, nrow = 1)
@@ -68,50 +68,37 @@ get_opt_crit_value_MNL = function(X, beta, opt_crit = 0){
 #' @examples
 #' create_random_beta(3)
 #' @export
-create_random_beta = function(q, seed = NULL){
+create_random_beta = function(q, order = 3, seed = NULL){
+
+  stopifnot(order %in% 1:3)
+  if(!all.equal(q, floor(q))) stop("q does not seem to an integer.")
+  stopifnot(q > 0)
+
+  m1 = q
+  m2 = q*(q-1)/2
+  m3 = q*(q-1)*(q-2)/6
+  if(order == 1){
+    m = m1
+  } else{
+    if(order == 2){
+      m = m1 + m2
+    } else{
+      m = m1 + m2 + m3 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+    }
+  }
 
   if(!is.null(seed)) set.seed(seed)
 
-  beta_1 = rnorm(q)
+  beta = rep(NA_real_, m)
+  beta[1:m1] = rnorm(m1)
 
-  beta_2 = rnorm(q*(q-1)/2)
+  if(order >= 2) beta[(m1+1):(m1+m2)] = rnorm(m2)
 
-  beta_3 = rnorm(q*(q-1)*(q-2)/6)
-  beta = c(beta_1, beta_2, beta_3)
+  if(order >= 3) beta[(m1+m2+1):m] = rnorm(m3)
 
-  n = (q*q*q+5*q)/6
-
-  # Just in case my formula is wrong:
-  if(length(beta) != n) stop("Error in dimensions")
-
-  beta_ix = matrix(rep(NA_integer_, 3*n), ncol = 3)
-  colnames(beta_ix) = c("i", "k", "l")
-
-  beta_ix[1:q, "i"] = 1:q
-  counter = q
-
-  for(i in 1:(q-1)){
-    for(k in (i+1):(q)){
-      counter = counter + 1
-      beta_ix[counter, "i"] = i
-      beta_ix[counter, "k"] = k
-    }
-  }
-
-  for(i in 1:(q-2)){
-    for(k in (i+1):(q-1)){
-      for(l in (k+1):(q)){
-        counter = counter + 1
-        beta_ix[counter, "i"] = i
-        beta_ix[counter, "k"] = k
-        beta_ix[counter, "l"] = l
-      }
-    }
-  }
-
-  return(list(beta = beta, beta_ix = beta_ix))
+  # Return a list for backwards compatibility, but eventually I'll have to change it to return only a vector
+  return(list(beta = beta))
 }
-
 
 
 #' Coordinate exchange algorithm for a Multinomial Logit Scheffé model.
@@ -165,6 +152,7 @@ mixture_coord_ex_mnl = function(
   n_random_starts = 100,
   X = NULL,
   beta,
+  order = 3,
   opt_method = "B",
   max_it = 10,
   tol = 0.0001,
@@ -242,7 +230,17 @@ mixture_coord_ex_mnl = function(
   }
 
 
-  m = (q*q*q + 5*q)/6
+  # m = (q*q*q + 5*q)/6
+  if(order == 1){
+    m = q
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q
+    } else{
+      m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+    }
+  }
+
   if(is.vector(beta)) if(m != length(beta)) stop("Incompatible size in beta and q: beta must be of length (q^3 + 5*q)/6")
 
   if(is.matrix(beta)) if(m != ncol(beta)) stop("Incompatible size in beta and q: beta must have (q^3 + 5*q)/6 columns")
@@ -264,7 +262,7 @@ mixture_coord_ex_mnl = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = create_moment_matrix_MNL(q)
+    W = create_moment_matrix_MNL(q, order = order)
   }
 
   #############################################
@@ -286,6 +284,7 @@ mixture_coord_ex_mnl = function(
       mixtureCoordinateExchangeMNL(
         X_orig = X,
         beta = beta_mat,
+        order = order,
         max_it = max_it,
         verbose = verbose,
         opt_crit = opt_crit,
@@ -401,11 +400,32 @@ mnl_plot_result = function(res_alg){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 #' TODO: write doc
 #' @export
-create_moment_matrix_MNL = function(q){
+create_moment_matrix_MNL = function(q, order = 3){
 
-  m = (q^3+ 5*q)/6
+  stopifnot(order %in% 1:3)
+
+  if(order == 1){
+    m = q
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q
+    } else{
+      m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+    }
+  }
 
   f = lapply(1:(m-1), function(x) rep(0, q))
 
@@ -417,23 +437,27 @@ create_moment_matrix_MNL = function(q){
   }
 
   # Fill indicators of second part of the model expansion
-  for(i in 1:(q-1)){
-    for(j in (i+1):q){
-      counter = counter + 1
-      f[[counter]][i] = 1
-      f[[counter]][j] = 1
+  if(order >= 2){
+    for(i in 1:(q-1)){
+      for(j in (i+1):q){
+        counter = counter + 1
+        f[[counter]][i] = 1
+        f[[counter]][j] = 1
+      }
     }
   }
 
 
   # Fill indicators of third part of the model expansion
-  for(i in 1:(q-2)){
-    for(j in (i+1):(q-1)){
-      for(k in (j+1):q){
-        counter = counter + 1
-        f[[counter]][i] = 1
-        f[[counter]][j] = 1
-        f[[counter]][k] = 1
+  if(order >= 3){
+    for(i in 1:(q-2)){
+      for(j in (i+1):(q-1)){
+        for(k in (j+1):q){
+          counter = counter + 1
+          f[[counter]][i] = 1
+          f[[counter]][j] = 1
+          f[[counter]][k] = 1
+        }
       }
     }
   }
@@ -454,8 +478,3 @@ create_moment_matrix_MNL = function(q){
   return(W)
 
 }
-
-
-
-
-

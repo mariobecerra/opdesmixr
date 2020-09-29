@@ -4,7 +4,7 @@
 \alias{create_moment_matrix_MNL}
 \title{TODO: write doc}
 \usage{
-create_moment_matrix_MNL(q)
+create_moment_matrix_MNL(q, order = 3)
 }
 \description{
 TODO: write doc
