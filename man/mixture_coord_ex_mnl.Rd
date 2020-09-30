@@ -45,7 +45,7 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 
 \item{n_cox_points}{number of points to use in the discretization of Cox direction. Ignored if opt_method is Brent.}
 
-\item{plot_designs}{boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3.}
+\item{plot_designs}{boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3 or 4.}
 
 \item{verbose}{level of verbosity. See below for details.}
 

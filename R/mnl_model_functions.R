@@ -115,7 +115,7 @@ create_random_beta = function(q, order = 3, seed = NULL){
 #' @param max_it integer for maximum number of iterations that the coordinate exchange algorithm will do
 #' @param tol A positive error tolerance in Brent's method.
 #' @param n_cox_points number of points to use in the discretization of Cox direction. Ignored if opt_method is Brent.
-#' @param plot_designs boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3.
+#' @param plot_designs boolean. If TRUE, shows a plot of the initial and the final design. Only works if q is 3 or 4.
 #' @param verbose level of verbosity. See below for details.
 #' @param opt_crit optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1).
 #' @param seed Seed for reproducibility.
@@ -333,7 +333,7 @@ mixture_coord_ex_mnl = function(
   )
 
   if(plot_designs) {
-    if(q == 3) mnl_plot_result(out_list)
+    if(q == 3 | q == 4) mnl_plot_result(out_list)
     else warning("Could not plot results because q != 3")
   }
   return(out_list)
@@ -345,9 +345,75 @@ mixture_coord_ex_mnl = function(
 
 
 
+
+plot_simplex_4d = function(X, phi = 40, theta = 140, cex_points = 0.8, cex_names = 0.8, ...){
+
+  # Compute tetrahedron coordinates according to https://mathoverflow.net/a/184585
+  tetra <- qr.Q(qr(matrix(1, nrow = 4)) ,complete = TRUE)[,-1]
+
+  # Convert barycentric coordinates (4D) to cartesian coordinates (3D)
+  X_3D <- geometry::bary2cart(tetra, X)
+
+  # Plot data
+
+  plot3D::scatter3D(X_3D[,1], X_3D[,2], X_3D[,3],
+                    xlim = range(tetra[,1]), ylim = range(tetra[,2]), zlim = range(tetra[,3]),
+                    col = "blue", pch = 16, box = FALSE, theta = theta, phi = phi, cex = cex_points, ...)
+  plot3D::lines3D(tetra[c(1,2,3,4,1,3,1,2,4),1],
+                  tetra[c(1,2,3,4,1,3,1,2,4),2],
+                  tetra[c(1,2,3,4,1,3,1,2,4),3],
+                  col = "grey", add = TRUE)
+  if(!is.null(colnames(X))){
+    plot3D::text3D(tetra[,1], tetra[,2], tetra[,3],
+                   colnames(X), add = TRUE, cex = cex_names)
+  }
+
+}
+
+
 #' TODO: write doc
 #' @export
-mnl_plot_result = function(res_alg){
+mnl_plot_result_3d = function(
+  res_alg,
+  design = "final",
+  phi = 40, theta = 140, cex_points = 0.5, cex_names = 0.5, ...){
+  # res_alg: output of a call to mixture_coord_ex_mnl() function.
+  # design: Plot the original or the final design?
+  # It must be a design of 4 ingredients.
+
+  if(design == "final"){
+    i = 2
+  } else{
+    if(design == "original"){
+      i = 1
+    } else{
+      stop('Must write either "final" or "original".')
+    }
+  }
+
+  dim_X = dim(res_alg$X_orig)
+  q = dim_X[1]
+  S = dim_X[3]
+
+  if(q != 4) stop("Design must be of 4 ingredients.")
+
+  # Convert 3 dimensional arrays into matrices by vertically binding them
+  X_mat = t(res_alg[[i]][,,1])
+  for(s in 2:S){
+    X_mat = rbind(X_mat, t(res_alg[[i]][,,s]))
+  }
+
+  plot_simplex_4d(X_mat,  phi = phi, theta = theta, cex_points = cex_points, cex_names = cex_names, ...)
+
+}
+
+
+
+
+
+#' TODO: write doc
+#' @export
+mnl_plot_result_2d = function(res_alg){
   # res_alg: output of a call to mixture_coord_ex_mnl() function.
   # It must be a design of 3 ingredients.
 
@@ -402,6 +468,22 @@ mnl_plot_result = function(res_alg){
 
 
 
+
+#' TODO: write doc
+#' @export
+mnl_plot_result = function(res_alg, ...){
+  dim_X = dim(res_alg$X_orig)
+  q = dim_X[1]
+
+  if(!(q == 3 | q == 4)) stop("Design must be of 3 or 4 ingredients.")
+
+  if(q == 3){
+    mnl_plot_result_2d(res_alg = res_alg)
+  } else{
+    mnl_plot_result_3d(res_alg = res_alg, ...)
+  }
+
+}
 
 
 
@@ -478,3 +560,8 @@ create_moment_matrix_MNL = function(q, order = 3){
   return(W)
 
 }
+
+
+
+
+
