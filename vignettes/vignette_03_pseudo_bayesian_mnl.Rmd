@@ -291,8 +291,9 @@ library(randtoolbox)
 n_cores = parallel::detectCores()
 ```
 
+### Special cubic Scheffé model with 3 ingredients
 
-
+Plot prior distributions of a random beta parameter. We choose 120 Halton draws from a Gaussian distribution.
 
 ```{r}
 
@@ -300,23 +301,12 @@ n_cores = parallel::detectCores()
 q = 3
 J = 5
 S = 4
-X4 = create_random_initial_MNL_design(q, J, S, seed = 3)
-beta4_2 = create_random_beta(q)
+
+beta_q3_o3 = create_random_beta(q, order = 3, seed = 3)
+beta_q3_o3_prior_draws = get_halton_draws(beta_q3_o3$beta)
 
 
-
-
-
-
-draws_unif_beta4_2 = halton(120, dim = length(beta4_2$beta))
-
-beta4_2_prior_draws = matrix(rep(NA_real_, length(draws_unif_beta4_2)), ncol = ncol(draws_unif_beta4_2))
-for(i in 1:ncol(beta4_2_prior_draws)){
-  beta4_2_prior_draws[, i] = qnorm(draws_unif_beta4_2[, i], beta4_2$beta[i], 3)
-}
-
-
-beta4_2_prior_draws %>%
+beta_q3_o3_prior_draws %>%
   as.data.frame() %>%
   pivot_longer(starts_with("V")) %>%
   ggplot() +
@@ -328,15 +318,17 @@ beta4_2_prior_draws %>%
 
 ```
 
+#### D-efficient designs using the discretization of Cox direction and Brent's method as optimization methods
+
 ```{r}
 # 25 secs
 # 56 secs
-X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
+X_q3_J5_s4_D_bayes_o3 = mixture_coord_ex_mnl(
   n_random_starts = 8,
   q = q,
   J = J,
   S = S,
-  beta = beta4_2_prior_draws,
+  beta = beta_q3_o3_prior_draws,
   n_cox_points = 20,
   max_it = 4,
   verbose = 1,
@@ -353,12 +345,12 @@ X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
 
 # 16 seconds
 # 40 secs
-X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
+X_q3_J5_s4_D_bayes_o3 = mixture_coord_ex_mnl(
   n_random_starts = 8,
   q = q,
   J = J,
   S = S,
-  beta = beta4_2_prior_draws,
+  beta = beta_q3_o3_prior_draws,
   n_cox_points = 20,
   max_it = 4,
   verbose = 1,
@@ -371,15 +363,16 @@ X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
 
 ```
 
+#### I-efficient designs using the discretization of Cox direction and Brent's method as optimization methods
 
 ```{r}
 # 100 secs
-X_q3_J5_s4_I_bayes = mixture_coord_ex_mnl(
+X_q3_J5_s4_I_bayes_o3 = mixture_coord_ex_mnl(
   n_random_starts = 8,
   q = q,
   J = J,
   S = S,
-  beta = beta4_2_prior_draws,
+  beta = beta_q3_o3_prior_draws,
   n_cox_points = 20,
   max_it = 4,
   verbose = 1,
@@ -395,12 +388,12 @@ X_q3_J5_s4_I_bayes = mixture_coord_ex_mnl(
 
 
 # 70 secs
-X_q3_J5_s4_I_bayes = mixture_coord_ex_mnl(
+X_q3_J5_s4_I_bayes_o3 = mixture_coord_ex_mnl(
   n_random_starts = 8,
   q = q,
   J = J,
   S = S,
-  beta = beta4_2_prior_draws,
+  beta = beta_q3_o3_prior_draws,
   n_cox_points = 20,
   max_it = 4,
   verbose = 1,
@@ -410,6 +403,173 @@ X_q3_J5_s4_I_bayes = mixture_coord_ex_mnl(
   opt_crit = "I",
   opt_method = "B"
 )
+
+```
+
+
+
+
+### Second order Scheffé model with 3 ingredients
+
+Plot prior distributions of a random beta parameter. We choose 120 Halton draws from a Gaussian distribution.
+
+```{r}
+
+
+q = 3
+J = 5
+S = 4
+
+beta_q3_o2 = create_random_beta(q, order = 2, seed = 2)
+beta_q3_o2_prior_draws = get_halton_draws(beta_q3_o2$beta)
+
+
+
+beta_q3_o2_prior_draws %>%
+  as.data.frame() %>%
+  pivot_longer(starts_with("V")) %>%
+  ggplot() +
+  geom_density(aes(value)) +
+  facet_wrap(~name)
+
+
+
+
+```
+
+#### D-efficient design using Brent's method as optimization method
+
+```{r}
+# # 20 secs
+# (t1 = Sys.time())
+X_q3_J5_s4_D_bayes_o2 = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta_q3_o2_prior_draws,
+  order = 2,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "D",
+  opt_method = "B"
+)
+# (t2 = Sys.time())
+# t2 - t1
+
+```
+
+#### I-efficient designs using the discretization of Cox direction and Brent's method as optimization methods
+
+```{r}
+
+# # 26 secs
+# (t1 = Sys.time())
+X_q3_J5_s4_I_bayes_o2 = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta_q3_o2_prior_draws,
+  order = 2,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "I",
+  opt_method = "B"
+)
+# (t2 = Sys.time())
+# t2 - t1
+
+```
+
+
+
+
+
+
+
+### First order Scheffé model with 3 ingredients
+
+Plot prior distributions of a random beta parameter. We choose 120 Halton draws from a Gaussian distribution.
+
+```{r}
+
+
+q = 3
+J = 5
+S = 4
+
+beta_q3_o1 = create_random_beta(q, order = 1, seed = 2)
+beta_q3_o1_prior_draws = get_halton_draws(beta_q3_o1$beta)
+
+
+
+beta_q3_o1_prior_draws %>%
+  as.data.frame() %>%
+  pivot_longer(starts_with("V")) %>%
+  ggplot() +
+  geom_density(aes(value)) +
+  facet_wrap(~name)
+
+
+
+
+```
+
+#### D-efficient design using Brent's method as optimization method
+
+```{r}
+# # 6 secs
+# (t1 = Sys.time())
+X_q3_J5_s4_D_bayes_o1 = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta_q3_o1_prior_draws,
+  order = 1,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "D",
+  opt_method = "B"
+)
+# (t2 = Sys.time())
+# t2 - t1
+
+```
+
+#### I-efficient designs using the discretization of Cox direction and Brent's method as optimization methods
+
+```{r}
+
+# # 18 secs
+# (t1 = Sys.time())
+X_q3_J5_s4_I_bayes_o1 = mixture_coord_ex_mnl(
+  n_random_starts = 8,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta_q3_o1_prior_draws,
+  order = 1,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "I",
+  opt_method = "B"
+)
+# (t2 = Sys.time())
+# t2 - t1
 
 ```
 
