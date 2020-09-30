@@ -288,6 +288,7 @@ library(opdesmixr)
 library(tidyverse)
 library(randtoolbox)
 
+theme_set(theme_bw())
 n_cores = parallel::detectCores()
 ```
 
@@ -577,5 +578,91 @@ X_q3_J5_s4_I_bayes_o1 = mixture_coord_ex_mnl(
 # (t2 = Sys.time())
 # t2 - t1
 
+```
+
+
+### Special cubic Scheffé model with 4 ingredients
+
+
+
+```{r}
+
+q = 4
+J = 3
+S = 10
+
+beta_q4_01 = create_random_beta(q)
+beta_q4_01_prior_draws = get_halton_draws(beta_q4_01$beta)
+
+
+beta_q4_01_prior_draws %>%
+  as.data.frame() %>%
+  pivot_longer(starts_with("V")) %>%
+  ggplot() +
+  geom_density(aes(value)) +
+  facet_wrap(~name)
+
+
+
+# 42 secs
+(t1 = Sys.time())
+X_q4_J2_s10_D_bayes_o3 = mixture_coord_ex_mnl(
+  n_random_starts = 4,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta_q4_01_prior_draws,
+  order = 3,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T, # if this argument is set to T, it will plot the final design
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "D",
+  opt_method = "B"
+)
+(t2 = Sys.time())
+t2 - t1
+
+
+
+
+
+
+# 55 secs
+(t1 = Sys.time())
+X_q4_J2_s10_I_bayes_o3 = mixture_coord_ex_mnl(
+  n_random_starts = 4,
+  q = q,
+  J = J,
+  S = S,
+  beta = beta_q4_01_prior_draws,
+  order = 3,
+  max_it = 4,
+  verbose = 1,
+  plot_designs = T,  # if this argument is set to T, it will plot the final design
+  n_cores = 4,
+  seed = 10,
+  opt_crit = "I",
+  opt_method = "B"
+)
+(t2 = Sys.time())
+t2 - t1
+
+
+
+
+
+
+```
+
+The designs can also be plotted this way:
+
+```{r}
+mnl_plot_result(X_q4_J2_s10_D_bayes_o3, "original", cex_points = 0.5)
+mnl_plot_result(X_q4_J2_s10_D_bayes_o3, "final", cex_points = 0.5)
+
+mnl_plot_result(X_q4_J2_s10_I_bayes_o3, "original", cex_points = 0.5)
+mnl_plot_result(X_q4_J2_s10_I_bayes_o3, "final", cex_points = 0.5)
 ```
 
