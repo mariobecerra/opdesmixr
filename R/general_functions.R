@@ -158,6 +158,26 @@ mixture_coord_ex = function(
 
 
 
+#' TODO: write doc
+#' Returns a matrix of dimension m x ndraws where m is the length of the beta vector.
+#' Example on how to use:
+#'     beta_means = create_random_beta(q)
+#'     beta_prior_draws = get_halton_draws(beta_means$beta)
+#' @export
+get_halton_draws = function(beta, sd = 1, ndraws = 120){
+  draws_unif_beta = halton(ndraws, dim = length(beta))
+
+  beta_prior_draws = matrix(rep(NA_real_, length(draws_unif_beta)), ncol = ncol(draws_unif_beta))
+  for(i in 1:ncol(beta_prior_draws)){
+    beta_prior_draws[, i] = qnorm(draws_unif_beta[, i], mean = beta[i], sd = sd)
+  }
+
+  return(beta_prior_draws)
+}
+
+
+
+
 
 
 
