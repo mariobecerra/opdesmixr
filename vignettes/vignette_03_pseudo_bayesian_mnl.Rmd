@@ -320,6 +320,8 @@ beta_q3_o3_prior_draws %>%
 
 #### D-efficient designs using the discretization of Cox direction and Brent's method as optimization methods
 
+Discretization:
+
 ```{r}
 # 25 secs
 # 56 secs
@@ -340,9 +342,11 @@ X_q3_J5_s4_D_bayes_o3 = mixture_coord_ex_mnl(
 )
 
 
+```
 
+Brent's method:
 
-
+```{r}
 # 16 seconds
 # 40 secs
 X_q3_J5_s4_D_bayes_o3 = mixture_coord_ex_mnl(
@@ -360,10 +364,12 @@ X_q3_J5_s4_D_bayes_o3 = mixture_coord_ex_mnl(
   opt_crit = "D",
   opt_method = "B"
 )
-
 ```
 
+
 #### I-efficient designs using the discretization of Cox direction and Brent's method as optimization methods
+
+Discretization:
 
 ```{r}
 # 100 secs
@@ -383,9 +389,11 @@ X_q3_J5_s4_I_bayes_o3 = mixture_coord_ex_mnl(
   opt_method = "D"
 )
 
+```
 
+Brent's method:
 
-
+```{r}
 
 # 70 secs
 X_q3_J5_s4_I_bayes_o3 = mixture_coord_ex_mnl(
@@ -403,9 +411,7 @@ X_q3_J5_s4_I_bayes_o3 = mixture_coord_ex_mnl(
   opt_crit = "I",
   opt_method = "B"
 )
-
 ```
-
 
 
 
@@ -462,7 +468,7 @@ X_q3_J5_s4_D_bayes_o2 = mixture_coord_ex_mnl(
 
 ```
 
-#### I-efficient designs using the discretization of Cox direction and Brent's method as optimization methods
+#### I-efficient designs using Brent's method as optimization method
 
 ```{r}
 
@@ -547,7 +553,7 @@ X_q3_J5_s4_D_bayes_o1 = mixture_coord_ex_mnl(
 
 ```
 
-#### I-efficient designs using the discretization of Cox direction and Brent's method as optimization methods
+#### I-efficient designs using Brent's method as optimization method
 
 ```{r}
 
