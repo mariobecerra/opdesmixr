@@ -164,6 +164,8 @@ mixture_coord_ex_mnl = function(
   n_cores = 1
 ){
 
+  t1 = Sys.time()
+  cat("Starts at", substr(as.character(t1), 12, 19), "\n")
 
 
   #############################################
@@ -334,8 +336,14 @@ mixture_coord_ex_mnl = function(
 
   if(plot_designs) {
     if(q == 3 | q == 4) mnl_plot_result(out_list)
-    else warning("Could not plot results because q != 3")
+    else warning("Could not plot results because q is not 3 or 4.")
   }
+
+  t2 = Sys.time()
+
+  cat("Ends at", substr(as.character(t2), 12, 19), "\n")
+  cat("Time:", round(as.numeric(difftime(t2, t1, units = "secs")), 1), "seconds.\n")
+
   return(out_list)
 }
 

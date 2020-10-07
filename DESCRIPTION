@@ -25,7 +25,8 @@ Imports:
     geometry,
     plot3D
 Depends:
-    ggplot2 (>= 3.2.1)
+    ggplot2 (>= 3.2.1),
+    randtoolbox
 Suggests: 
     testthat (>= 2.3.1),
     knitr,

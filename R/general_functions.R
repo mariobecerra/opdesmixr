@@ -165,7 +165,7 @@ mixture_coord_ex = function(
 #'     beta_prior_draws = get_halton_draws(beta_means$beta)
 #' @export
 get_halton_draws = function(beta, sd = 1, ndraws = 120){
-  draws_unif_beta = halton(ndraws, dim = length(beta))
+  draws_unif_beta = randtoolbox::halton(ndraws, dim = length(beta))
 
   beta_prior_draws = matrix(rep(NA_real_, length(draws_unif_beta)), ncol = ncol(draws_unif_beta))
   for(i in 1:ncol(beta_prior_draws)){
