@@ -27,7 +27,6 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(opdesmixr)
-library(tidyverse)
 ```
 
 The package can create D-optimal and I-optimal designs for normal Scheffé models of order one, second-order, and special-cubic. These models are defined as follows:

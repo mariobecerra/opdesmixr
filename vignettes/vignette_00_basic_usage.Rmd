@@ -27,7 +27,6 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(opdesmixr)
-library(tidyverse)
 ```
 
 # Plot Cox direction

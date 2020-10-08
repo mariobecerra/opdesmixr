@@ -285,8 +285,6 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(opdesmixr)
-library(tidyverse)
-library(randtoolbox)
 
 theme_set(theme_bw())
 n_cores = parallel::detectCores()
