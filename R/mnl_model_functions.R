@@ -331,6 +331,7 @@ mnl_mixture_coord_exch = function(
     opt_crit_value_orig = X_result$opt_crit_value_orig,
     opt_crit_value = X_result$opt_crit_value,
     n_iter = X_result$n_iter,
+    efficiency_value_per_iteration = X_result$efficiency_value_per_iteration,
     opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality")
   )
 

@@ -530,6 +530,9 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
 
   // Does not do input checks because the R wrapper function does them.
 
+  // Create a vector to store the values of the efficiency metric in each iteration.
+  arma::vec efficiency_value_per_iteration(max_it, fill::zeros);
+
   // Create new matrix, otherwise it is modified in R too
   arma::mat X = X_orig;
 
@@ -549,6 +552,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
   // Coordinate exchanges
   int it = 0;
   while(it < max_it){
+    efficiency_value_per_iteration(it) = opt_crit_value_best;
     it = it + 1;
     if(verbose >= 1) Rcout << "Iter: " << it << ", Optimality criterion value: " << opt_crit_value_best << std::endl;
 
@@ -618,7 +622,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
     _["opt_crit_value_orig"] = opt_crit_value_orig,
     _["opt_crit_value"] = opt_crit_value_best,
     _["n_iter"] = it,
-    _["opt_crit"] = opt_crit
+    _["efficiency_value_per_iteration"] = efficiency_value_per_iteration.head(it)
   );
 
 } // end function
@@ -1211,24 +1215,27 @@ Rcpp::List mixtureCoordinateExchangeMNL(
     arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W,
     int opt_method, double lower, double upper, double tol, int n_cox_points){
   // See mnl_mixture_coord_exch() in R for details.
-  // q: number of ingredient proportions.
-  // J: number of alternatives within a choice set.
-  // S: number of choice sets.
-  // n_random_starts: number or random starts. Defaults to 100.
   // X_orig: If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.
-  // beta: Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design,
-  //       it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws,
-  //       i.e., there is a prior draw per row.
-  // opt_method: Optimization method in each step of the coordinate exchange algorithm.
-  //  0 for Brent, 1 for Cox's direction discretization.
+  // beta_mat: Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design,
+  //           it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws,
+  //           i.e., there is a prior draw per row.
+  // order: order of Scheffe's model. Must be 1, 2, or 3.
   // max_it: integer for maximum number of iterations that the coordinate exchange algorithm will do
-  // tol: A positive error tolerance in Brent's method.
-  // n_cox_points: number of points to use in the discretization of Cox direction. Ignored if opt_method is Brent.
   // verbose: level of verbosity.
   // opt_crit: optimality criterion: D-optimality (0) or I-optimality (1).
-  // W: momens matrix
+  // W: moments matrix
+  // opt_method: Optimization method in each step of the coordinate exchange algorithm.
+  //             0 for Brent, 1 for Cox's direction discretization.
+  // lower: lower bound in Brent's optimization method
+  // upper: upper bound in Brent's optimization method
+  // tol: A positive error tolerance in Brent's method.
+  // n_cox_points: number of points to use in the discretization of Cox direction. Ignored if opt_method is Brent.
+
 
   // Does not do input checks because the R wrapper function does them.
+
+  // Create a vector to store the values of the efficiency metric in each iteration.
+  arma::vec efficiency_value_per_iteration(max_it, fill::zeros);
 
   // Create new cube, otherwise it is modified in R too
   arma::cube X = X_orig;
@@ -1256,6 +1263,8 @@ Rcpp::List mixtureCoordinateExchangeMNL(
     if (it % 2 == 0){
       Rcpp::checkUserInterrupt();
     }
+
+    efficiency_value_per_iteration(it) = opt_crit_value_best;
 
     it = it + 1;
     if(verbose >= 1) Rcout << "Iter: " << it << ", Optimality criterion value: " << opt_crit_value_best << std::endl;
@@ -1307,6 +1316,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(
 
   } // end while
 
+
   if(verbose >= 1){
     Rcout << std::endl;
     Rcout << "Original Optimality criterion value: " << opt_crit_value_orig;
@@ -1323,7 +1333,8 @@ Rcpp::List mixtureCoordinateExchangeMNL(
     _["X"] = X,
     _["opt_crit_value_orig"] = opt_crit_value_orig,
     _["opt_crit_value"] = opt_crit_value_best,
-    _["n_iter"] = it
+    _["n_iter"] = it,
+    _["efficiency_value_per_iteration"] = efficiency_value_per_iteration.head(it)
   );
 
 } // end function
