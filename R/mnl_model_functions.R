@@ -243,9 +243,9 @@ mnl_mixture_coord_exch = function(
     }
   }
 
-  if(is.vector(beta)) if(m != length(beta)) stop("Incompatible size in beta and q: beta must be of length (q^3 + 5*q)/6")
+  if(is.vector(beta)) if(m != length(beta)) stop("Incompatible size in beta and q: beta must be of length ", m)
 
-  if(is.matrix(beta)) if(m != ncol(beta)) stop("Incompatible size in beta and q: beta must have (q^3 + 5*q)/6 columns")
+  if(is.matrix(beta)) if(m != ncol(beta)) stop("Incompatible size in beta and q: beta must have ", m,  "columns")
 
 
   if(is.vector(beta)) beta_mat = matrix(beta, nrow = 1)
@@ -443,7 +443,7 @@ mnl_plot_result_2d = function(res_alg){
     X_final_mat = rbind(X_final_mat, t(res_alg$X[,,s]))
   }
 
-  # PLot matrices
+  # Plot matrices
   ggtern::grid.arrange(
     X_orig_mat %>%
       dplyr::as_tibble() %>%
