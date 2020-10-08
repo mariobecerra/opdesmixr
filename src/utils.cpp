@@ -1210,7 +1210,7 @@ arma::cube findBestCoxDirMNLBrent(
 Rcpp::List mixtureCoordinateExchangeMNL(
     arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W,
     int opt_method, double lower, double upper, double tol, int n_cox_points){
-  // See mixture_coord_ex_mnl() in R for details.
+  // See mnl_mixture_coord_exch() in R for details.
   // q: number of ingredient proportions.
   // J: number of alternatives within a choice set.
   // S: number of choice sets.

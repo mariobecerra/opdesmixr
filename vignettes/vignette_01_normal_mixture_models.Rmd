@@ -74,7 +74,7 @@ Create a D-optimal design for a Scheffé model with 30 runs and 3 ingredients us
 
 ```{r}
 (t1 = Sys.time())
-mixture_coord_ex_gaussian(
+gaussian_mixture_coord_exch(
   n_runs = 30, 
   q = 3, 
   n_random_starts = 100,
@@ -91,7 +91,7 @@ Order 2:
 
 ```{r}
 (t1 = Sys.time())
-mixture_coord_ex_gaussian(
+gaussian_mixture_coord_exch(
   n_runs = 30, 
   q = 3, 
   n_random_starts = 100,
@@ -109,7 +109,7 @@ Order 3:
 
 ```{r}
 (t1 = Sys.time())
-mixture_coord_ex_gaussian(
+gaussian_mixture_coord_exch(
   n_runs = 30, 
   q = 3, 
   n_random_starts = 100,
@@ -127,28 +127,28 @@ t2 - t1
 We can feed it an initial design. Here we create one:
 
 ```{r}
-X_1 = create_random_initial_design_gaussian(n_runs = 30, q = 3, seed = 10)
+X_1 = gaussian_create_random_initial_design(n_runs = 30, q = 3, seed = 10)
 ```
 
 Find D-optimal design for each degree.
 
 ```{r}
 
-res_alg_order_1_1_D = mixture_coord_ex_gaussian(
+res_alg_order_1_1_D = gaussian_mixture_coord_exch(
   X = X_1,
   order = 1,
   opt_crit = "D",
   plot_designs = T,
   verbose = 0)
 
-res_alg_order_1_2_D = mixture_coord_ex_gaussian(
+res_alg_order_1_2_D = gaussian_mixture_coord_exch(
   X = X_1,
   order = 2,
   opt_crit = "D",
   plot_designs = T,
   verbose = 0)
 
-res_alg_order_1_3_D = mixture_coord_ex_gaussian(
+res_alg_order_1_3_D = gaussian_mixture_coord_exch(
   X = X_1,
   order = 3,
   opt_crit = "D",
@@ -164,7 +164,7 @@ Also works for I-optimality, but only for Scheffé models of order 3.
 
 ```{r}
 
-res_alg_order_1_3_I = mixture_coord_ex_gaussian(
+res_alg_order_1_3_I = gaussian_mixture_coord_exch(
   X = X_1,
   order = 3,
   opt_crit = "I",
@@ -182,7 +182,7 @@ Compare Brent's method with a discretization of Cox direction. Brent's method is
 Discretization of Cox direction using 100 points:
 
 ```{r}
-des_disc_D = mixture_coord_ex_gaussian(
+des_disc_D = gaussian_mixture_coord_exch(
   n_runs = 30,
   q = 3,
   n_random_starts = 50,
@@ -204,7 +204,7 @@ des_disc_D = mixture_coord_ex_gaussian(
 Brent's method:
 
 ```{r}
-des_brent_D = mixture_coord_ex_gaussian(
+des_brent_D = gaussian_mixture_coord_exch(
   n_runs = 30,
   q = 3,
   n_random_starts = 50,
@@ -226,7 +226,7 @@ Using microbenchmark. This result shows that Brent's method is around 8 times fa
 ```{r, eval = F}
 microbenchmark::microbenchmark(
 
-  mixture_coord_ex_gaussian(
+  gaussian_mixture_coord_exch(
     n_runs = 30,
     q = 3,
     n_random_starts = 50,
@@ -246,7 +246,7 @@ microbenchmark::microbenchmark(
 
 
 
-  mixture_coord_ex_gaussian(
+  gaussian_mixture_coord_exch(
     n_runs = 30,
     q = 3,
     n_random_starts = 50,

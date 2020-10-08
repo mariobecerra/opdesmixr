@@ -7,7 +7,7 @@ library(opdesmixr)
 test_that("gaussian_D_q3_nruns30_rs100_o1_seed10", {
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
       n_runs = 30,
       q = 3,
       n_random_starts = 100,
@@ -25,7 +25,7 @@ test_that("gaussian_D_q3_nruns30_rs100_o1_seed10", {
 
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 30,
         q = 3,
         n_random_starts = 100,
@@ -47,7 +47,7 @@ test_that("gaussian_D_q3_nruns30_rs100_o1_seed10", {
 test_that("gaussian_D_q3_nruns30_rs100_o2_seed10", {
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 30,
         q = 3,
         n_random_starts = 100,
@@ -65,7 +65,7 @@ test_that("gaussian_D_q3_nruns30_rs100_o2_seed10", {
 
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 30,
         q = 3,
         n_random_starts = 100,
@@ -88,7 +88,7 @@ test_that("gaussian_D_q3_nruns30_rs100_o2_seed10", {
 test_that("gaussian_D_q3_nruns30_rs50_o3_seed10", {
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 30,
         q = 3,
         n_random_starts = 50,
@@ -106,7 +106,7 @@ test_that("gaussian_D_q3_nruns30_rs50_o3_seed10", {
 
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 30,
         q = 3,
         n_random_starts = 50,
@@ -133,7 +133,7 @@ test_that("gaussian_D_q3_nruns30_rs50_o3_seed10", {
 test_that("gaussian_I_q3_nruns30_rs50_o3_seed10", {
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 30,
         q = 3,
         n_random_starts = 50,
@@ -151,7 +151,7 @@ test_that("gaussian_I_q3_nruns30_rs50_o3_seed10", {
 
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 30,
         q = 3,
         n_random_starts = 50,
@@ -176,7 +176,7 @@ test_that("gaussian_I_q3_nruns30_rs50_o3_seed10", {
 test_that("gaussian_D_q5_nruns60_rs50_o1_seed10", {
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 60,
         q = 5,
         n_random_starts = 50,
@@ -194,7 +194,7 @@ test_that("gaussian_D_q5_nruns60_rs50_o1_seed10", {
 
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 60,
         q = 5,
         n_random_starts = 50,
@@ -217,7 +217,7 @@ test_that("gaussian_D_q5_nruns60_rs50_o1_seed10", {
 test_that("gaussian_D_q5_nruns60_rs10_o2_seed10", {
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 60,
         q = 5,
         n_random_starts = 10,
@@ -235,7 +235,7 @@ test_that("gaussian_D_q5_nruns60_rs10_o2_seed10", {
 
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 60,
         q = 5,
         n_random_starts = 10,
@@ -257,7 +257,7 @@ test_that("gaussian_D_q5_nruns60_rs10_o2_seed10", {
 test_that("gaussian_D_q5_nruns60_rs10_o3_seed10", {
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 60,
         q = 5,
         n_random_starts = 10,
@@ -275,7 +275,7 @@ test_that("gaussian_D_q5_nruns60_rs10_o3_seed10", {
 
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 60,
         q = 5,
         n_random_starts = 10,
@@ -300,7 +300,7 @@ test_that("gaussian_D_q5_nruns60_rs10_o3_seed10", {
 test_that("gaussian_I_q5_nruns60_rs50_o3_seed10", {
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 60,
         q = 5,
         n_random_starts = 10,
@@ -318,7 +318,7 @@ test_that("gaussian_I_q5_nruns60_rs50_o3_seed10", {
 
   expect_identical(
     digest::digest(
-      mixture_coord_ex_gaussian(
+      gaussian_mixture_coord_exch(
         n_runs = 60,
         q = 5,
         n_random_starts = 10,

@@ -206,10 +206,10 @@ n_cores = parallel::detectCores()
 q = 3
 J = 3
 S = 8
-X2 = create_random_initial_MNL_design(q, J, S, seed = 4)
+X2 = mnl_create_random_initial_design(q, J, S, seed = 4)
 beta2 = rep(0, (q*q*q + 5*q)/6)
 
-opt2_des_beta2_D = mixture_coord_ex_mnl(
+opt2_des_beta2_D = mnl_mixture_coord_exch(
   q = q, J = J, S = S, 
   n_random_starts = 50,
   beta = beta2,
@@ -222,7 +222,7 @@ opt2_des_beta2_D = mixture_coord_ex_mnl(
 )
 
 
-opt2_des_beta2_I = mixture_coord_ex_mnl(
+opt2_des_beta2_I = mnl_mixture_coord_exch(
   q = q, J = J, S = S, 
   n_random_starts = 50,
   beta = beta2,
@@ -239,9 +239,9 @@ opt2_des_beta2_I = mixture_coord_ex_mnl(
 Supplying a random initial design:
 
 ```{r}
-X2 = create_random_initial_MNL_design(q, J, S, seed = 4)
+X2 = mnl_create_random_initial_design(q, J, S, seed = 4)
 
-X2_opt_beta2_D = mixture_coord_ex_mnl(
+X2_opt_beta2_D = mnl_mixture_coord_exch(
   X = X2,
   beta = beta2,
   opt_crit = "D",
@@ -250,7 +250,7 @@ X2_opt_beta2_D = mixture_coord_ex_mnl(
   max_it = 100
 )
 
-X2_opt_beta2_I = mixture_coord_ex_mnl(
+X2_opt_beta2_I = mnl_mixture_coord_exch(
   X = X2,
   beta = beta2,
   opt_crit = "I",
@@ -270,10 +270,10 @@ With only one initial random design:
 q = 3
 J = 3
 S = 6
-X3 = create_random_initial_MNL_design(q, J, S, seed = 3)
+X3 = mnl_create_random_initial_design(q, J, S, seed = 3)
 beta3_2 = create_random_beta(q)
 
-X3_2_opt_D = mixture_coord_ex_mnl(
+X3_2_opt_D = mnl_mixture_coord_exch(
   X = X3,
   beta = beta3_2$beta,
   opt_crit = "D",
@@ -282,7 +282,7 @@ X3_2_opt_D = mixture_coord_ex_mnl(
   max_it = 50,
 )
 
-X3_2_opt_I = mixture_coord_ex_mnl(
+X3_2_opt_I = mnl_mixture_coord_exch(
   X = X3,
   beta = beta3_2$beta,
   opt_crit = "I",
@@ -295,7 +295,7 @@ X3_2_opt_I = mixture_coord_ex_mnl(
 With 50 initial random designs:
 
 ```{r}
-opt2_des_beta3_D = mixture_coord_ex_mnl(
+opt2_des_beta3_D = mnl_mixture_coord_exch(
   q = q, J = J, S = S, 
   n_random_starts = 50,
   beta = beta3_2$beta,
@@ -307,7 +307,7 @@ opt2_des_beta3_D = mixture_coord_ex_mnl(
   n_cores = n_cores
 )
 
-opt2_des_beta3_I = mixture_coord_ex_mnl(
+opt2_des_beta3_I = mnl_mixture_coord_exch(
   q = q, J = J, S = S, 
   n_random_starts = 50,
   beta = beta3_2$beta,

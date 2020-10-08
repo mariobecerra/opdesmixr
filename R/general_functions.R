@@ -102,7 +102,7 @@ mixture_coord_ex = function(
     if(!is.null(S)) warning("S was supplied but was ignored.")
     if(is.null(X) & (is.null(n_runs) | is.null(q))) stop("Must supply X, or both n_runs and q.")
 
-    out = mixture_coord_ex_gaussian(
+    out = gaussian_mixture_coord_exch(
       n_runs = n_runs,
       q = q,
       n_random_starts = n_random_starts,
@@ -131,7 +131,7 @@ mixture_coord_ex = function(
     if(!is.null(n_runs)) warning("n_runs was supplied but was ignored")
 
 
-    out = mixture_coord_ex_mnl(
+    out = mnl_mixture_coord_exch(
       q = q,
       J = J,
       S = S,

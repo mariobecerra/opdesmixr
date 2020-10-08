@@ -1,16 +1,16 @@
 
 #' Creation of a random initial design for MNL model
 #'
-#' \code{create_random_initial_MNL_design} creates a random initial design for MNL model of the specified dimensions
+#' \code{mnl_create_random_initial_design} creates a random initial design for MNL model of the specified dimensions
 #' @param q integer specifying the number of ingredients
 #' @param J integer specifying the number of alternatives within each choice set
 #' @param S integer specifying the number of choice sets
 #' @param seed integer used for reproducibility
 #' @return 3-dimensional array of dimensions (q, J, S)
 #' @examples
-#' create_random_initial_MNL_design(3, 5, 4, seed = 2020)
+#' mnl_create_random_initial_design(3, 5, 4, seed = 2020)
 #' @export
-create_random_initial_MNL_design = function(q, J, S, seed = NULL){
+mnl_create_random_initial_design = function(q, J, S, seed = NULL){
   X = array(rep(NA_real_, q*J*S), dim = c(q, J, S))
 
   if(!is.null(seed)) set.seed(seed)
@@ -30,7 +30,7 @@ create_random_initial_MNL_design = function(q, J, S, seed = NULL){
 
 #' Function that computes optimality criterion value for MNL model
 #'
-#' \code{get_opt_crit_value_MNL} computes optimality criterion value for MNL model
+#' \code{mnl_get_opt_crit_value} computes optimality criterion value for MNL model
 #' @param X 3 dimensional array with dimensions (q, J, S) where:
 #'     q is the number of ingredient proportions,
 #'     J is the number of alternatives within a choice set,
@@ -39,7 +39,7 @@ create_random_initial_MNL_design = function(q, J, S, seed = NULL){
 #' @param opt_crit optimality criterion: 0 is D-optimality and 1 is I-optimality
 #' @return Returns the value of the optimality criterion for this particular design and this beta vector
 #' @export
-get_opt_crit_value_MNL = function(X, beta, order, opt_crit = 0){
+mnl_get_opt_crit_value = function(X, beta, order, opt_crit = 0){
 
   q = dim(X)[1]
 
@@ -48,7 +48,7 @@ get_opt_crit_value_MNL = function(X, beta, order, opt_crit = 0){
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = create_moment_matrix_MNL(q, order)
+    W = mnl_create_moment_matrix(q, order)
   }
 
   beta_mat = matrix(beta, byrow = T, nrow = 1)
@@ -103,7 +103,7 @@ create_random_beta = function(q, order = 3, seed = NULL){
 
 #' Coordinate exchange algorithm for a Multinomial Logit Scheffé model.
 #'
-#' \code{mixture_coord_ex_mnl} Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
+#' \code{mnl_mixture_coord_exch} Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
 #' @param q number of ingredient proportions.
 #' @param J number of alternatives within a choice set.
 #' @param S number of choice sets.
@@ -145,7 +145,7 @@ create_random_beta = function(q, order = 3, seed = NULL){
 #'  }
 #'
 #' @export
-mixture_coord_ex_mnl = function(
+mnl_mixture_coord_exch = function(
   q = NULL,
   J = NULL,
   S = NULL,
@@ -215,7 +215,7 @@ mixture_coord_ex_mnl = function(
     seeds_designs = sample.int(1e9, n_random_starts)
 
     designs = lapply(seeds_designs, function(x){
-      des = create_random_initial_MNL_design(q, J, S, seed = x)
+      des = mnl_create_random_initial_design(q, J, S, seed = x)
       return(des)
     })
 
@@ -264,7 +264,7 @@ mixture_coord_ex_mnl = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = create_moment_matrix_MNL(q, order = order)
+    W = mnl_create_moment_matrix(q, order = order)
   }
 
   #############################################
@@ -385,7 +385,7 @@ mnl_plot_result_3d = function(
   res_alg,
   design = "final",
   phi = 40, theta = 140, cex_points = 0.5, cex_names = 0.5, ...){
-  # res_alg: output of a call to mixture_coord_ex_mnl() function.
+  # res_alg: output of a call to mnl_mixture_coord_exch() function.
   # design: Plot the original or the final design?
   # It must be a design of 4 ingredients.
 
@@ -422,7 +422,7 @@ mnl_plot_result_3d = function(
 #' TODO: write doc
 #' @export
 mnl_plot_result_2d = function(res_alg){
-  # res_alg: output of a call to mixture_coord_ex_mnl() function.
+  # res_alg: output of a call to mnl_mixture_coord_exch() function.
   # It must be a design of 3 ingredients.
 
   dim_X = dim(res_alg$X_orig)
@@ -503,7 +503,7 @@ mnl_plot_result = function(res_alg, ...){
 
 #' TODO: write doc
 #' @export
-create_moment_matrix_MNL = function(q, order = 3){
+mnl_create_moment_matrix = function(q, order = 3){
 
   stopifnot(order %in% 1:3)
 

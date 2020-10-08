@@ -1,7 +1,7 @@
 
 #' TODO: write doc
 #' @export
-create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
+gaussian_create_random_initial_design = function(n_runs, q, seed = NULL){
   X = matrix(rep(NA_real_, n_runs*q), nrow = n_runs)
 
   if(!is.null(seed)) set.seed(seed)
@@ -21,7 +21,7 @@ create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
 
 #' Coordinate exchange algorithm for a mixture model assuming Gaussian iid errors.
 #'
-#' \code{mixture_coord_ex_gaussian} Performs the coordinate exchange algorithm for a Scheffé mixture model. It can have many different random starts, or the coordinate exchange algorithm can be performed in a user-supplied matrix.
+#' \code{gaussian_mixture_coord_exch} Performs the coordinate exchange algorithm for a Scheffé mixture model. It can have many different random starts, or the coordinate exchange algorithm can be performed in a user-supplied matrix.
 #' @param n_runs number of runs
 #' @param q number of ingredient proportions
 #' @param n_random_starts number or random starts. Defaults to 100.
@@ -53,7 +53,7 @@ create_random_initial_design_gaussian = function(n_runs, q, seed = NULL){
 #'  }
 #'
 #' @export
-mixture_coord_ex_gaussian = function(
+gaussian_mixture_coord_exch = function(
   n_runs = NULL,
   q = NULL,
   n_random_starts = 100,
@@ -123,7 +123,7 @@ mixture_coord_ex_gaussian = function(
     seeds_designs = sample.int(1e9, n_random_starts)
 
     designs = lapply(seeds_designs, function(x){
-      des = create_random_initial_design_gaussian(n_runs, q, seed = x)
+      des = gaussian_create_random_initial_design(n_runs, q, seed = x)
       return(des)
     })
   } else{
@@ -152,7 +152,7 @@ mixture_coord_ex_gaussian = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = create_moment_matrix_Gaussian(q, order)
+    W = gaussian_create_moment_matrix(q, order)
   }
 
   #############################################
@@ -234,7 +234,7 @@ mixture_coord_ex_gaussian = function(
 #' TODO: write doc
 #' @export
 gaussian_plot_result = function(res_alg){
-  # res_alg: output of a call to mixture_coord_ex_gaussian() function
+  # res_alg: output of a call to gaussian_mixture_coord_exch() function
 
   ggtern::grid.arrange(
     res_alg$X_orig %>%
@@ -276,7 +276,7 @@ gaussian_plot_result = function(res_alg){
 
 #' TODO: write doc
 #' @export
-get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
+gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0){
 
   q = dim(X)[2]
 
@@ -285,7 +285,7 @@ get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = create_moment_matrix_Gaussian(q, order)
+    W = gaussian_create_moment_matrix(q, order)
   }
 
   return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W))
@@ -302,7 +302,7 @@ get_opt_crit_value_Gaussian = function(X, order = 1, opt_crit = 0){
 
 #' TODO: write doc
 #' @export
-create_moment_matrix_Gaussian = function(q, order = 3){
+gaussian_create_moment_matrix = function(q, order = 3){
 
   stopifnot(order %in% 1:3)
 

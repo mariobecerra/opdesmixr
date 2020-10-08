@@ -326,7 +326,7 @@ Discretization:
 ```{r}
 # 25 secs
 # 56 secs
-X_q3_J5_s4_D_bayes_o3 = mixture_coord_ex_mnl(
+X_q3_J5_s4_D_bayes_o3 = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -350,7 +350,7 @@ Brent's method:
 ```{r}
 # 16 seconds
 # 40 secs
-X_q3_J5_s4_D_bayes_o3 = mixture_coord_ex_mnl(
+X_q3_J5_s4_D_bayes_o3 = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -374,7 +374,7 @@ Discretization:
 
 ```{r}
 # 100 secs
-X_q3_J5_s4_I_bayes_o3 = mixture_coord_ex_mnl(
+X_q3_J5_s4_I_bayes_o3 = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -397,7 +397,7 @@ Brent's method:
 ```{r}
 
 # 70 secs
-X_q3_J5_s4_I_bayes_o3 = mixture_coord_ex_mnl(
+X_q3_J5_s4_I_bayes_o3 = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -449,7 +449,7 @@ beta_q3_o2_prior_draws %>%
 ```{r}
 # # 20 secs
 # (t1 = Sys.time())
-X_q3_J5_s4_D_bayes_o2 = mixture_coord_ex_mnl(
+X_q3_J5_s4_D_bayes_o2 = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -475,7 +475,7 @@ X_q3_J5_s4_D_bayes_o2 = mixture_coord_ex_mnl(
 
 # # 26 secs
 # (t1 = Sys.time())
-X_q3_J5_s4_I_bayes_o2 = mixture_coord_ex_mnl(
+X_q3_J5_s4_I_bayes_o2 = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -534,7 +534,7 @@ beta_q3_o1_prior_draws %>%
 ```{r}
 # # 6 secs
 # (t1 = Sys.time())
-X_q3_J5_s4_D_bayes_o1 = mixture_coord_ex_mnl(
+X_q3_J5_s4_D_bayes_o1 = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -560,7 +560,7 @@ X_q3_J5_s4_D_bayes_o1 = mixture_coord_ex_mnl(
 
 # # 18 secs
 # (t1 = Sys.time())
-X_q3_J5_s4_I_bayes_o1 = mixture_coord_ex_mnl(
+X_q3_J5_s4_I_bayes_o1 = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -606,7 +606,7 @@ beta_q4_01_prior_draws %>%
 
 # 42 secs
 (t1 = Sys.time())
-X_q4_J2_s10_D_bayes_o3 = mixture_coord_ex_mnl(
+X_q4_J2_s10_D_bayes_o3 = mnl_mixture_coord_exch(
   n_random_starts = 4,
   q = q,
   J = J,
@@ -631,7 +631,7 @@ t2 - t1
 
 # 55 secs
 (t1 = Sys.time())
-X_q4_J2_s10_I_bayes_o3 = mixture_coord_ex_mnl(
+X_q4_J2_s10_I_bayes_o3 = mnl_mixture_coord_exch(
   n_random_starts = 4,
   q = q,
   J = J,

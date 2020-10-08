@@ -54,7 +54,7 @@ plot_cox_direction(c(0, 0, 1), 1:3)
 # I need to use ggtern's own grid.arrange
 # https://stackoverflow.com/questions/42825983/issue-when-using-grid-arrange-with-ggtern-generated-plots
 # do.call("grid.arrange", c(cox_direction_plots, ncol = 4)) # This works with ggtern::grid.arrange
-random_designs = create_random_initial_design_gaussian(8, q = 3, seed = 1)
+random_designs = gaussian_create_random_initial_design(8, q = 3, seed = 1)
 
 cox_direction_plots = lapply(1:nrow(random_designs), function(i){
   return(plot_cox_direction(random_designs[i,], 1:3))
@@ -79,7 +79,7 @@ Create a D-optimal and an I-optimal design for a special-cubic Scheffé model wi
 
 ```{r}
 
-d_opt_des = mixture_coord_ex_gaussian(
+d_opt_des = gaussian_mixture_coord_exch(
   n_runs = 30, 
   q = 3, 
   n_random_starts = 100,
@@ -95,7 +95,7 @@ d_opt_des = mixture_coord_ex_gaussian(
 
 ```{r}
 
-i_opt_des = mixture_coord_ex_gaussian(
+i_opt_des = gaussian_mixture_coord_exch(
   n_runs = 30, 
   q = 3, 
   n_random_starts = 100,
@@ -120,7 +120,7 @@ library(randtoolbox)
 q = 3
 J = 5
 S = 4
-X4 = create_random_initial_MNL_design(q, J, S, seed = 3)
+X4 = mnl_create_random_initial_design(q, J, S, seed = 3)
 beta4_2 = create_random_beta(q)
 
 
@@ -148,7 +148,7 @@ beta4_2_prior_draws %>%
 
 
 # 25 secs
-X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
+X_q3_J5_s4_D_bayes = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
@@ -169,7 +169,7 @@ X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
 
 
 # 16 seconds
-X_q3_J5_s4_D_bayes = mixture_coord_ex_mnl(
+X_q3_J5_s4_D_bayes = mnl_mixture_coord_exch(
   n_random_starts = 8,
   q = q,
   J = J,
