@@ -195,7 +195,6 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(opdesmixr)
-library(tidyverse)
 
 n_cores = parallel::detectCores()
 ```
