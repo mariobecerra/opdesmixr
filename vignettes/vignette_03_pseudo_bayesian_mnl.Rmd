@@ -285,6 +285,9 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(opdesmixr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
 
 theme_set(theme_bw())
 n_cores = parallel::detectCores()
