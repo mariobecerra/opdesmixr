@@ -832,114 +832,6 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order){
 
 
 
-
-
-// // [[Rcpp::export]]
-// double getDCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose){
-//   // Function that returns the D criterion value for design cube X and parameter vector beta.
-//   // The D-optimality criterion seeks to maximize the determinant of the information matrix or
-//   //   minimize the determinant of the variance-covariance matrix..
-//   // This function computes the log determinant of the information matrix using a Choleski decomposition.
-//   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
-//   // Input:
-//   //     X: design cube of dimensions (q, J, S)
-//   //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6
-//   //     verbose: integer that expresses the level of verbosity. Mainly used in other functions and too much useful by itself.
-//
-//   double eff_crit = 0.0; // We want to minimize this
-//
-//   int m = beta_mat.n_cols;
-//   int n_sims = beta_mat.n_rows;
-//
-//   arma::mat I(m-1, m-1, fill::zeros);
-//
-//   // Accumulator
-//   double acc = 0.0;
-//
-//   // Flag in case there's an error in the Cholesky decomposition
-//   bool error_flag = false;
-//
-//   // Iterate over all prior draws
-//   for(int i = 0; i < n_sims; i++){
-//     I = getInformationMatrixMNL(X, beta); // beta now is a vector. Should put a loop here.
-//     if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
-//
-//
-//     arma::mat L;
-//     try{
-//       L = chol(I);
-//       acc = acc - 2*sum(log(L.diag()));
-//     }
-//     catch(const std::runtime_error& e){
-//       // If Cholesky decomposition fails, it is likely because information matrix
-//       // was not numerically positive definite.
-//       // If this happens, it is probably because a numerical inestability.
-//       // The function then returns the efficiency value as a big positive number, this
-//       // way the algorithm does nothing in this iteration because the algorithm thinks
-//       // there was no improvement when swapping the proportions.
-//
-//       // If Cholesky decomposition failed, returns a flag to return a final value of 100
-//       error_flag = true;
-//       Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
-//       break;
-//     }
-//   }
-//
-//   if(err_flag){
-//     eff_crit = 100;
-//   } else{
-//     eff_crit = acc/n_sums;
-//   }
-//
-//
-//   return eff_crit;
-// }
-//
-//
-//
-//
-//
-// // [[Rcpp::export]]
-// double getICritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, arma::mat& W){
-//   int q = X.n_rows;
-//
-//   int m = beta_mat.n_cols;
-//
-//   arma::mat I(m-1, m-1, fill::zeros);
-//   I = getInformationMatrixMNL(X, beta); // beta now is a vector. Should put a loop here.
-//
-//   if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
-//
-//   double eff_crit; // We want to minimize this
-//
-//
-//   // Attempt to do a Cholesky decomposition on the information matrix
-//   arma::mat L;
-//   try{
-//     L = chol(I);
-//
-//     arma::mat A = solve(trimatl(L.t()), W);
-//     arma::mat C = solve(trimatu(L), A);
-//     eff_crit = log(trace(C));
-//   }
-//   catch(const std::runtime_error& e){
-//     // If Cholesky decomposition fails, it is likely because information matrix
-//     // was not numerically positive definite.
-//     // If this happens, it is probably because a numerical inestability.
-//     // The function then returns the efficiency value as a big positive number, this
-//     // way the algorithm does nothing in this iteration because the algorithm thinks
-//     // there was no improvement when swapping the proportions.
-//     eff_crit = 100;
-//     Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
-//   }
-//
-//   return eff_crit;
-// }
-
-
-
-
-
 // [[Rcpp::export]]
 double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int opt_crit, arma::mat& W, int order){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
@@ -965,10 +857,6 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
   vec beta = zeros(m-1);
 
   // Iterate over all prior draws
-  // This seems to introduce overhead when there is only one row. It takes twice as long as before.
-  // I don't really get why it is longer. It's not the for loop or the creation of the vector from the
-  // row, since I've tested that.
-  // Don't know what's going on.
   for(int i = 0; i < n_sims; i++){
     beta = conv_to<vec>::from(beta_mat.row(i));
     I = getInformationMatrixMNL(X, beta, order);
