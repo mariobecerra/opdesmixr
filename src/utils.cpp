@@ -476,6 +476,9 @@ arma::mat findBestCoxDirGaussianBrent(
     arma::mat& X, int i, int j, int order, int opt_crit, arma::mat& W,
     double lower = 0, double upper = 1, double tol = 0.0001) {
 
+  // The optimality criterion value in the design that is being used as input
+  double f_original = getOptCritValueGaussian(X, order, X.n_cols, opt_crit, W);
+
   auto f = [&X, i, j, order, opt_crit, &W](double theta){
     return efficiencyCoxScheffeGaussian(theta, X, i, j, order, opt_crit, W);
   };
@@ -498,7 +501,13 @@ arma::mat findBestCoxDirGaussianBrent(
     }
   }
 
-  return(changeIngredientDesignGaussian(theta_star, X, i, j));
+
+  // If Brent's method didn't do any improvement, then return the original design
+  if(f_original <= f_star){
+    return(X);
+  } else{
+    return(changeIngredientDesignGaussian(theta_star, X, i, j));
+  }
 
 }
 
@@ -1060,10 +1069,19 @@ arma::cube findBestCoxDirMNLBrent(
     double lower = 0, double upper = 1, double tol = 0.0001) {
   // Finds the best point in the Cox direction using Brent's optimization method
 
+
+  // The optimality criterion value in the design that is being used as input
+  double f_original = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order);
+
+
+  // Helper function that depends only on theta (the ingredient proportion that is being changed now)
   auto f = [&X, &beta_mat, i, j, s, opt_crit, &W, order](double theta){
     return efficiencyCoxScheffeMNL(theta, X, beta_mat, i, j, s, opt_crit, W, order);
   };
 
+  // theta_brent: the "optimal" theta that is going to be returned by Brent's method
+  // theta_star: the actual optimal theta
+  // f_star: the value of the objective function evaluated in the optimal theta
   double theta_brent, theta_star, f_star;
   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
 
@@ -1083,7 +1101,12 @@ arma::cube findBestCoxDirMNLBrent(
     }
   }
 
-  return(changeIngredientDesignMNL(theta_star, X, i, j, s));
+  // If Brent's method didn't do any improvement, then return the original design
+  if(f_original <= f_star){
+    return(X);
+  } else{
+    return(changeIngredientDesignMNL(theta_star, X, i, j, s));
+  }
 
 }
 
