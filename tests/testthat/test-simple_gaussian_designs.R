@@ -1,12 +1,11 @@
 library(testthat)
-# library(digest)
 library(opdesmixr)
 
 
 
-test_that("gaussian_D_q3_nruns10_rs10_o1_seed10",{
+test_that("gaussian_D_q3_nruns10_o1_seed10",{
 
-  gaussian_D_q3_nruns10_rs10_o1_seed10_brent = gaussian_mixture_coord_exch(
+  gaussian_D_q3_nruns10_o1_seed10_brent = gaussian_mixture_coord_exch(
     n_runs = 10,
     q = 3,
     n_random_starts = 100,
@@ -20,7 +19,7 @@ test_that("gaussian_D_q3_nruns10_rs10_o1_seed10",{
     seed = 10)
 
 
-  gaussian_D_q3_nruns10_rs10_o1_seed10_discrete = gaussian_mixture_coord_exch(
+  gaussian_D_q3_nruns10_o1_seed10_discrete = gaussian_mixture_coord_exch(
     n_runs = 10,
     q = 3,
     n_random_starts = 100,
@@ -37,17 +36,17 @@ test_that("gaussian_D_q3_nruns10_rs10_o1_seed10",{
 
 
   expect_equal(
-    gaussian_D_q3_nruns10_rs10_o1_seed10_brent$X,
-    matrix(c(0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0), ncol = 3, byrow = F)
+    gaussian_D_q3_nruns10_o1_seed10_brent$X, # %>% as.numeric() %>% paste(collapse = ", ")
+    matrix(c(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0), ncol = 3, byrow = F)
   )
 
   expect_equal(
-    gaussian_D_q3_nruns10_rs10_o1_seed10_brent$opt_crit_value_orig,
-    2.602271832494815750891
+    gaussian_D_q3_nruns10_o1_seed10_brent$opt_crit_value_orig,
+    2.3179794105409459171
   )
 
   expect_equal(
-    gaussian_D_q3_nruns10_rs10_o1_seed10_brent$opt_crit_value,
+    gaussian_D_q3_nruns10_o1_seed10_brent$opt_crit_value,
     1.108078780175342670233
   )
 
@@ -55,17 +54,17 @@ test_that("gaussian_D_q3_nruns10_rs10_o1_seed10",{
 
 
   expect_equal(
-    gaussian_D_q3_nruns10_rs10_o1_seed10_discrete$X,
+    gaussian_D_q3_nruns10_o1_seed10_discrete$X,
     matrix(c(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0), ncol = 3, byrow = F)
   )
 
   expect_equal(
-    gaussian_D_q3_nruns10_rs10_o1_seed10_discrete$opt_crit_value_orig,
+    gaussian_D_q3_nruns10_o1_seed10_discrete$opt_crit_value_orig,
     2.317979410540945917063
   )
 
   expect_equal(
-    gaussian_D_q3_nruns10_rs10_o1_seed10_discrete$opt_crit_value,
+    gaussian_D_q3_nruns10_o1_seed10_discrete$opt_crit_value,
     1.108078780175342226144
   )
 
@@ -78,10 +77,10 @@ test_that("gaussian_D_q3_nruns10_rs10_o1_seed10",{
 
 
 
-test_that("gaussian_I_q3_nruns10_rs10_o1_seed10",{
+test_that("gaussian_I_q3_nruns10_o1_seed10",{
 
-  gaussian_I_q3_nruns10_rs10_o1_seed10_brent = gaussian_mixture_coord_exch(
-    n_runs = 10,
+  gaussian_I_q3_nruns15_o1_seed10_brent = gaussian_mixture_coord_exch(
+    n_runs = 15,
     q = 3,
     n_random_starts = 100,
     order = 1,
@@ -94,8 +93,8 @@ test_that("gaussian_I_q3_nruns10_rs10_o1_seed10",{
     seed = 10)
 
 
-  gaussian_I_q3_nruns10_rs10_o1_seed10_discrete = gaussian_mixture_coord_exch(
-    n_runs = 10,
+  gaussian_I_q3_nruns15_o1_seed10_discrete = gaussian_mixture_coord_exch(
+    n_runs = 15,
     q = 3,
     n_random_starts = 100,
     order = 1,
@@ -111,36 +110,36 @@ test_that("gaussian_I_q3_nruns10_rs10_o1_seed10",{
 
 
   expect_equal(
-    gaussian_I_q3_nruns10_rs10_o1_seed10_brent$X,
-    matrix(c(0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0), ncol = 3, byrow = F)
+    gaussian_I_q3_nruns15_o1_seed10_brent$X, # %>% as.numeric() %>% paste(collapse = ", ")
+    matrix(c(0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0), ncol = 3, byrow = F)
   )
 
   expect_equal(
-    gaussian_I_q3_nruns10_rs10_o1_seed10_brent$opt_crit_value_orig,
-    0.3509489559966069149866
+    gaussian_I_q3_nruns15_o1_seed10_brent$opt_crit_value_orig,
+    0.22769754001052067149
   )
 
   expect_equal(
-    gaussian_I_q3_nruns10_rs10_o1_seed10_brent$opt_crit_value,
-    0.07638888888888889505679
+    gaussian_I_q3_nruns15_o1_seed10_brent$opt_crit_value,
+    0.049999999999999988898
   )
 
 
 
 
   expect_equal(
-    gaussian_I_q3_nruns10_rs10_o1_seed10_discrete$X,
-    matrix(c(1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0), ncol = 3, byrow = F)
+    gaussian_I_q3_nruns15_o1_seed10_discrete$X,
+    matrix(c(0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0), ncol = 3, byrow = F)
   )
 
   expect_equal(
-    gaussian_I_q3_nruns10_rs10_o1_seed10_discrete$opt_crit_value_orig,
-    0.2765508390824947260178
+    gaussian_I_q3_nruns15_o1_seed10_discrete$opt_crit_value_orig,
+    0.22769754001052067149
   )
 
   expect_equal(
-    gaussian_I_q3_nruns10_rs10_o1_seed10_discrete$opt_crit_value,
-    0.07638888888888886730122
+    gaussian_I_q3_nruns15_o1_seed10_discrete$opt_crit_value,
+    0.049999999999999988898
   )
 
 
@@ -367,7 +366,7 @@ test_that("gaussian_I_q3_nruns10_rs10_o1_seed10",{
 #
 #
 #
-# test_that("gaussian_D_q5_nruns60_rs10_o2_seed10", {
+# test_that("gaussian_D_q5_nruns60_o2_seed10", {
 #   expect_identical(
 #     digest::digest(
 #       gaussian_mixture_coord_exch(
@@ -407,7 +406,7 @@ test_that("gaussian_I_q3_nruns10_rs10_o1_seed10",{
 # })
 #
 #
-# test_that("gaussian_D_q5_nruns60_rs10_o3_seed10", {
+# test_that("gaussian_D_q5_nruns60_o3_seed10", {
 #   expect_identical(
 #     digest::digest(
 #       gaussian_mixture_coord_exch(
