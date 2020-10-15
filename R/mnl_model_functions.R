@@ -165,7 +165,7 @@ mnl_mixture_coord_exch = function(
 ){
 
   t1 = Sys.time()
-  cat("Starts at", substr(as.character(t1), 12, 19), "\n")
+  if(verbose >= 1) cat("Starts at", substr(as.character(t1), 12, 19), "\n")
 
 
   #############################################
@@ -342,8 +342,8 @@ mnl_mixture_coord_exch = function(
 
   t2 = Sys.time()
 
-  cat("Ends at", substr(as.character(t2), 12, 19), "\n")
-  cat("Time:", round(as.numeric(difftime(t2, t1, units = "secs")), 1), "seconds.\n")
+  if(verbose >= 1) cat("Ends at", substr(as.character(t2), 12, 19), "\n")
+  if(verbose >= 1) cat("Time:", round(as.numeric(difftime(t2, t1, units = "secs")), 1), "seconds.\n")
 
   return(out_list)
 }

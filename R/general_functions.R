@@ -95,7 +95,7 @@ mixture_coord_ex = function(
 
     if(is.null(order)) stop("Must supply order.")
 
-    cat('Creating design for "', model, '" model of order ', order, '.\n', sep = "")
+    if(verbose >= 1) cat('Creating design for "', model, '" model of order ', order, '.\n', sep = "")
 
     if(!is.null(beta)) warning("beta was supplied but was ignored.")
     if(!is.null(J)) warning("J was supplied but was ignored.")
@@ -122,7 +122,7 @@ mixture_coord_ex = function(
   # Call MNL function
   if(model == "MNL"){
 
-    cat('Creating design for "', model, '" model.\n', sep = "")
+    if(verbose >= 1) cat('Creating design for "', model, '" model.\n', sep = "")
 
     if(is.null(beta)) stop("Must supply beta for MNL model.")
     if(is.null(X) & (is.null(q) | is.null(J) | is.null(S))) stop("Must supply X, or all of J, Q, and q.")
