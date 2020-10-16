@@ -24,7 +24,8 @@ Imports:
     magrittr (>= 1.5),
     ggtern (>= 3.3.0),
     geometry,
-    plot3D
+    plot3D,
+    here
 Depends:
     ggplot2 (>= 3.2.1),
     randtoolbox
