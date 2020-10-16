@@ -9,7 +9,28 @@ n_cox_points = 10
 n_cores = parallel::detectCores()
 
 n_draws = 32
-variance = 5
+variance = 0.5
+
+
+
+get_size = function(q, order){
+
+  m1 = q
+  m2 = q*(q-1)/2
+  m3 = q*(q-1)*(q-2)/6
+  if(order == 1){
+    m = m1
+  } else{
+    if(order == 2){
+      m = m1 + m2
+    } else{
+      m = m1 + m2 + m3 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+    }
+  }
+  return(m)
+}
+
+
 
 
 test_that("rds_mnl_pseudo_bayesian_optimal_designs",{
@@ -21,40 +42,43 @@ test_that("rds_mnl_pseudo_bayesian_optimal_designs",{
           J = 2
           S = 5*q
 
-          beta_vec = create_random_beta(q, order = order, seed = seed)$beta
+          m = get_size(q, order)
+
+          beta_vec = rep(1, m)
           beta_prior_draws = get_halton_draws(beta_vec, sd = sqrt(variance), ndraws = n_draws)
 
-          res_alg = mnl_mixture_coord_exch(
-            q = q,
-            J = J,
-            S = S,
-            beta = beta_prior_draws,
-            n_random_starts = n_random_starts,
-            order = order,
-            opt_crit = optimality_criterion,
-            opt_method = optimization_method,
-            plot_designs = F,
-            verbose = 0,
-            n_cores = n_cores,
-            max_it = 3,
-            n_cox_points = n_cox_points,
-            seed = seed)
+
+            res_alg = suppressWarnings(
+              mnl_mixture_coord_exch(
+              q = q,
+              J = J,
+              S = S,
+              beta = beta_prior_draws,
+              n_random_starts = n_random_starts,
+              order = order,
+              opt_crit = optimality_criterion,
+              opt_method = optimization_method,
+              plot_designs = F,
+              verbose = 0,
+              n_cores = n_cores,
+              max_it = 3,
+              n_cox_points = n_cox_points,
+              seed = seed)
+          )
 
           base_filename = paste0(
             "mnl_", optimality_criterion, "_q", q, "_J", J, "_S", S, "_rs", n_random_starts, "_order", order, "_optmeth", optimization_method
           )
-
-          print(base_filename)
 
           expect_equal_to_reference(
             object = res_alg$X_orig,
             file = paste0(out_folder, base_filename, "_X_orig.rds")
           )
 
-          expect_equal_to_reference(
-            object = res_alg$X,
-            file = paste0(out_folder, base_filename, "_X.rds")
-          )
+          # expect_equal_to_reference(
+          #   object = res_alg$X,
+          #   file = paste0(out_folder, base_filename, "_X.rds")
+          # )
 
           expect_equal_to_reference(
             object = res_alg$opt_crit_value_orig,
