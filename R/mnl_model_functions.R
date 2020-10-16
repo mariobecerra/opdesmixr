@@ -35,13 +35,33 @@ mnl_create_random_initial_design = function(q, J, S, seed = NULL){
 #'     q is the number of ingredient proportions,
 #'     J is the number of alternatives within a choice set,
 #'     S is the number of choice sets.
-#' @param beta numeric vector containing the parameters. Should be of length (q^3 + 5*q)/6. Must extend to Bayesian case and have the option of it to be a matrix.
-#' @param opt_crit optimality criterion: 0 is D-optimality and 1 is I-optimality
+#' @param beta numeric vector containing the parameters or numeric matrix containing draws of the prior distribution of the parameters.
+#' @param opt_crit optimality criterion: 0 or "D" is D-optimality and 1 or "I" is I-optimality
 #' @return Returns the value of the optimality criterion for this particular design and this beta vector
 #' @export
-mnl_get_opt_crit_value = function(X, beta, order, opt_crit = 0){
+mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D"){
+
+  # Recode opt_crit
+  if(opt_crit == "D") opt_crit = 0
+  if(opt_crit == "I") opt_crit = 1
 
   q = dim(X)[1]
+
+  # m = (q*q*q + 5*q)/6
+  if(order == 1){
+    m = q
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q
+    } else{
+      m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+    }
+  }
+
+  if(is.vector(beta)) if(m != length(beta)) stop("Incompatible size in beta and q: beta must be of length ", m)
+
+  if(is.matrix(beta)) if(m != ncol(beta)) stop("Incompatible size in beta and q: beta must have ", m,  "columns")
+
 
   if(opt_crit == 0){
     # "D-optimality"
@@ -51,9 +71,13 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = 0){
     W = mnl_create_moment_matrix(q, order)
   }
 
-  beta_mat = matrix(beta, byrow = T, nrow = 1)
+  if(is.matrix(beta)){
+    return(getOptCritValueMNL(X = X, beta = beta, opt_crit = opt_crit, verbose = 0, W = W, order = order))
+  } else{
+    beta_mat = matrix(beta, byrow = T, nrow = 1)
+  }
 
-  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W))
+
 }
 
 
