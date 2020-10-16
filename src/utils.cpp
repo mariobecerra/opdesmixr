@@ -540,7 +540,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
   // Does not do input checks because the R wrapper function does them.
 
   // Create a vector to store the values of the efficiency metric in each iteration.
-  arma::vec efficiency_value_per_iteration(max_it, fill::zeros);
+  arma::vec efficiency_value_per_iteration(max_it + 1, fill::zeros);
 
   // Create new matrix, otherwise it is modified in R too
   arma::mat X = X_orig;
@@ -556,17 +556,21 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
 
   double opt_crit_value_orig = getOptCritValueGaussian(X, order, q, opt_crit, W);
   double opt_crit_value_best = opt_crit_value_orig;
-  double opt_crit_value_aux = -1e308; // -Inf
+  double opt_crit_value_aux = 1e308; // +Inf
+
+  // Original efficiency criterion value
+  efficiency_value_per_iteration(0) = opt_crit_value_best;
 
   // Coordinate exchanges
   int it = 0;
   while(it < max_it){
-    efficiency_value_per_iteration(it) = opt_crit_value_best;
-    it = it + 1;
-    if(verbose >= 1) Rcout << "Iter: " << it << ", Optimality criterion value: " << opt_crit_value_best << std::endl;
+
+    if(verbose >= 1) Rcout << "Iter " << it << ". Optimality criterion value: " << opt_crit_value_best << std::endl;
 
     // If there was no improvement in this iteration
     if(abs(opt_crit_value_aux - opt_crit_value_best) < 1e-16) break;
+
+    it = it + 1;
 
     opt_crit_value_aux = opt_crit_value_best;
 
@@ -608,6 +612,8 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
 
     } // end for k
 
+    efficiency_value_per_iteration(it) = opt_crit_value_best;
+
     if(verbose >= 3) Rcout << "X =\n" << X << std::endl;
 
     if(verbose >= 2) Rcout << std::endl << std::endl;
@@ -631,7 +637,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
     _["opt_crit_value_orig"] = opt_crit_value_orig,
     _["opt_crit_value"] = opt_crit_value_best,
     _["n_iter"] = it,
-    _["efficiency_value_per_iteration"] = efficiency_value_per_iteration.head(it)
+    _["efficiency_value_per_iteration"] = efficiency_value_per_iteration.head(it + 1)
   );
 
 } // end function
@@ -1146,7 +1152,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(
   // Does not do input checks because the R wrapper function does them.
 
   // Create a vector to store the values of the efficiency metric in each iteration.
-  arma::vec efficiency_value_per_iteration(max_it, fill::zeros);
+  arma::vec efficiency_value_per_iteration(max_it + 1, fill::zeros);
 
   // Create new cube, otherwise it is modified in R too
   arma::cube X = X_orig;
@@ -1165,6 +1171,9 @@ Rcpp::List mixtureCoordinateExchangeMNL(
   double opt_crit_value_best = opt_crit_value_orig;
   double opt_crit_value_aux = 1e308; // +Inf
 
+  // Original efficiency criterion value
+  efficiency_value_per_iteration(0) = opt_crit_value_best;
+
   // Coordinate exchanges
   int it = 0;
   while(it < max_it){
@@ -1175,13 +1184,12 @@ Rcpp::List mixtureCoordinateExchangeMNL(
       Rcpp::checkUserInterrupt();
     }
 
-    efficiency_value_per_iteration(it) = opt_crit_value_best;
-
-    it = it + 1;
-    if(verbose >= 1) Rcout << "Iter: " << it << ", Optimality criterion value: " << opt_crit_value_best << std::endl;
+    if(verbose >= 1) Rcout << "Iter " << it << ". Optimality criterion value: " << opt_crit_value_best << std::endl;
 
     // If there was no improvement in this iteration
     if(abs(opt_crit_value_aux - opt_crit_value_best) < 1e-16) break;
+
+    it = it + 1;
 
     opt_crit_value_aux = opt_crit_value_best;
 
@@ -1225,6 +1233,8 @@ Rcpp::List mixtureCoordinateExchangeMNL(
 
     if(verbose >= 2) Rcout << std::endl << std::endl;
 
+    efficiency_value_per_iteration(it) = opt_crit_value_best;
+
   } // end while
 
 
@@ -1245,7 +1255,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(
     _["opt_crit_value_orig"] = opt_crit_value_orig,
     _["opt_crit_value"] = opt_crit_value_best,
     _["n_iter"] = it,
-    _["efficiency_value_per_iteration"] = efficiency_value_per_iteration.head(it)
+    _["efficiency_value_per_iteration"] = efficiency_value_per_iteration.head(it + 1)
   );
 
 } // end function
