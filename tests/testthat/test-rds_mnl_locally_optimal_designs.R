@@ -1,7 +1,7 @@
 library(testthat)
 library(opdesmixr)
 
-out_folder = "tests/testthat/rds_mnl_locally_optimal_designs/"
+out_folder = here::here("tests/testthat/rds_mnl_locally_optimal_designs/")
 
 seed = 10
 n_random_starts = 4
@@ -50,12 +50,12 @@ test_that("mnl_locally_optimal",{
 
           expect_equal_to_reference(
             object = res_alg$opt_crit_value_orig,
-            file = paste0(out_folder, base_filename, "opt_crit_value_orig.rds")
+            file = paste0(out_folder, base_filename, "_opt_crit_value_orig.rds")
           )
 
           expect_equal_to_reference(
             object = res_alg$opt_crit_value,
-            file = paste0(out_folder, base_filename, "opt_crit_value_final.rds")
+            file = paste0(out_folder, base_filename, "_opt_crit_value_final.rds")
           )
 
           expect_equal_to_reference(

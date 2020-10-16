@@ -7,7 +7,7 @@ library(opdesmixr)
 # Should have done it programatically but I didn't know how to do it at the time.
 
 
-out_folder = "tests/testthat/rds_gaussian_designs/"
+out_folder = here::here("tests/testthat/rds_gaussian_designs/")
 
 # D-optimality, 30 runs, 3 ingredients
 
