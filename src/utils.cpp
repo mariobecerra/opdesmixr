@@ -752,7 +752,7 @@ arma::vec getUsMNL(arma::cube& X, arma::vec& beta, int s, arma::mat& Xs){
   int m = Xs.n_cols + 1; // m = (q^3 + 5*q)/6
 
   // Check input dimensions
-  if(m != beta.n_elem) stop("Incompatible q in beta and X");
+  // if(m != beta.n_elem) stop("Incompatible q in beta and X");
 
   // Create auxiliary vector
   arma::vec beta2(m-1);
