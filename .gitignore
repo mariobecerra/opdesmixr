@@ -44,3 +44,6 @@ vignettes/*.pdf
 inst/doc
 doc
 Meta
+
+
+temporary_scripts/*
