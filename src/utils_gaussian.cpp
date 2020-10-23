@@ -43,47 +43,39 @@ arma::mat getScheffeGaussianOrder2(arma::mat& X){
 
 
 
+
 arma::mat getScheffeGaussianOrder3(arma::mat& X){
   int q = X.n_cols;
   int n = X.n_rows;
 
   // This probably slows down the whole thing
-  arma::mat X_ord_2 = getScheffeGaussianOrder2(X);
+  // arma::mat X_ord_2 = getScheffeGaussianOrder2(X);
 
-  int n_col_X_ord_2 = X_ord_2.n_cols;
-
-  int n_col_X_m = X_ord_2.n_cols;
-  // compute number of columns in X_m
-  // There's a formula to find this number, but I'll work it out later.
-  for(int i = 0; i < (q-2); i++){
-    for(int j = (i+1); j < (q-1); j++){
-      for(int k = (j+1); k < q; k++){
-        n_col_X_m++;
-      }
-    }
-  }
+  int n_col_X_ord_2 = q*(q-1)/2 + q;
+  int n_col_X_m = (q*q*q + 5*q)/6;
 
   arma::mat X_m(n, n_col_X_m);
 
-  // Copy X_ord_2 matrix into first q columns of X_m
+  // Copy X matrix into first q columns of X_m (first order part)
   for(int i = 0; i < n; i++){
-    for(int j = 0; j < n_col_X_ord_2; j++){
-      X_m(i,j) = X_ord_2(i,j);
+    for(int j = 0; j < q; j++){
+      X_m(i,j) = X(i,j);
     }
   }
 
-  // // Fill rest of matrix column-wise
-  int l = q - 1;
+  // Fill the part of the second order
+  int k = q-1;
   for(int i = 0; i < (q-1); i++){
     for(int j = i+1; j < q; j++){
-      l++;
+      k = k+1;
       for(int row = 0; row < n; row++){
-        X_m(row,l) = X(row,i)*X(row,j);
+        X_m(row,k) = X(row,i)*X(row,j);
       }
     }
   }
 
-  l = X_ord_2.n_cols - 1;
+  // Fill the part of the third order
+  int l = n_col_X_ord_2 - 1;
   for(int i = 0; i < (q - 2); i++){
     for(int j = i + 1; j < (q - 1); j++){
       for(int k = j + 1; k < q; k++){
@@ -98,7 +90,6 @@ arma::mat getScheffeGaussianOrder3(arma::mat& X){
 
   return X_m;
 }
-
 
 
 
