@@ -359,7 +359,7 @@ arma::cube changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, 
   arma::cube Y = X;
 
   // Number of ingredients
-  int q = Y.n_rows;
+  double q = Y.n_rows;
 
   // Create a vector with the ingredients of the j-th alternative of the s-th choice set.
   arma::vec x = X(arma::span::all, arma::span(j), arma::span(s));
@@ -375,15 +375,25 @@ arma::cube changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, 
   for(int k_aux = 0; k_aux < setDiff.n_elem; k_aux++){
     k = setDiff(k_aux);
 
-    if(abs(1 - x(i)) < 1e-16) {
-      // In case x(i) is numerically 1, it will return a numeric zero such that the vector sums up to 1
-      // Almost the same as doing result = 0;
-      result = (1 - x(i))/(q-1);
-    } else{
-      // Other case
+    if(abs(1 - x(i)) < 1e-16) { // In case x(i) is numerically 1
+      if(abs(1 - x(i)) < 1e-16) { // In case x(i) is numerically 1
+        if(abs(delta + 1) < 1e-16){
+          // If delta is numerically -1, it means that the change is from 1 to 0.
+          // Then, the rest of the ingredients must be 1/(q-1)
+          result = 1.0/(q - 1.0);
+        } else{
+          // If delta is not -1 and x(i) is numerically 1, then
+          // it means that the rest of the ingredients were 0 and it should remain that way.
+          // Almost the same as doing result = 0, but this is safer numerically.
+          result = (1.0 - x(i))/(q - 1.0);
+        }
+      } else{ // In case x(i) is not numerically 1
+        // Other case
+        result = x(k) - delta*x(k)/(1 - x(i));
+      }
+    } else{ // In case x(i) is not numerically 1
       result = x(k) - delta*x(k)/(1 - x(i));
     }
-
     x(k) = result;
   }
 
