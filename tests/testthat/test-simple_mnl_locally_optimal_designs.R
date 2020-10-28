@@ -83,7 +83,7 @@ test_that("mnl_local_D_q3_J2_S5_o1_seed10",{
 
   expect_equal(
     mnl_local_D_q3_J2_S5_o1_beta1_seed10_brent$X,# %>% as.numeric() %>% round(15) %>% paste(collapse = ", ")
-    array(c(0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0),
+    array(c(0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0),
           dim = c(3, 2, 5))
   )
 
