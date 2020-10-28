@@ -257,10 +257,10 @@ double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arm
 
 
 
-arma::mat findBestCoxDirGaussianDiscrete(
-    arma::mat& cox_dir, arma::mat& X_in, int k, int order, double opt_crit_value_best,
+void findBestCoxDirGaussianDiscrete( // Void but modifies X
+    arma::mat& cox_dir, arma::mat& X, int k, int order, double opt_crit_value_best,
     int opt_crit, arma::mat& W) {
-  arma::mat X = X_in;
+
   int n_col_X = X.n_cols;
   arma::vec x_k(n_col_X);
 
@@ -268,12 +268,10 @@ arma::mat findBestCoxDirGaussianDiscrete(
   int n_cox_points = cox_dir.n_rows;
   for(int j = 0; j < n_cox_points; j++){
 
-    // In Rcpp: x_k = X(k-1,_);
     for(int elem = 0; elem < n_col_X; elem++){
       x_k(elem) = X(k-1, elem);
     }
 
-    // In Rcpp: X(k-1,_) = cox_dir(j, _);
     for(int elem = 0; elem < n_col_X; elem++){
       X(k-1, elem) = cox_dir(j, elem);
     }
@@ -293,8 +291,6 @@ arma::mat findBestCoxDirGaussianDiscrete(
 
     }
   }
-
-  return X;
 }
 
 
@@ -302,21 +298,14 @@ arma::mat findBestCoxDirGaussianDiscrete(
 
 
 
-
-arma::mat changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, int j){
-  // Returns a new design matrix Y changing the j-th ingredient in i-th observation is changed to theta
-  // in the original design matrix X.
+// [[Rcpp::export]]
+void changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, int j){ // Void but modifies X
+  // Modifies matrix X changing the j-th ingredient in i-th observation to theta.
   // theta must be between 0 and 1 because it's an ingredient proportion.
   // j and i are 0-indexed.
 
 
-  // Create new matrix Y that is identical to the one pointed by X.
-  // Note: This is the easiest way to do it because we have to modify a row in this matrix.
-  // A more computationally effective way would be to only store the new modified vector since
-  // we don't need a copy of the whole matrix. But to do that I would have to either modify some
-  // existing functions, or create some new ones, or both. IDK if the gain in performance is worth it.
-  arma::mat Y = X;
-  double q = Y.n_cols;
+  double q = X.n_cols;
 
   // Create a vector with the i-th row of the design matrix X
   arma::vec x_row(q);
@@ -352,12 +341,11 @@ arma::mat changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, i
 
   x_row(j) = theta;
 
-  // replace x_row row with the recomputed proportions according to Cox direction
-  for(int col = 0; col < q; col++){
-    Y(i, col) = x_row(col);
-  }
 
-  return(Y);
+  // Replace the design X with the recomputed proportions according to Cox direction
+  for(int col = 0; col < q; col++){
+    X(i, col) = x_row(col);
+  }
 
 }
 
@@ -370,33 +358,44 @@ double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int i, int j, in
   // Computes efficiency criterion of a design matrix X but where the j-th ingredient in the
   // i-th observation is changed to theta.
   // Since theta is an ingredient proportion, it must be between 0 and 1.
-  // INdices j and i are 0-indexed.
+  // Indices j and i are 0-indexed.
   // We want to minimize this.
 
 
-  arma::mat Y = changeIngredientDesignCoxGaussian(theta, X, i, j);
-  int q = Y.n_cols;
+  int q = X.n_cols;
 
-  // Return utility function value. We want to minimize this.
-  return(getOptCritValueGaussian(Y, order, q, opt_crit, W));
+  // Temporarily store the i-th row in a vector
+  arma::vec x_row(q);
+  for(int col = 0; col < q; col++){
+    x_row(col) = X(i, col);
+  }
+
+  changeIngredientDesignCoxGaussian(theta, X, i, j);
+
+  // Utility function value. We want to minimize this.
+  double utility_funct_value = getOptCritValueGaussian(X, order, q, opt_crit, W);
+
+  // return X to its original value
+  for(int col = 0; col < q; col++){
+    X(i, col) = x_row(col);
+  }
+
+  return(utility_funct_value);
 }
 
 
 
-// Help from:
-// https://stackoverflow.com/questions/34994475/rcpp-function-to-construct-a-function
-// https://codereview.stackexchange.com/questions/103762/implementation-of-brents-algorithm-to-find-roots-of-a-polynomial
 
-// Thanks to Norma and Manuel who helped me out with lambda functions in C++:
-// https://github.com/NormaVTH
-// https://github.com/manuelalcantara52
-
-
-
-
-arma::mat findBestCoxDirGaussianBrent(
+void findBestCoxDirGaussianBrent( // void but modifies X
     arma::mat& X, int i, int j, int order, int opt_crit, arma::mat& W,
     double lower = 0, double upper = 1, double tol = 0.0001) {
+  // Thanks to Norma and Manuel who helped me out with lambda functions in C++:
+  // https://github.com/NormaVTH
+  // https://github.com/manuelalcantara52
+  // Additional help from:
+  // https://stackoverflow.com/questions/34994475/rcpp-function-to-construct-a-function
+  // https://codereview.stackexchange.com/questions/103762/implementation-of-brents-algorithm-to-find-roots-of-a-polynomial
+
 
   // The optimality criterion value in the design that is being used as input
   double f_original = getOptCritValueGaussian(X, order, X.n_cols, opt_crit, W);
@@ -407,6 +406,7 @@ arma::mat findBestCoxDirGaussianBrent(
 
   double theta_brent, theta_star, f_star;
   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
+
   // Check end points
   double f_lower = efficiencyCoxScheffeGaussian(lower, X, i, j, order, opt_crit, W);
   double f_upper = efficiencyCoxScheffeGaussian(upper, X, i, j, order, opt_crit, W);
@@ -423,12 +423,12 @@ arma::mat findBestCoxDirGaussianBrent(
     }
   }
 
-
-  // If Brent's method didn't do any improvement, then return the original design
+  // If Brent's method didn't do any improvement, leave the original design as it is
   if(f_original <= f_star){
-    return(X);
+    // changeIngredientDesignCoxGaussian(x_original, X, i, j);
   } else{
-    return(changeIngredientDesignCoxGaussian(theta_star, X, i, j));
+    // return(changeIngredientDesignCoxGaussian(theta_star, X, i, j));
+    changeIngredientDesignCoxGaussian(theta_star, X, i, j);
   }
 
 }
@@ -506,7 +506,7 @@ void findBestPVGaussianBrent( // void but modifies Y
 
 // [[Rcpp::export]]
 Rcpp::List mixtureCoordinateExchangeGaussian(
-    arma::mat X_orig, int order, int max_it, int verbose, int opt_crit,
+    const arma::mat X_orig, int order, int max_it, int verbose, int opt_crit,
     arma::mat W, int opt_method, double lower, double upper, double tol, int n_cox_points){
   // Performs the coordinate exchange algorithm for a Scheffé model with Gaussian errors.
   int m = 0;
@@ -531,11 +531,11 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
   // Create a vector to store the values of the efficiency metric in each iteration.
   arma::vec efficiency_value_per_iteration(max_it + 1, fill::zeros);
 
-  // Create new matrix, otherwise it is modified in R too
-  arma::mat X = X_orig;
+  int n_runs = X_orig.n_rows;
+  int q = X_orig.n_cols;
 
-  int n_runs = X.n_rows;
-  int q = X.n_cols;
+  // Create new matrix.
+  arma::mat X = X_orig;
 
   // Create matrix with appropriate dimensions for Cox direction in each iteration
   arma::mat cox_dir(n_cox_points, q);
@@ -583,11 +583,11 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
         }
 
         if(opt_method == 0){
-          X = findBestCoxDirGaussianBrent(X, run-1, ing, order, opt_crit, W, lower, upper, tol);
+          findBestCoxDirGaussianBrent(X, run-1, ing, order, opt_crit, W, lower, upper, tol);
 
         } else{
           cox_dir = computeCoxDirection(x, ing+1, n_cox_points, verbose);
-          X = findBestCoxDirGaussianDiscrete(cox_dir, X, run, order, opt_crit_value_best, opt_crit, W);
+          findBestCoxDirGaussianDiscrete(cox_dir, X, run, order, opt_crit_value_best, opt_crit, W);
         }
 
 
@@ -601,7 +601,9 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
 
       } // end for ing
 
-      // Process variables. To do.
+
+
+      // Process variables
       if(m > 0){
         arma::mat Y = X;
         for(int pv = q; pv < m + q; pv++){
@@ -643,5 +645,3 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
   );
 
 } // end function
-
-

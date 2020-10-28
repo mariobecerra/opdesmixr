@@ -274,9 +274,10 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
 
 
 // [[Rcpp::export]]
-arma::cube findBestCoxDirMNLDiscrete(arma::mat& cox_dir, arma::cube& X_in, arma::mat& beta_mat,
-                                     int k, int s, double opt_crit_value_best,
-                                     int verbose, int opt_crit, arma::mat& W, int order) {
+void findBestCoxDirMNLDiscrete( // void but modifies X
+    arma::mat& cox_dir, arma::cube& X, arma::mat& beta_mat,
+    int k, int s, double opt_crit_value_best,
+    int verbose, int opt_crit, arma::mat& W, int order) {
   // Function that returns the design that minimizes the optimality criterion value.
   // Returns a cube of dimension (q, J, S) with a design that minimizes the value of the
   //         optimality criterion value.
@@ -294,9 +295,6 @@ arma::cube findBestCoxDirMNLDiscrete(arma::mat& cox_dir, arma::cube& X_in, arma:
   //     opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
   //     W: moment matrix
   //     order: order of Scheffe model
-
-  // // Create new cube, otherwise it is modified in R too
-  arma::cube X = X_in;
 
   int q = X.n_rows;
 
@@ -340,26 +338,21 @@ arma::cube findBestCoxDirMNLDiscrete(arma::mat& cox_dir, arma::cube& X_in, arma:
       }
     }
   }
-  return X;
 }
 
 
 
 
+
 // [[Rcpp::export]]
-arma::cube changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, int s){
-  // Returns a new design cube Y changing the i-th ingredient in the j-th
-  // alternative in s-th choice set is changed to theta in the original design cube X.
+void changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, int s){ // Void but modifies X
+  // Modifies cube X changing the i-th ingredient in the j-th alternative in s-th choice set to theta.
   // Since theta is an ingredient proportion, it must be between 0 and 1.
   // Indices i, j and k are 0-indexed.
 
 
-  // Create new cube Y that is identical to the one pointed by X.
-  // Note: This may not be the most computationally effective way, but ut's the easiest at the moment.
-  arma::cube Y = X;
-
   // Number of ingredients
-  double q = Y.n_rows;
+  double q = X.n_rows;
 
   // Create a vector with the ingredients of the j-th alternative of the s-th choice set.
   arma::vec x = X(arma::span::all, arma::span(j), arma::span(s));
@@ -399,12 +392,10 @@ arma::cube changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, 
 
   x(i) = theta;
 
-  // Replace the design Y with the recomputed proportions according to Cox direction
+  // Replace the design X with the recomputed proportions according to Cox direction
   for(int l = 0; l < q; l++){
-    Y(l, j, s) = x(l);
+    X(l, j, s) = x(l);
   }
-
-  return(Y);
 
 }
 
@@ -421,16 +412,31 @@ double efficiencyCoxScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
   // Indices i, j and k are 0-indexed.
   // We want to minimize this.
 
-  arma::cube Y = changeIngredientDesignMNL(theta, X, i, j, s);
+  double q = X.n_rows;
 
+  // Temporarily store the corresponding row in a vector
+  arma::vec x_row(q);
+  for(int l = 0; l < q; l++){
+    x_row(l) = X(l, j, s);
+  }
 
-  // Return utility function value. We want to minimize this.
-  return(getOptCritValueMNL(Y, beta_mat, 0, opt_crit, W, order));
+  changeIngredientDesignMNL(theta, X, i, j, s);
+
+  // Utility function value. We want to minimize this.
+  double utility_funct_value = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order);
+
+  // return X to its original value
+  for(int l = 0; l < q; l++){
+    X(l, j, s) = x_row(l);
+  }
+
+  return(utility_funct_value);
+
 }
 
 
 
-arma::cube findBestCoxDirMNLBrent(
+void findBestCoxDirMNLBrent( // void but modifies X
     arma::cube& X, arma::mat& beta_mat, int i, int j, int s, int opt_crit, int order, arma::mat& W,
     double lower = 0, double upper = 1, double tol = 0.0001) {
   // Finds the best point in the Cox direction using Brent's optimization method
@@ -467,11 +473,11 @@ arma::cube findBestCoxDirMNLBrent(
     }
   }
 
-  // If Brent's method didn't do any improvement, then return the original design
+  // If Brent's method didn't do any improvement, leave the original design as it is
   if(f_original <= f_star){
-    return(X);
+
   } else{
-    return(changeIngredientDesignMNL(theta_star, X, i, j, s));
+    changeIngredientDesignMNL(theta_star, X, i, j, s);
   }
 
 }
@@ -569,10 +575,10 @@ Rcpp::List mixtureCoordinateExchangeMNL(
           }
 
           if(opt_method == 0){
-            X = findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, order, W, lower, upper, tol);
+            findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, order, W, lower, upper, tol);
           } else{
             cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-            X = findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order);
+            findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order);
           }
 
           opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order);
