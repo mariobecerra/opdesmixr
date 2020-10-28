@@ -5,24 +5,24 @@ computeCoxDirection <- function(x, comp, n_points, verbose) {
     .Call(`_opdesmixr_computeCoxDirection`, x, comp, n_points, verbose)
 }
 
-getScheffeGaussian <- function(X, order) {
-    .Call(`_opdesmixr_getScheffeGaussian`, X, order)
+getScheffeGaussian <- function(X, order, m = 0L) {
+    .Call(`_opdesmixr_getScheffeGaussian`, X, order, m)
 }
 
-getDCritValueGaussian <- function(X, order) {
-    .Call(`_opdesmixr_getDCritValueGaussian`, X, order)
+getDCritValueGaussian <- function(X, order, m = 0L) {
+    .Call(`_opdesmixr_getDCritValueGaussian`, X, order, m)
 }
 
-getICritValueGaussian <- function(X, order, q, W) {
-    .Call(`_opdesmixr_getICritValueGaussian`, X, order, q, W)
+getICritValueGaussian <- function(X, order, q, W, m = 0L) {
+    .Call(`_opdesmixr_getICritValueGaussian`, X, order, q, W, m)
 }
 
-getOptCritValueGaussian <- function(X, order, q, opt_crit, W) {
-    .Call(`_opdesmixr_getOptCritValueGaussian`, X, order, q, opt_crit, W)
+getOptCritValueGaussian <- function(X, order, q, opt_crit, W, m = 0L) {
+    .Call(`_opdesmixr_getOptCritValueGaussian`, X, order, q, opt_crit, W, m)
 }
 
-changeIngredientDesignGaussian <- function(theta, X, i, j) {
-    .Call(`_opdesmixr_changeIngredientDesignGaussian`, theta, X, i, j)
+changeIngredientDesignCoxGaussian <- function(theta, X, i, j) {
+    invisible(.Call(`_opdesmixr_changeIngredientDesignCoxGaussian`, theta, X, i, j))
 }
 
 efficiencyCoxScheffeGaussian <- function(theta, X, i, j, order, opt_crit, W) {
@@ -53,12 +53,12 @@ getOptCritValueMNL <- function(X, beta_mat, verbose, opt_crit, W, order) {
     .Call(`_opdesmixr_getOptCritValueMNL`, X, beta_mat, verbose, opt_crit, W, order)
 }
 
-findBestCoxDirMNLDiscrete <- function(cox_dir, X_in, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order) {
-    .Call(`_opdesmixr_findBestCoxDirMNLDiscrete`, cox_dir, X_in, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order)
+findBestCoxDirMNLDiscrete <- function(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order) {
+    invisible(.Call(`_opdesmixr_findBestCoxDirMNLDiscrete`, cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order))
 }
 
 changeIngredientDesignMNL <- function(theta, X, i, j, s) {
-    .Call(`_opdesmixr_changeIngredientDesignMNL`, theta, X, i, j, s)
+    invisible(.Call(`_opdesmixr_changeIngredientDesignMNL`, theta, X, i, j, s))
 }
 
 efficiencyCoxScheffeMNL <- function(theta, X, beta_mat, i, j, s, opt_crit, W, order) {

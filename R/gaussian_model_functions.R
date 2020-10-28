@@ -1,16 +1,42 @@
 
 #' TODO: write doc
 #' @export
-gaussian_create_random_initial_design = function(n_runs, q, seed = NULL){
-  X = matrix(rep(NA_real_, n_runs*q), nrow = n_runs)
+gaussian_create_random_initial_design = function(n_runs, q, m = 0, pv_bounds = NULL, seed = NULL){
+  # gaussian_create_random_initial_design(10, 3, 2, seed = 3)
+  # gaussian_create_random_initial_design(10, 3, 2, pv_bounds = list(c(-1, 0), c(-1, 0)), 3)
 
   if(!is.null(seed)) set.seed(seed)
+
+  # Mixture variables
+  X = matrix(rep(NA_real_, n_runs*q), nrow = n_runs)
 
   for(i in 1:nrow(X)){
     rands = runif(q)
 
     # rows in X sum to 1:
     X[i,] = rands/sum(rands)
+  }
+
+  # Process variables
+  if(m > 0){
+    if(is.null(pv_bounds)){
+      warning("Number of process variables (m = ", m, ") provided but no information about the bounds. Using interval (0, 1) for all process variables.")
+      pv_bounds = lapply(1:m, function(.) return(c(0, 1)))
+    } else{
+      stopifnot(is.list(pv_bounds))
+      for(k in 1:length(pv_bounds)){
+        stopifnot(length(pv_bounds[[k]]) == 2)
+      }
+      stopifnot(length(pv_bounds) == m)
+    }
+
+    # Create matrix and randomly fill them
+    X_pv = matrix(rep(NA_real_, n_runs*m), ncol = m)
+    for(k in 1:m){
+      X_pv[,k] = runif(n = n_runs, min = pv_bounds[[k]][1], max = pv_bounds[[k]][2])
+    }
+    X = cbind(X, X_pv)
+
   }
 
   return(X)
