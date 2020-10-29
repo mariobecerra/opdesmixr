@@ -216,10 +216,10 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
   // Accumulator
   double acc = 0.0;
 
-  // Flag in case there's an error in the Cholesky decomposition
-  bool error_flag = false;
-
   vec beta = zeros(m-1);
+
+  arma::mat L; // matrix for Cholesky decomposition
+  bool chol_success; // flag for success of the decomposition
 
   // Iterate over all prior draws
   for(int i = 0; i < n_sims; i++){
@@ -227,11 +227,10 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
     I = getInformationMatrixMNL(X, beta, order);
     if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
 
+    // If the decomposition fails chol(R,X) resets R and returns a bool set to false (exception is not thrown) (http://arma.sourceforge.net/docs.html#chol)
+    chol_success = chol(L, I);
 
-    arma::mat L;
-    try{
-      L = chol(I);
-
+    if(chol_success){
       if(opt_crit == 0){
         // D-optimality
         acc = acc - 2*sum(log(L.diag()));
@@ -241,9 +240,7 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
         arma::mat C = solve(trimatu(L), A);
         acc = acc + log(trace(C));
       }
-    }
-
-    catch(const std::runtime_error& e){
+    } else {
       // If Cholesky decomposition fails, it is likely because information matrix
       // was not numerically positive definite.
       // If this happens, it is probably because a numerical inestability.
@@ -251,15 +248,14 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
       // way the algorithm does nothing in this iteration because the algorithm thinks
       // there was no improvement when swapping the proportions.
 
-      // If Cholesky decomposition failed, returns a flag to return a final value of 100
-      error_flag = true;
-      Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit_val = ", eff_crit_val);
+      // If Cholesky decomposition failed, exits and returns a final value of 1000
+      // Rcpp::warning("Error in Cholesky decomposition with message: '%c'.\n\tReturning eff_crit = 1000.");
       break;
     }
-  }
+  } // end for
 
-  if(error_flag){
-    eff_crit_val = 100;
+  if(!chol_success){
+    eff_crit_val = 1000;
   } else{
     eff_crit_val = acc/n_sims;
   }
@@ -473,13 +469,11 @@ void findBestCoxDirMNLBrent( // void but modifies X
     }
   }
 
-  // If Brent's method didn't do any improvement, leave the original design as it is
-  if(f_original <= f_star){
-
-  } else{
+  // If Brent's method didn't do any improvement, leave the original design as it is.
+  // If it did, replace the design with theta star
+  if(f_original > f_star){
     changeIngredientDesignMNL(theta_star, X, i, j, s);
   }
-
 }
 
 
