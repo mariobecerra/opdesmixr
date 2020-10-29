@@ -1,7 +1,7 @@
 
 #' TODO: write doc
 #' @export
-gaussian_create_random_initial_design = function(n_runs, q, m = 0, pv_bounds = NULL, seed = NULL){
+gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds = NULL, seed = NULL){
   # gaussian_create_random_initial_design(10, 3, 2, seed = 3)
   # gaussian_create_random_initial_design(10, 3, 2, pv_bounds = list(c(-1, 0), c(-1, 0)), 3)
 
@@ -18,21 +18,21 @@ gaussian_create_random_initial_design = function(n_runs, q, m = 0, pv_bounds = N
   }
 
   # Process variables
-  if(m > 0){
+  if(n_pv > 0){
     if(is.null(pv_bounds)){
-      warning("Number of process variables (m = ", m, ") provided but no information about the bounds. Using interval (0, 1) for all process variables.")
-      pv_bounds = lapply(1:m, function(.) return(c(0, 1)))
+      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval (0, 1) for all process variables.")
+      pv_bounds = lapply(1:n_pv, function(.) return(c(0, 1)))
     } else{
       stopifnot(is.list(pv_bounds))
       for(k in 1:length(pv_bounds)){
         stopifnot(length(pv_bounds[[k]]) == 2)
       }
-      stopifnot(length(pv_bounds) == m)
+      stopifnot(length(pv_bounds) == n_pv)
     }
 
     # Create matrix and randomly fill them
-    X_pv = matrix(rep(NA_real_, n_runs*m), ncol = m)
-    for(k in 1:m){
+    X_pv = matrix(rep(NA_real_, n_runs*n_pv), ncol = n_pv)
+    for(k in 1:n_pv){
       X_pv[,k] = runif(n = n_runs, min = pv_bounds[[k]][1], max = pv_bounds[[k]][2])
     }
     X = cbind(X, X_pv)
@@ -93,15 +93,18 @@ gaussian_mixture_coord_exch = function(
   verbose = 1,
   opt_crit = 0,
   seed = NULL,
-  n_cores = 1){
+  n_cores = 1,
+  n_pv = 0,
+  pv_bounds = NULL
+  ){
 
 
 
   #############################################
   ## Check that the order is okay
   #############################################
-  if(order != 1 & order != 2 & order != 3){
-    stop("Inadmissible value for order. Must be 1, 2 or 3")
+  if(order != 1 & order != 2 & order != 3 & order != 4){
+    stop("Inadmissible value for order. Must be 1, 2, 3 or 4")
   }
 
 
@@ -149,18 +152,18 @@ gaussian_mixture_coord_exch = function(
     seeds_designs = sample.int(1e9, n_random_starts)
 
     designs = lapply(seeds_designs, function(x){
-      des = gaussian_create_random_initial_design(n_runs, q, seed = x)
+      des = gaussian_create_random_initial_design(n_runs = n_runs, q = q, seed = x, n_pv = n_pv, pv_bounds = pv_bounds)
       return(des)
     })
   } else{
     n_runs = nrow(X)
     q = ncol(X)
 
-    # Check that rows in X sum to 1
-    row_sums = apply(X, 1, sum)
+    # Check that rows in first q columns of X sum to 1
+    row_sums = apply(X[, 1:q], 1, sum)
 
     if(sum(abs(row_sums - rep(1, n_runs)) < 1e-10) != n_runs){
-      stop("Rows in X must sum 1")
+      stop("Rows in first q columns of X must sum up to 1.")
     }
 
     designs = list(X)
@@ -209,7 +212,9 @@ gaussian_mixture_coord_exch = function(
         lower = 0,
         upper = 1,
         tol = tol,
-        n_cox_points = n_cox_points),
+        n_cox_points = n_cox_points,
+        n_pv = n_pv
+        ),
       silent = T)
 
 

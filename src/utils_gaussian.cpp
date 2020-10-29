@@ -94,7 +94,7 @@ arma::mat getScheffeGaussianOrder3(arma::mat& X){
 
 
 
-arma::mat getScheffeGaussianPV22(arma::mat& X, int m = 0){
+arma::mat getScheffeGaussianPV22(arma::mat& X, int n_pv = 0){
   // m = number of process variables
   // X = design matrix
 
@@ -102,9 +102,9 @@ arma::mat getScheffeGaussianPV22(arma::mat& X, int m = 0){
   // Second order Scheffé model and quadratic effect of process variables (hence the name PV22)
 
 
-  int q = X.n_cols - m; // q = Number of ingredient proportions
+  int q = X.n_cols - n_pv; // q = Number of ingredient proportions
   int n = X.n_rows;
-  int n_col_X_m = q + (q-1)*q/2 + q*m + m*(m-1)/2 + m;
+  int n_col_X_m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv;
   arma::mat X_m(n, n_col_X_m);
 
   // Copy X matrix into first q columns of X_m
@@ -126,7 +126,7 @@ arma::mat getScheffeGaussianPV22(arma::mat& X, int m = 0){
   }
 
   // Third part of the sum
-  for(int i = 0; i < m; i++){
+  for(int i = 0; i < n_pv; i++){
     for(int k = 0; k < q; k++){
       count++;
       for(int row = 0; row < n; row++){
@@ -136,8 +136,8 @@ arma::mat getScheffeGaussianPV22(arma::mat& X, int m = 0){
   }
 
   // Fourth part of the sum
-  for(int i = 0; i < m-1; i++){
-    for(int j = i+1; j < m; j++){
+  for(int i = 0; i < n_pv-1; i++){
+    for(int j = i+1; j < n_pv; j++){
       count++;
       for(int row = 0; row < n; row++){
         X_m(row, count) = X(row, i+q)*X(row, j+q); //z_i*z_j
@@ -146,7 +146,7 @@ arma::mat getScheffeGaussianPV22(arma::mat& X, int m = 0){
   }
 
   // Fifth part of the sum
-  for(int i = 0; i < m; i++){
+  for(int i = 0; i < n_pv; i++){
     count++;
     for(int row = 0; row < n; row++){
       X_m(row, count) = X(row, i+q)*X(row, i+q); //z_i^2
@@ -160,98 +160,62 @@ arma::mat getScheffeGaussianPV22(arma::mat& X, int m = 0){
 
 
 // [[Rcpp::export]]
-arma::mat getScheffeGaussian(arma::mat& X, int order, int m = 0){
+arma::mat getScheffeGaussian(arma::mat& X, int order, int n_pv = 0){
 
   if(order == 1) return(X);
   if(order == 2) return(getScheffeGaussianOrder2(X));
   if(order == 3) return(getScheffeGaussianOrder3(X));
-  if(order == 4) return(getScheffeGaussianPV22(X, m));
+  if(order == 4) return(getScheffeGaussianPV22(X, n_pv));
   else stop("Error.");
 
 }
 
 
 
-// [[Rcpp::export]]
-double getDCritValueGaussian(arma::mat& X, int order, int m = 0){
-  arma::mat X_m = getScheffeGaussian(X, order, m);
-  arma::mat X_mT = trans(X_m);
-  arma::mat I = X_mT * X_m; // Information matrix
-  double eff_crit; // We want to minimize this
-
-  // Attempt to do a Cholesky decomposition on the information matrix
-  arma::mat L;
-  double log_det_I;
-  try{
-    L = chol(I);
-    // Compute the determinant of information matrix using the decomposition
-    log_det_I = 2*sum(log(L.diag()));
-    eff_crit = -log_det_I/X_m.n_cols + log(X_m.n_rows);
-  }
-  catch(const std::runtime_error& e){
-    // If Cholesky decomposition fails, it is likely because information matrix
-    // was not numerically positive definite.
-    // If this happens, it is probably because a numerical inestability.
-    // The function then returns the efficiency value as a big positive number, this
-    // way the algorithm does nothing in this iteration because the algorithm thinks
-    // there was no improvement when swapping the proportions.
-    eff_crit = 100;
-    Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
-  }
-
-  return eff_crit;
-}
-
-
-
 
 // [[Rcpp::export]]
-double getICritValueGaussian(arma::mat& X, int order, int q, arma::mat& W, int m = 0){
-
-  // if(order != 3) stop("Only special cubic models are allowed (i.e., order = 3).");
-
-  arma::mat X_m = getScheffeGaussian(X, order, m);
-  arma::mat X_mT = trans(X_m);
-  arma::mat I = X_mT * X_m; // Information matrix
-
-  double eff_crit; // We want to minimize this
-
-
-  // Attempt to do a Cholesky decomposition on the information matrix
-  arma::mat L;
-  try{
-    L = chol(I);
-
-    arma::mat A = solve(trimatl(L.t()), W);
-    arma::mat C = solve(trimatu(L), A);
-    eff_crit = trace(C);
-  }
-  catch(const std::runtime_error& e){
-    // If Cholesky decomposition fails, it is likely because information matrix
-    // was not numerically positive definite.
-    // If this happens, it is probably because a numerical inestability.
-    // The function then returns the efficiency value as a big positive number, this
-    // way the algorithm does nothing in this iteration because the algorithm thinks
-    // there was no improvement when swapping the proportions.
-    eff_crit = 100;
-    Rcpp::warning("Error in Cholesky decomposition with message: ", e.what(), "\nReturning eff_crit = ", eff_crit);
-  }
-
-  return eff_crit;
-}
-
-
-
-
-
-// [[Rcpp::export]]
-double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arma::mat& W, int m = 0){
+double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arma::mat& W, int n_pv = 0){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
-  if(opt_crit == 0){
-    return(getDCritValueGaussian(X, order, m));
-  } else{
-    return(getICritValueGaussian(X, order, q, W, m));
+
+  arma::mat X_m = getScheffeGaussian(X, order, n_pv);
+  arma::mat X_mT = trans(X_m);
+  arma::mat I = X_mT * X_m; // Information matrix
+
+  double eff_crit; // We want to minimize this
+
+  arma::mat L; // matrix for Cholesky decomposition
+  bool chol_success; // flag for success of the decomposition
+
+  // If the decomposition fails chol(R,X) resets R and returns a bool set to false (exception is not thrown) (http://arma.sourceforge.net/docs.html#chol)
+  chol_success = chol(L, I);
+
+  if(chol_success){
+    // If Cholesky decomposition doesn't fail, compute the efficiency crriterion values.
+    if(opt_crit == 0){
+      // D-optimality
+      double log_det_I = 2*sum(log(L.diag())); // Compute the log-determinant of information matrix using the decomposition
+      eff_crit = -log_det_I/X_m.n_cols + log(X_m.n_rows);
+    } else{
+      // I-optimality
+      arma::mat A = solve(trimatl(L.t()), W);
+      arma::mat C = solve(trimatu(L), A);
+      eff_crit = trace(C);
+    }
+  } else {
+    // If Cholesky decomposition fails, it is likely because information matrix
+    // was not numerically positive definite.
+    // If this happens, it is probably because a numerical inestability.
+    // The function then returns the efficiency value as a big positive number, this
+    // way the algorithm does nothing in this iteration because the algorithm thinks
+    // there was no improvement when swapping the proportions.
+
+    // If Cholesky decomposition failed, returns a final value of 1000
+    eff_crit = 1000;
+    // Rcpp::warning("Error in Cholesky decomposition. Returning eff_crit = eff_crit = %i.", eff_crit);
   }
+
+  return eff_crit;
+
 }
 
 
@@ -299,15 +263,15 @@ void findBestCoxDirGaussianDiscrete( // Void but modifies X
 
 
 // [[Rcpp::export]]
-void changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, int j){ // Void but modifies X
+void changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, int j, int n_pv){ // Void but modifies X
   // Modifies matrix X changing the j-th ingredient in i-th observation to theta.
   // theta must be between 0 and 1 because it's an ingredient proportion.
   // j and i are 0-indexed.
 
 
-  double q = X.n_cols;
+  double q = X.n_cols - n_pv;
 
-  // Create a vector with the i-th row of the design matrix X
+  // Create a vector with the i-th row of the design matrix X minus the process variables
   arma::vec x_row(q);
   for(int col = 0; col < q; col++){
     x_row(col) = X(i, col);
@@ -354,7 +318,7 @@ void changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, int j)
 
 // [[Rcpp::export]]
 double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int i, int j, int order,
-                                    int opt_crit, arma::mat& W){
+                                    int opt_crit, arma::mat& W, int n_pv){
   // Computes efficiency criterion of a design matrix X but where the j-th ingredient in the
   // i-th observation is changed to theta.
   // Since theta is an ingredient proportion, it must be between 0 and 1.
@@ -362,18 +326,18 @@ double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int i, int j, in
   // We want to minimize this.
 
 
-  int q = X.n_cols;
+  int q = X.n_cols - n_pv;
 
-  // Temporarily store the i-th row in a vector
+  // Temporarily store the i-th row in a vector (only the part corresponding to the mixture variables)
   arma::vec x_row(q);
   for(int col = 0; col < q; col++){
     x_row(col) = X(i, col);
   }
 
-  changeIngredientDesignCoxGaussian(theta, X, i, j);
+  changeIngredientDesignCoxGaussian(theta, X, i, j, n_pv);
 
   // Utility function value. We want to minimize this.
-  double utility_funct_value = getOptCritValueGaussian(X, order, q, opt_crit, W);
+  double utility_funct_value = getOptCritValueGaussian(X, order, q, opt_crit, W, n_pv);
 
   // return X to its original value
   for(int col = 0; col < q; col++){
@@ -388,7 +352,7 @@ double efficiencyCoxScheffeGaussian(double theta, arma::mat& X, int i, int j, in
 
 void findBestCoxDirGaussianBrent( // void but modifies X
     arma::mat& X, int i, int j, int order, int opt_crit, arma::mat& W,
-    double lower = 0, double upper = 1, double tol = 0.0001) {
+    double lower = 0, double upper = 1, double tol = 0.0001, int n_pv = 0) {
   // Thanks to Norma and Manuel who helped me out with lambda functions in C++:
   // https://github.com/NormaVTH
   // https://github.com/manuelalcantara52
@@ -398,18 +362,18 @@ void findBestCoxDirGaussianBrent( // void but modifies X
 
 
   // The optimality criterion value in the design that is being used as input
-  double f_original = getOptCritValueGaussian(X, order, X.n_cols, opt_crit, W);
+  double f_original = getOptCritValueGaussian(X, order, X.n_cols, opt_crit, W, n_pv);
 
-  auto f = [&X, i, j, order, opt_crit, &W](double theta){
-    return efficiencyCoxScheffeGaussian(theta, X, i, j, order, opt_crit, W);
+  auto f = [&X, i, j, order, opt_crit, &W, n_pv](double theta){
+    return efficiencyCoxScheffeGaussian(theta, X, i, j, order, opt_crit, W, n_pv);
   };
 
   double theta_brent, theta_star, f_star;
   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
 
   // Check end points
-  double f_lower = efficiencyCoxScheffeGaussian(lower, X, i, j, order, opt_crit, W);
-  double f_upper = efficiencyCoxScheffeGaussian(upper, X, i, j, order, opt_crit, W);
+  double f_lower = efficiencyCoxScheffeGaussian(lower, X, i, j, order, opt_crit, W, n_pv);
+  double f_upper = efficiencyCoxScheffeGaussian(upper, X, i, j, order, opt_crit, W, n_pv);
 
   f_star = std::min({f_lower, f_upper, f_brent});
 
@@ -423,59 +387,58 @@ void findBestCoxDirGaussianBrent( // void but modifies X
     }
   }
 
-  // If Brent's method didn't do any improvement, leave the original design as it is
-  if(f_original <= f_star){
-    // changeIngredientDesignCoxGaussian(x_original, X, i, j);
-  } else{
-    // return(changeIngredientDesignCoxGaussian(theta_star, X, i, j));
-    changeIngredientDesignCoxGaussian(theta_star, X, i, j);
+  // If Brent's method didn't do any improvement, leave the original design as it is.
+  // If it did, replace the design with theta star
+  if(f_original > f_star){
+    changeIngredientDesignCoxGaussian(theta_star, X, i, j, n_pv);
   }
 
 }
-
-
-
-
-
-
-
 
 
 
 
 double efficiencyPVScheffeGaussian(double theta, arma::mat& X, int i, int j, int order,
-                                   int opt_crit, arma::mat& W, arma::mat& Y){
+                                   int opt_crit, arma::mat& W, int n_pv){
   // Computes efficiency criterion of a design matrix X but where the j-th PV in the
   // i-th observation is changed to theta.
   // Indices j and i are 0-indexed.
   // We want to minimize this.
 
-  int q = X.n_cols;
-  Y(i, j) = theta;
+  int q = X.n_cols - n_pv;
+  double original = X(i, j);
 
-  // Return utility function value. We want to minimize this.
-  return(getOptCritValueGaussian(Y, order, q, opt_crit, W));
+  // change value
+  X(i, j) = theta;
+
+  // Utility function value. We want to minimize this.
+  double utility_funct_value = getOptCritValueGaussian(X, order, q, opt_crit, W, n_pv);
+
+  // return X to its original value
+  X(i, j) = original;
+
+  return(utility_funct_value);
 }
 
 
 
 
-void findBestPVGaussianBrent( // void but modifies Y
+void findBestPVGaussianBrent( // void but modifies X
     arma::mat& X, int i, int j, int order, int opt_crit, arma::mat& W,
-    double lower, double upper, double tol, arma::mat& Y) {
+    double lower, double upper, double tol, int n_pv) {
 
   // The optimality criterion value in the design that is being used as input
-  double f_original = getOptCritValueGaussian(X, order, X.n_cols, opt_crit, W);
+  double f_original = getOptCritValueGaussian(X, order, X.n_cols, opt_crit, W, n_pv);
 
-  auto f = [&X, i, j, order, opt_crit, &W, &Y](double theta){
-    return efficiencyPVScheffeGaussian(theta, X, i, j, order, opt_crit, W, Y);
+  auto f = [&X, i, j, order, opt_crit, &W, n_pv](double theta){
+    return efficiencyPVScheffeGaussian(theta, X, i, j, order, opt_crit, W, n_pv);
   };
 
   double theta_brent, theta_star, f_star;
   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
   // Check end points
-  double f_lower = efficiencyPVScheffeGaussian(lower, X, i, j, order, opt_crit, W, Y);
-  double f_upper = efficiencyPVScheffeGaussian(upper, X, i, j, order, opt_crit, W, Y);
+  double f_lower = efficiencyPVScheffeGaussian(lower, X, i, j, order, opt_crit, W, n_pv);
+  double f_upper = efficiencyPVScheffeGaussian(upper, X, i, j, order, opt_crit, W, n_pv);
 
   f_star = std::min({f_lower, f_upper, f_brent});
 
@@ -490,13 +453,11 @@ void findBestPVGaussianBrent( // void but modifies Y
   }
 
 
-  // If Brent's method didn't do any improvement, then return to the original design
-  if(f_original <= f_star){
-    Y(i, j) = X(i, j);
-  } else{
-    Y(i, j) = theta_star;
+  // If Brent's method didn't do any improvement, leave the original design as it is.
+  // If it did, replace the design with theta star
+  if(f_original > f_star){
+    X(i, j) = theta_star;
   }
-
 }
 
 
@@ -507,9 +468,8 @@ void findBestPVGaussianBrent( // void but modifies Y
 // [[Rcpp::export]]
 Rcpp::List mixtureCoordinateExchangeGaussian(
     const arma::mat X_orig, int order, int max_it, int verbose, int opt_crit,
-    arma::mat W, int opt_method, double lower, double upper, double tol, int n_cox_points){
+    arma::mat W, int opt_method, double lower, double upper, double tol, int n_cox_points, int n_pv){
   // Performs the coordinate exchange algorithm for a Scheffé model with Gaussian errors.
-  int m = 0;
 
   // n_runs: number of runs
   // q: number of ingredient proportions
@@ -532,7 +492,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
   arma::vec efficiency_value_per_iteration(max_it + 1, fill::zeros);
 
   int n_runs = X_orig.n_rows;
-  int q = X_orig.n_cols;
+  int q = X_orig.n_cols - n_pv;
 
   // Create new matrix.
   arma::mat X = X_orig;
@@ -543,7 +503,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
   // Vector of ingredient proportions
   arma::vec x(q);
 
-  double opt_crit_value_orig = getOptCritValueGaussian(X, order, q, opt_crit, W);
+  double opt_crit_value_orig = getOptCritValueGaussian(X, order, q, opt_crit, W, n_pv);
   double opt_crit_value_best = opt_crit_value_orig;
   double opt_crit_value_aux = 1e308; // +Inf
 
@@ -583,7 +543,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
         }
 
         if(opt_method == 0){
-          findBestCoxDirGaussianBrent(X, run-1, ing, order, opt_crit, W, lower, upper, tol);
+          findBestCoxDirGaussianBrent(X, run-1, ing, order, opt_crit, W, lower, upper, tol, n_pv);
 
         } else{
           cox_dir = computeCoxDirection(x, ing+1, n_cox_points, verbose);
@@ -591,7 +551,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
         }
 
 
-        opt_crit_value_best = getOptCritValueGaussian(X, order, q, opt_crit, W);
+        opt_crit_value_best = getOptCritValueGaussian(X, order, q, opt_crit, W, n_pv);
 
         if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
 
@@ -604,11 +564,18 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
 
 
       // Process variables
-      if(m > 0){
-        arma::mat Y = X;
-        for(int pv = q; pv < m + q; pv++){
-          findBestPVGaussianBrent(X, run-1, pv, order, opt_crit, W, lower, upper, tol, Y);
-          X(run, pv) = Y(run, pv);
+      if(n_pv > 0){
+        for(int pv = q; pv < n_pv + q; pv++){
+          if(verbose >= 2) Rcout << "\nIter: " << it <<  ", run = " << run << ", pv = " << pv << std::endl;
+          findBestPVGaussianBrent(X, run-1, pv, order, opt_crit, W, lower, upper, tol, n_pv);
+          opt_crit_value_best = getOptCritValueGaussian(X, order, q, opt_crit, W, n_pv);
+
+          if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
+
+          if(verbose >= 5){
+            Rcout << "X =\n" << X << std::endl;
+          }
+
         }
       }
 

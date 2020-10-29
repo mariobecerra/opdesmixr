@@ -5,32 +5,24 @@ computeCoxDirection <- function(x, comp, n_points, verbose) {
     .Call(`_opdesmixr_computeCoxDirection`, x, comp, n_points, verbose)
 }
 
-getScheffeGaussian <- function(X, order, m = 0L) {
-    .Call(`_opdesmixr_getScheffeGaussian`, X, order, m)
+getScheffeGaussian <- function(X, order, n_pv = 0L) {
+    .Call(`_opdesmixr_getScheffeGaussian`, X, order, n_pv)
 }
 
-getDCritValueGaussian <- function(X, order, m = 0L) {
-    .Call(`_opdesmixr_getDCritValueGaussian`, X, order, m)
+getOptCritValueGaussian <- function(X, order, q, opt_crit, W, n_pv = 0L) {
+    .Call(`_opdesmixr_getOptCritValueGaussian`, X, order, q, opt_crit, W, n_pv)
 }
 
-getICritValueGaussian <- function(X, order, q, W, m = 0L) {
-    .Call(`_opdesmixr_getICritValueGaussian`, X, order, q, W, m)
+changeIngredientDesignCoxGaussian <- function(theta, X, i, j, n_pv) {
+    invisible(.Call(`_opdesmixr_changeIngredientDesignCoxGaussian`, theta, X, i, j, n_pv))
 }
 
-getOptCritValueGaussian <- function(X, order, q, opt_crit, W, m = 0L) {
-    .Call(`_opdesmixr_getOptCritValueGaussian`, X, order, q, opt_crit, W, m)
+efficiencyCoxScheffeGaussian <- function(theta, X, i, j, order, opt_crit, W, n_pv) {
+    .Call(`_opdesmixr_efficiencyCoxScheffeGaussian`, theta, X, i, j, order, opt_crit, W, n_pv)
 }
 
-changeIngredientDesignCoxGaussian <- function(theta, X, i, j) {
-    invisible(.Call(`_opdesmixr_changeIngredientDesignCoxGaussian`, theta, X, i, j))
-}
-
-efficiencyCoxScheffeGaussian <- function(theta, X, i, j, order, opt_crit, W) {
-    .Call(`_opdesmixr_efficiencyCoxScheffeGaussian`, theta, X, i, j, order, opt_crit, W)
-}
-
-mixtureCoordinateExchangeGaussian <- function(X_orig, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points) {
-    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points)
+mixtureCoordinateExchangeGaussian <- function(X_orig, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, n_pv) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, n_pv)
 }
 
 getXsMNL <- function(X, s, order) {
