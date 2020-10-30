@@ -542,22 +542,23 @@ mnl_create_moment_matrix = function(q, order = 3){
     }
   }
 
-  f = lapply(1:(m-1), function(x) rep(0, q))
+  f_matrix = matrix(rep(0L, m*q), ncol = q)
 
   counter = 0
   # Fill indicators of first part of the model expansion
-  for(i in 1:(q-1)){
+  for(i in 1:q){
     counter = counter + 1
-    f[[counter]][i] = 1
+    f_matrix[counter, i] = 1
   }
+
 
   # Fill indicators of second part of the model expansion
   if(order >= 2){
     for(i in 1:(q-1)){
       for(j in (i+1):q){
         counter = counter + 1
-        f[[counter]][i] = 1
-        f[[counter]][j] = 1
+        f_matrix[counter, i] = 1
+        f_matrix[counter, j] = 1
       }
     }
   }
@@ -569,21 +570,21 @@ mnl_create_moment_matrix = function(q, order = 3){
       for(j in (i+1):(q-1)){
         for(k in (j+1):q){
           counter = counter + 1
-          f[[counter]][i] = 1
-          f[[counter]][j] = 1
-          f[[counter]][k] = 1
+          f_matrix[counter, i] = 1
+          f_matrix[counter, j] = 1
+          f_matrix[counter, k] = 1
         }
       }
     }
   }
 
 
-  W = matrix(rep(NA_real_, (m-1)^2), ncol = m-1)
+  W = matrix(rep(NA_real_, m*m), ncol = m)
 
-  for(i in 1:(m-1)){
-    for(j in 1:(m-1)){
+  for(i in 1:m){
+    for(j in 1:m){
 
-      aux_ij = f[[i]] + f[[j]]
+      aux_ij = f_matrix[i,] + f_matrix[j,]
       num_ij = prod(factorial(aux_ij))
       denom_ij = factorial(2 + sum(aux_ij))
       W[i,j] = num_ij/denom_ij
