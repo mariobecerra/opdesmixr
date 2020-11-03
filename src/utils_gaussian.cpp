@@ -287,16 +287,15 @@ void changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, int j,
   for(int k_aux = 0; k_aux < setDiff.n_elem; k_aux++){
     k = setDiff(k_aux);
 
-    if(abs(1 - x_row(j)) < 1e-16) { // In case x_row(j) is numerically 1
-      if(abs(delta + 1) < 1e-16){
+    if(abs(1 - x_row(j)) < 1e-13) { // In case x_row(j) is numerically 1
+      if(abs(delta + 1) < 1e-13){
         // If delta is numerically -1, it means that the change is from 1 to 0.
         // Then, the rest of the ingredients must be 1/(q-1)
-        x_row(k) = 1/(q - 1.0);
+        x_row(k) = 1.0/(q - 1.0);
       } else{
         // If delta is not -1 and x_row(j) is numerically 1, then
-        // it means that the rest of the ingredients were 0 and it should remain that way.
-        // Almost the same as doing x_row(k) = 0, but this is safer numerically.
-        x_row(k) = (1 - x_row(j))/(q-1.0);
+        // it means that the rest of the ingredients were 0, so they were in equal proportions and should remain that way.
+        x_row(k) = (1.0 - theta)/(q-1.0);
       }
     } else{ // In case x_row(j) is NOT numerically 1
       x_row(k) = x_row(k) - delta*x_row(k)/(1 - x_row(j));
@@ -305,11 +304,18 @@ void changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, int j,
 
   x_row(j) = theta;
 
-
-  // Replace the design X with the recomputed proportions according to Cox direction
-  for(int col = 0; col < q; col++){
-    X(i, col) = x_row(col);
+  if(abs(sum(x_row) - 1) > 1e-13){
+    // Do not change design
+    warning("Mixture ingredients do not sum up to numerical 1. Not changing this run of the design.");
+  } else{
+    // Replace the design X with the recomputed proportions according to Cox direction
+    for(int col = 0; col < q; col++){
+      X(i, col) = x_row(col);
+    }
   }
+
+
+
 
 }
 

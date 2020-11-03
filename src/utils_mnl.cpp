@@ -359,39 +359,41 @@ void changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, int s)
   vec setDiff_aux = linspace<vec>(0, q-1, q);
   vec setDiff = removeElement(setDiff_aux, i);
   int k;
-  double result;
 
   for(int k_aux = 0; k_aux < setDiff.n_elem; k_aux++){
     k = setDiff(k_aux);
 
-    if(abs(1 - x(i)) < 1e-16) { // In case x(i) is numerically 1
-      if(abs(1 - x(i)) < 1e-16) { // In case x(i) is numerically 1
-        if(abs(delta + 1) < 1e-16){
-          // If delta is numerically -1, it means that the change is from 1 to 0.
-          // Then, the rest of the ingredients must be 1/(q-1)
-          result = 1.0/(q - 1.0);
-        } else{
-          // If delta is not -1 and x(i) is numerically 1, then
-          // it means that the rest of the ingredients were 0 and it should remain that way.
-          // Almost the same as doing result = 0, but this is safer numerically.
-          result = (1.0 - x(i))/(q - 1.0);
-        }
-      } else{ // In case x(i) is not numerically 1
-        // Other case
-        result = x(k) - delta*x(k)/(1 - x(i));
+    if(abs(1 - x(i)) < 1e-13) { // In case x(i) is numerically 1
+      if(abs(delta + 1) < 1e-13){
+        // If delta is numerically -1, it means that the change is from 1 to 0.
+        // Then, the rest of the ingredients must be 1/(q-1)
+        x(k) = 1.0/(q - 1.0);
+      } else{
+        // If delta is not -1 and x(i) is numerically 1, then
+        // it means that the rest of the ingredients were 0, so they were in equal proportions and should remain that way.
+        x(k) = (1.0 - theta)/(q - 1.0);
       }
     } else{ // In case x(i) is not numerically 1
-      result = x(k) - delta*x(k)/(1 - x(i));
+      // Other case
+      x(k) = x(k) - delta*x(k)/(1 - x(i));
     }
-    x(k) = result;
   }
+
+
 
   x(i) = theta;
 
-  // Replace the design X with the recomputed proportions according to Cox direction
-  for(int l = 0; l < q; l++){
-    X(l, j, s) = x(l);
+  if(abs(sum(x) - 1) > 1e-13){
+    // Do not change design
+    warning("Mixture ingredients do not sum up to numerical 1. Not changing this run of the design.");
+  } else{
+    // Replace the design X with the recomputed proportions according to Cox direction
+    for(int l = 0; l < q; l++){
+      X(l, j, s) = x(l);
+    }
   }
+
+
 
 }
 
