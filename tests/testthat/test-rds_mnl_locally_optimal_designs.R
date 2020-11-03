@@ -38,15 +38,15 @@ test_that("mnl_locally_optimal",{
             "mnl_", optimality_criterion, "_q", q, "_J", J, "_S", S, "_rs", n_random_starts, "_order", order, "_optmeth", optimization_method
           )
 
-          expect_equal_to_reference(
-            object = res_alg$X_orig,
-            file = paste0(out_folder, base_filename, "_X_orig.rds")
-          )
+          # expect_equal_to_reference(
+          #   object = res_alg$X_orig,
+          #   file = paste0(out_folder, base_filename, "_X_orig.rds")
+          # )
 
-          expect_equal_to_reference(
-            object = res_alg$X,
-            file = paste0(out_folder, base_filename, "_X.rds")
-          )
+          # expect_equal_to_reference(
+          #   object = res_alg$X,
+          #   file = paste0(out_folder, base_filename, "_X.rds")
+          # )
 
           expect_equal_to_reference(
             object = res_alg$opt_crit_value_orig,
