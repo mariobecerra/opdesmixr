@@ -288,15 +288,12 @@ void changeIngredientDesignCoxGaussian(double theta, arma::mat& X, int i, int j,
     k = setDiff(k_aux);
 
     if(abs(1 - x_row(j)) < 1e-13) { // In case x_row(j) is numerically 1
-      if(abs(delta + 1) < 1e-13){
-        // If delta is numerically -1, it means that the change is from 1 to 0.
-        // Then, the rest of the ingredients must be 1/(q-1)
-        x_row(k) = 1.0/(q - 1.0);
-      } else{
-        // If delta is not -1 and x_row(j) is numerically 1, then
-        // it means that the rest of the ingredients were 0, so they were in equal proportions and should remain that way.
-        x_row(k) = (1.0 - theta)/(q-1.0);
-      }
+      // Two cases:
+      // 1) If delta is numerically -1, it means that the change is from 1 to 0. Then, the rest of the ingredients must be 1/(q-1)
+      // 2) If delta is not -1 and x_row(j) is numerically 1, then it means that the rest of the ingredients were 0, so they were in equal
+      //    proportions and should remain that way.
+      x_row(k) = (1.0 - theta)/(q-1.0); // Same as x_row(k) = (-delta)/(q - 1.0); and x_row(k) = ( 1 - delta + x_row(j) )/(q - 1.0);
+
     } else{ // In case x_row(j) is NOT numerically 1
       x_row(k) = x_row(k) - delta*x_row(k)/(1 - x_row(j));
     }
