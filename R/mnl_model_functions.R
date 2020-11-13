@@ -134,6 +134,7 @@ create_random_beta = function(q, order = 3, seed = NULL){
 #' @param n_random_starts number or random starts. Defaults to 100.
 #' @param X If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.
 #' @param beta Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.
+#' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the q-th element?
 #' @param opt_method Optimization method in each step of the coordinate exchange algorithm.
 #'      It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)
 #' @param max_it integer for maximum number of iterations that the coordinate exchange algorithm will do
@@ -176,6 +177,7 @@ mnl_mixture_coord_exch = function(
   n_random_starts = 100,
   X = NULL,
   beta,
+  transform_beta = T,
   order = 3,
   opt_method = "B",
   max_it = 10,
@@ -267,9 +269,16 @@ mnl_mixture_coord_exch = function(
     }
   }
 
-  if(is.vector(beta)) if(m != length(beta)) stop("Incompatible size in beta and q: beta must be of length ", m)
 
-  if(is.matrix(beta)) if(m != ncol(beta)) stop("Incompatible size in beta and q: beta must have ", m,  "columns")
+  if(is.vector(beta)) {
+    if(m != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
+    if(m-1 != length(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m-1)
+  }
+
+  if(is.matrix(beta)) {
+    if(m != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
+    if(m-1 != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m-1,  " columns")
+  }
 
 
   if(is.vector(beta)) beta_mat = matrix(beta, nrow = 1)
@@ -319,7 +328,8 @@ mnl_mixture_coord_exch = function(
         lower = 0,
         upper = 1,
         tol = tol,
-        n_cox_points = n_cox_points
+        n_cox_points = n_cox_points,
+        transform_beta = transform_beta
       ), silent = T)
 
     # If there was an error with this design, return whatever
