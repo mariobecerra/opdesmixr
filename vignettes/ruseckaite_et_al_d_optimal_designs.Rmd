@@ -1,0 +1,861 @@
+---
+title: "Comparing designs with Ruseckaite et. al"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ruseckaite_et_al_d_optimal_designs}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r, eval = F, include = F}
+rmarkdown::render(here::here("vignettes/ruseckaite_et_al_d_optimal_designs.Rmd"))
+```
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(opdesmixr)
+library(tidyverse)
+library(here)
+
+# Original Ruseckaite et. al designs:
+# https://rss.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Frssc.12174&file=rssc12174-sup-0001-Appendix.pdf
+
+designs_folder = here("inst/misc_output/cocktail_cornell_designs/")
+dir.create(designs_folder, showWarnings = F)
+
+ruseckaite_cocktail_designs = read_csv(here("inst/exdata/ruseckaite_cocktail_designs.csv"))
+ruseckaite_cornell_designs = read_csv(here("inst/exdata/ruseckaite_cornell_designs.csv"))
+
+# ruseckaite_cocktail_designs = read_csv(system.file("extdata", "ruseckaite_cocktail_designs.csv", package = "opdesmixr", mustWork = TRUE))
+# ruseckaite_cornell_designs = read_csv(system.file("extdata", "ruseckaite_cornell_designs", package = "opdesmixr", mustWork = TRUE))
+
+
+n_cores = parallel::detectCores()
+utility_point_size = 0.1
+
+```
+
+
+```{r function_definitions}
+create_2d_simplex_grid = function(n_out){
+  # Returns a grid of points inside the 2-dimensional simplex.
+  # The output is a dataframe of approximately n_out rows.
+  
+  n_points = floor(sqrt(2*n_out))
+  
+  simplex_grid = expand.grid(x1 = seq(0, 1, length.out = n_points),
+                             x2 = seq(0, 1, length.out = n_points)) %>%
+    filter(x1 + x2 <= 1) %>%
+    as_tibble() %>%
+    mutate(x3 = 1-x1-x2)
+  
+  return(simplex_grid)
+}
+
+
+
+
+scheffe_order3_q3_utilities = function(beta, n_out = 1000){
+  
+  out = create_2d_simplex_grid(n_out) %>%
+    mutate(utility = beta[1]*x1 + beta[2]*x2 + beta[3]*x1*x2 + beta[4]*x1*x3 + beta[5]*x2*x3 + beta[6]*x1*x2*x3)
+  
+  return(out)
+}
+
+
+
+
+
+plot_choice_set_utility = function(
+  design_object,
+  utility_data,
+  design_point_size = 2,
+  utility_point_size = 0.3,
+  utility_point_shape = "square",
+  low_color_gradient = "light blue",
+  high_color_gradient = "dark blue",
+  legend.position = "bottom",
+  legend.box = "vertical"){
+  
+  if(class(design_object) == "list"){
+    # If object is the result of the algorithm
+    dim_X = dim(design_object$X)
+    q = dim_X[1]
+    S = dim_X[3]
+    
+    if(q != 3) stop("Design must be of 3 ingredients.")
+    
+    X_final_tbl = mnl_design_array_to_dataframe(design_object$X)
+    
+  } else{
+    # If it's just an array
+    if(inherits(design_object, "array")){
+      
+      dim_X = dim(design_object)
+      q = dim_X[1]
+      S = dim_X[3]
+      
+      if(q != 3) stop("Design must be of 3 ingredients.")
+      
+      
+      X_final_tbl = mnl_design_array_to_dataframe(design_object)
+      
+    } else{
+      if(inherits(design_object, "data.frame")){
+        q = ncol(design_object) - 1
+        
+        if(q != 3) stop("Design must be of 3 ingredients.")
+        
+        X_final_tbl = design_object %>%
+          set_names(c("c1", "c2", "c3", "choice_set")) %>%
+          mutate(choice_set = as.character(choice_set))
+        
+      } else{
+        stop("Unknown type of design")
+      }
+      
+    }
+  }
+  
+  out_plot = ggtern::ggtern(data = utility_data) +
+    ggplot2::geom_point(
+      aes(x = x1, y = x2, z = x3, color = utility_avg),
+      size = utility_point_size,
+      shape = utility_point_shape) +
+    ggplot2::scale_color_gradient(
+      low = low_color_gradient, high = high_color_gradient) +
+    ggplot2::geom_point(
+      data = X_final_tbl,
+      ggtern::aes(c1, c2, c3, shape = choice_set),
+      # https://stackoverflow.com/questions/26223857/more-than-six-shapes-in-ggplot
+      color = "black", size = design_point_size, stroke = 1.5, inherit.aes = F) +
+    ggtern::theme_nomask() +
+    scale_shape_manual(values = 1:length(unique(X_final_tbl$choice_set))) +
+    theme(legend.position = legend.position, legend.box = legend.box)
+  
+  return(out_plot)
+  
+}
+
+```
+
+# Cocktail experiment
+
+```{r}
+ruseckaite_beta0_design = mnl_design_dataframe_to_array(
+  ruseckaite_cocktail_designs %>%
+    filter(prior == "beta_0 and sigma_0") %>%
+    select(-prior)
+)
+
+
+q = 3
+J = 2
+S = 16
+n_draws = 128
+
+m = (q^3 + 5*q)/6
+
+beta0 = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)
+
+sigma0 = matrix(
+  c(6.14, 5.00, 2.74, -0.43, -2.81, -3.33,
+    5.00, 6.76, 4.47, -1.79, -6.13, -3.51,
+    2.74, 4.47, 3.45, -1.38, -4.71, -2.17,
+    -0.43, -1.79, -1.38, 1.18, 2.39, 0.71,
+    -2.81, -6.13, -4.71, 2.39, 7.43, 2.71,
+    -3.33, -3.51, -2.17, 0.71, 2.71, 2.49),
+  ncol = 6,
+  byrow = T)
+
+beta_correlated_draws_cocktail = get_correlated_halton_draws(beta0, sigma0, n_draws)
+
+
+n_rand_starts = 40
+max_it = 10
+seed = 2020
+
+
+cocktail_d_opt_filename = paste0(designs_folder, "cocktail_d_optimal.rds")
+cocktail_i_opt_filename = paste0(designs_folder, "cocktail_i_optimal.rds")
+
+##########################################################################################
+#### Load or create the designs
+##########################################################################################
+
+if(file.exists(cocktail_d_opt_filename)){
+  cocktail_D_opt = readRDS(cocktail_d_opt_filename)
+} else{
+  # 10 mins
+  (t1D = Sys.time())
+  cocktail_D_opt = mnl_mixture_coord_exch(
+    n_random_starts = n_rand_starts,
+    q = q,
+    J = J,
+    S = S,
+    beta = beta_correlated_draws_cocktail,
+    transform_beta = F,
+    opt_method = "B",
+    opt_crit = "D",
+    max_it = max_it,
+    verbose = 1,
+    plot_designs = F,
+    seed = seed,
+    n_cores = n_cores
+  )
+  (t2D = Sys.time())
+  t2D - t1D
+  
+  saveRDS(cocktail_D_opt, cocktail_d_opt_filename)
+}
+
+
+
+if(file.exists(cocktail_i_opt_filename)){
+  cocktail_I_opt = readRDS(cocktail_i_opt_filename)
+} else{
+  # 14 mins
+  (t1I = Sys.time())
+  cocktail_I_opt =  mnl_mixture_coord_exch(
+    n_random_starts = n_rand_starts,
+    q = q,
+    J = J,
+    S = S,
+    beta = beta_correlated_draws_cocktail,
+    transform_beta = F,
+    opt_method = "B",
+    opt_crit = "I",
+    max_it = max_it,
+    verbose = 1,
+    plot_designs = F,
+    seed = seed,
+    n_cores = n_cores
+  )
+  (t2I = Sys.time())
+  t2I - t1I
+  
+  saveRDS(cocktail_I_opt, cocktail_i_opt_filename)
+}
+
+
+##########################################################################################
+#### Create the utility surface dataframe used for plotting
+##########################################################################################
+
+levels_cocktail_bayesian = c(0, .5625, 1.125, 1.6875, 2.25)
+utilities_cocktail_bayesian_plot = scheffe_order3_q3_utilities(beta0, 50000) %>%
+  mutate(utility_fact = cut(utility, levels_cocktail_bayesian, right = F)) %>%
+  mutate(utility_int = as.integer(utility_fact)) %>%
+  mutate(utility_avg = case_when(
+    utility_int == 1 ~ (levels_cocktail_bayesian[1] + levels_cocktail_bayesian[2] - levels_cocktail_bayesian[1])/2,
+    utility_int == 2 ~ (levels_cocktail_bayesian[2] + levels_cocktail_bayesian[3] - levels_cocktail_bayesian[2])/2,
+    utility_int == 3 ~ (levels_cocktail_bayesian[3] + levels_cocktail_bayesian[4] - levels_cocktail_bayesian[3])/2,
+    utility_int == 4 ~ (levels_cocktail_bayesian[4] + levels_cocktail_bayesian[5] - levels_cocktail_bayesian[4])/2
+  ))
+
+
+
+
+```
+
+```{r, fig.height=7, fig.width=10}
+
+##########################################################################################
+#### Plot designs
+##########################################################################################
+
+# Halton draws of the prior for evaluating Bayesian D and I optimality
+beta_correlated_draws_cocktail_plot = get_correlated_halton_draws(beta0, sigma0, 5000)
+
+suppressWarnings(
+  ggtern::grid.arrange(
+    plot_choice_set_utility(
+      ruseckaite_beta0_design, 
+      utilities_cocktail_bayesian_plot,
+      utility_point_size = utility_point_size) +
+      ggtitle(
+        "Ruseckaite's Bayesian D-optimal design",
+        subtitle = paste0(
+          "D-opt value: ", round(
+            mnl_get_opt_crit_value(
+              X = ruseckaite_beta0_design,
+              beta = beta_correlated_draws_cocktail_plot,
+              order = 3,
+              opt_crit = "D",
+              transform_beta = F), 
+            2),
+          
+          "  I-opt value: ", round(
+            mnl_get_opt_crit_value(
+              X = ruseckaite_beta0_design,
+              beta = beta_correlated_draws_cocktail_plot,
+              order = 3,
+              opt_crit = "I",
+              transform_beta = F), 
+            2)
+        )
+      )
+    ,
+    
+    plot_choice_set_utility(
+      cocktail_D_opt, 
+      utilities_cocktail_bayesian_plot,
+      utility_point_size = utility_point_size) +
+      ggtitle(
+        "Bayesian D-optimal design",
+        subtitle = paste0(
+          "D-opt value: ", round(
+            mnl_get_opt_crit_value(
+              X = cocktail_D_opt$X,
+              beta = beta_correlated_draws_cocktail_plot,
+              order = 3,
+              opt_crit = "D",
+              transform_beta = F), 
+            2),
+          
+          "  I-opt value: ", round(
+            mnl_get_opt_crit_value(
+              X = cocktail_D_opt$X,
+              beta = beta_correlated_draws_cocktail_plot,
+              order = 3,
+              opt_crit = "I",
+              transform_beta = F), 
+            2)
+        )
+      )
+    ,
+    
+    plot_choice_set_utility(
+      cocktail_I_opt, 
+      utilities_cocktail_bayesian_plot,
+      utility_point_size = utility_point_size) +
+      ggtitle(
+        "Bayesian I-optimal design",
+        subtitle = paste0(
+          "D-opt value: ", round(
+            mnl_get_opt_crit_value(
+              X = cocktail_I_opt$X,
+              beta = beta_correlated_draws_cocktail_plot,
+              order = 3,
+              opt_crit = "D",
+              transform_beta = F), 
+            2),
+          
+          "  I-opt value: ", round(
+            mnl_get_opt_crit_value(
+              X = cocktail_I_opt$X,
+              beta = beta_correlated_draws_cocktail_plot,
+              order = 3,
+              opt_crit = "I",
+              transform_beta = F), 
+            2)
+        ))
+    ,
+    ncol = 3
+  )
+)
+```
+
+
+
+
+
+
+# Cornell experiment
+
+```{r}
+
+
+n_cores = parallel::detectCores()
+seed = 2020
+
+
+beta_0 = c(+11.25, +5.54, +3.73, +26.93, +20.52, +28.44, -180.68)
+beta_0_prime = c(+11.25 - 3.73, +5.54 - 3.73, +26.93, +20.52, +28.44, -180.68)
+beta_1_prime = c(1.15, 0.28, 4.12, 3.14, 4.36, -27.67)
+beta_2_prime = c(0.86, 0.21, 3.07, 2.34, 3.24, -20.59)
+```
+
+```{r}
+
+##########################################################################################
+#### Create the utility surface dataframe used for plotting
+##########################################################################################
+
+levels_cornell_utilities_1 = c(0, 0.5, 1, 1.5, 1.8)
+utilities_1 = scheffe_order3_q3_utilities(beta_1_prime, 50000) %>%
+  mutate(utility_fact = cut(utility, levels_cornell_utilities_1, right = F)) %>%
+  mutate(utility_int = as.integer(utility_fact)) %>%
+  mutate(utility_avg = case_when(
+    utility_int == 1 ~ (levels_cornell_utilities_1[1] + levels_cornell_utilities_1[2] - levels_cornell_utilities_1[1])/2,
+    utility_int == 2 ~ (levels_cornell_utilities_1[2] + levels_cornell_utilities_1[3] - levels_cornell_utilities_1[2])/2,
+    utility_int == 3 ~ (levels_cornell_utilities_1[3] + levels_cornell_utilities_1[4] - levels_cornell_utilities_1[3])/2,
+    utility_int == 4 ~ (levels_cornell_utilities_1[4] + levels_cornell_utilities_1[5] - levels_cornell_utilities_1[4])/2
+  ))
+
+
+
+
+levels_cornell_utilities_2 = c(0, 0.375, 0.75, 1.125, 1.34)
+utilities_2 = scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
+  mutate(utility_fact = cut(utility, levels_cornell_utilities_2, right = F)) %>%
+  mutate(utility_int = as.integer(utility_fact)) %>%
+  mutate(utility_avg = case_when(
+    utility_int == 1 ~ (levels_cornell_utilities_2[1] + levels_cornell_utilities_2[2] - levels_cornell_utilities_2[1])/2,
+    utility_int == 2 ~ (levels_cornell_utilities_2[2] + levels_cornell_utilities_2[3] - levels_cornell_utilities_2[2])/2,
+    utility_int == 3 ~ (levels_cornell_utilities_2[3] + levels_cornell_utilities_2[4] - levels_cornell_utilities_2[3])/2,
+    utility_int == 4 ~ (levels_cornell_utilities_2[4] + levels_cornell_utilities_2[5] - levels_cornell_utilities_2[4])/2
+  ))
+
+
+
+
+
+
+levels_cornell_bayesian = c(0, 0.375, 0.75, 1.125, 1.33333)
+utilities_cornell_bayesian_plot = scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
+  mutate(utility_fact = cut(utility, levels_cornell_bayesian, right = F)) %>%
+  mutate(utility_int = as.integer(utility_fact)) %>%
+  mutate(utility_avg = case_when(
+    utility_int == 1 ~ (levels_cornell_bayesian[1] + levels_cornell_bayesian[2] - levels_cornell_bayesian[1])/2,
+    utility_int == 2 ~ (levels_cornell_bayesian[2] + levels_cornell_bayesian[3] - levels_cornell_bayesian[2])/2,
+    utility_int == 3 ~ (levels_cornell_bayesian[3] + levels_cornell_bayesian[4] - levels_cornell_bayesian[3])/2,
+    utility_int == 4 ~ (levels_cornell_bayesian[4] + levels_cornell_bayesian[5] - levels_cornell_bayesian[4])/2
+  ))
+
+
+```
+
+
+### Locally optimal designs
+
+```{r}
+
+##########################################################################################
+#### Compute locally optimal designs
+##########################################################################################
+
+# Each design takes between 30 to 40 seconds with 1000 random starts and 4 cores
+
+n_random_starts_1 = 1000
+max_it_local = 8
+
+
+cornell_beta_1_locally_d_opt_filename = paste0(designs_folder, "cornell_beta_1_locally_d_opt.rds")
+cornell_beta_2_locally_d_opt_filename = paste0(designs_folder, "cornell_beta_2_locally_d_opt.rds")
+cornell_beta_1_locally_i_opt_filename = paste0(designs_folder, "cornell_beta_1_locally_i_opt.rds")
+cornell_beta_2_locally_i_opt_filename = paste0(designs_folder, "cornell_beta_2_locally_i_opt.rds")
+
+
+if(file.exists(cornell_beta_1_locally_d_opt_filename)){
+  cornell_beta_1_locally_d_opt = readRDS(cornell_beta_1_locally_d_opt_filename)
+  
+}else{
+  cornell_beta_1_locally_d_opt = mnl_mixture_coord_exch(
+    q = 3,
+    J = 2,
+    S = 7,
+    n_random_starts = n_random_starts_1,
+    beta = beta_1_prime,
+    transform_beta = F,
+    max_it = max_it_local,
+    n_cores = n_cores,
+    opt_crit = "D",
+    plot_designs = F,
+    seed = seed)
+  
+  saveRDS(cornell_beta_1_locally_d_opt, cornell_beta_1_locally_d_opt_filename)
+}
+
+
+if(file.exists(cornell_beta_2_locally_d_opt_filename)){
+  cornell_beta_2_locally_d_opt = readRDS(cornell_beta_2_locally_d_opt_filename)
+}else{
+  cornell_beta_2_locally_d_opt = mnl_mixture_coord_exch(
+    q = 3,
+    J = 2,
+    S = 7,
+    n_random_starts = n_random_starts_1,
+    beta = beta_2_prime,
+    transform_beta = F,
+    max_it = max_it_local,
+    n_cores = n_cores,
+    opt_crit = "D",
+    plot_designs = F,
+    seed = seed)
+  
+  saveRDS(cornell_beta_2_locally_d_opt, cornell_beta_2_locally_d_opt_filename)
+}
+
+
+if(file.exists(cornell_beta_1_locally_i_opt_filename)){
+  cornell_beta_1_locally_i_opt = readRDS(cornell_beta_1_locally_i_opt_filename)
+}else{
+  cornell_beta_1_locally_i_opt = mnl_mixture_coord_exch(
+    q = 3,
+    J = 2,
+    S = 7,
+    n_random_starts = n_random_starts_1,
+    beta = beta_1_prime,
+    transform_beta = F,
+    max_it = max_it_local,
+    n_cores = n_cores,
+    opt_crit = "I",
+    plot_designs = F)
+  
+  saveRDS(cornell_beta_1_locally_i_opt, cornell_beta_1_locally_i_opt_filename)
+}
+
+
+if(file.exists(cornell_beta_2_locally_i_opt_filename)){
+  cornell_beta_2_locally_i_opt = readRDS(cornell_beta_2_locally_i_opt_filename)
+}else{
+  cornell_beta_2_locally_i_opt = mnl_mixture_coord_exch(
+    q = 3,
+    J = 2,
+    S = 7,
+    n_random_starts = n_random_starts_1,
+    beta = beta_2_prime,
+    transform_beta = F,
+    max_it = max_it_local,
+    n_cores = n_cores,
+    opt_crit = "I",
+    plot_designs = F)
+  
+  saveRDS(cornell_beta_2_locally_i_opt, cornell_beta_2_locally_i_opt_filename)
+}
+
+```
+
+```{r, fig.height=10, fig.width=10}
+##########################################################################################
+#### Plot locally optimal designs
+##########################################################################################
+
+
+suppressWarnings(
+  ggtern::grid.arrange(
+    plot_choice_set_utility(cornell_beta_1_locally_d_opt, utilities_1, utility_point_size = utility_point_size) +
+      ggtitle("Locally D-optimal beta 1")
+    ,
+    plot_choice_set_utility(cornell_beta_2_locally_d_opt, utilities_2, utility_point_size = utility_point_size) +
+      ggtitle("Locally D-optimal beta 2")
+    ,
+    plot_choice_set_utility(cornell_beta_1_locally_i_opt, utilities_1, utility_point_size = utility_point_size) +
+      ggtitle("Locally I-optimal beta 1")
+    ,
+    plot_choice_set_utility(cornell_beta_2_locally_i_opt, utilities_2, utility_point_size = utility_point_size) +
+      ggtitle("Locally I-optimal beta 2")
+    ,
+    ncol = 2
+  )
+)
+```
+
+
+### Bayesian optimal designs
+
+```{r}
+
+kappas = c(0.5, 5, 10, 30)
+n_draws = 128
+n_random_starts_2 = 128
+max_it_bayes = 20
+
+
+# cornell_designs_basefilename = paste0(designs_folder, "cornell_experiment_rs", n_random_starts_2, "_maxit", max_it_bayes)
+cornell_designs_basefilename = paste0(designs_folder, "cornell_experiment_untransformed_betas_rs", n_random_starts_2, "_maxit", max_it_bayes)
+
+
+## Reading designs if they exist. Otherwise, creating and saving them.
+(start_time = Sys.time())
+cornell_designs = lapply(kappas, function(k){
+  # Each design takes around 53 and 87 seconds with 16 initial random designs, 128 halton draws, 10 max iterations and 4 cores.
+  # Each design takes around 99 and 160 seconds with 32 initial random designs, 128 halton draws, 10 max iterations and 4 cores.
+  # Each design takes around 13 and 20 minutes with 128 initial random designs, 128 halton draws, 20 max iterations and 4 cores.
+  
+  cat("kappa =", k, "\n")
+  
+  beta_2_prior_draws = get_halton_draws(beta_2_prime, sd = sqrt(k), ndraws = n_draws)
+  
+  d_opt_filename = paste0(cornell_designs_basefilename, "_kappa", k, "_Dopt.rds")
+  
+  if(file.exists(d_opt_filename)){
+    cat("\tD optimal file exists. Loading.\n")
+    cornell_beta_2_pseudo_bayesian_d_opt = readRDS(d_opt_filename)
+  }else{
+    cat("\tD optimal file does not exist. Creating design.\n")
+    cornell_beta_2_pseudo_bayesian_d_opt = mnl_mixture_coord_exch(
+      q = 3,
+      J = 2,
+      S = 7,
+      verbose = 1,
+      n_random_starts = n_random_starts_2,
+      beta = beta_2_prior_draws,
+      transform_beta = F,
+      max_it = max_it_bayes,
+      n_cores = n_cores,
+      opt_crit = "D",
+      plot_designs = F)
+    
+    saveRDS(cornell_beta_2_pseudo_bayesian_d_opt, d_opt_filename)
+  }
+  
+  
+  i_opt_filename = paste0(cornell_designs_basefilename, "_kappa", k, "_Iopt.rds")
+  
+  if(file.exists(i_opt_filename)){
+    cat("\tI optimal file exists. Loading.\n")
+    cornell_beta_2_pseudo_bayesian_i_opt = readRDS(i_opt_filename)
+  }else{
+    cat("\tI optimal file does not exist. Creating design.\n")
+    cornell_beta_2_pseudo_bayesian_i_opt = mnl_mixture_coord_exch(
+      q = 3,
+      J = 2,
+      S = 7,
+      verbose = 1,
+      n_random_starts = n_random_starts_2,
+      beta = beta_2_prior_draws,
+      transform_beta = F,
+      max_it = max_it_bayes,
+      n_cores = n_cores,
+      opt_crit = "I",
+      plot_designs = F)
+    
+    saveRDS(cornell_beta_2_pseudo_bayesian_i_opt, i_opt_filename)
+  }
+  
+  
+  return(list(
+    d_opt = cornell_beta_2_pseudo_bayesian_d_opt,
+    i_opt = cornell_beta_2_pseudo_bayesian_i_opt,
+    kappa = k
+  ))
+  
+})
+(end_time = Sys.time())
+(end_time - start_time)
+
+
+
+##########################################################################################
+#### Compare previous designs with Ruseckaite's
+##########################################################################################
+
+# number of Halton draws to evaluate the design
+n_draws_eval_design = 5000
+
+
+# Ruseckaite's designs
+ruseckaite_designs_list = lapply(unique(ruseckaite_cornell_designs$k), function(kappa){
+  beta_prior_draws = get_halton_draws(beta_2_prime, sd = sqrt(kappa), ndraws = n_draws_eval_design)
+  
+  des_array_k = ruseckaite_cornell_designs %>%
+    filter(k == kappa) %>%
+    select(-k) %>%
+    mnl_design_dataframe_to_array()
+  
+  
+  d_opt_value = mnl_get_opt_crit_value(
+    X = des_array_k,
+    beta = beta_prior_draws,
+    order = 3,
+    opt_crit = "D",
+    transform_beta = F)
+  
+  i_opt_value = mnl_get_opt_crit_value(
+    X = des_array_k,
+    beta = beta_prior_draws,
+    order = 3,
+    opt_crit = "I",
+    transform_beta = F)
+  
+  
+  info = tibble(
+    kappa = kappa,
+    d_opt_value = d_opt_value,
+    i_opt_value = i_opt_value,
+    type_design = "D_optimal",
+    author = "Ruseckaite")
+  
+  
+  out = list(
+    design = des_array_k,
+    info = info
+  )
+  
+  
+})
+
+
+
+# My designs
+mbc_designs_list = lapply(1:(length(cornell_designs)*2), function(j){
+  
+  if(j %% 2 == 1) { # j is odd
+    i = (j-1)/2 + 1
+    
+    kappa = cornell_designs[[i]]$kappa
+    beta_prior_draws = get_halton_draws(beta_2_prime, sd = sqrt(kappa), ndraws = n_draws_eval_design)
+    
+    d_opt_value_doptdes = mnl_get_opt_crit_value(
+      X = cornell_designs[[i]]$d_opt$X,
+      beta = beta_prior_draws,
+      order = 3,
+      opt_crit = "D",
+      transform_beta = F)
+    
+    i_opt_value_doptdes = mnl_get_opt_crit_value(
+      X = cornell_designs[[i]]$d_opt$X,
+      beta = beta_prior_draws,
+      order = 3,
+      opt_crit = "I",
+      transform_beta = F)
+    
+    info = tibble(
+      kappa = kappa,
+      d_opt_value = c(d_opt_value_doptdes),
+      i_opt_value = c(i_opt_value_doptdes),
+      type_design = c("D_optimal"),
+      author = "Becerra"
+    )
+    
+    out = list(
+      design = cornell_designs[[i]]$d_opt$X,
+      info = info
+    )
+    
+  } else{ # j is even
+    i = j/2
+    
+    kappa = cornell_designs[[i]]$kappa
+    beta_prior_draws = get_halton_draws(beta_2_prime, sd = sqrt(kappa), ndraws = n_draws_eval_design)
+    
+    d_opt_value_ioptdes = mnl_get_opt_crit_value(
+      X = cornell_designs[[i]]$i_opt$X,
+      beta = beta_prior_draws,
+      order = 3,
+      opt_crit = "D",
+      transform_beta = F)
+    
+    i_opt_value_ioptdes = mnl_get_opt_crit_value(
+      X = cornell_designs[[i]]$i_opt$X,
+      beta = beta_prior_draws,
+      order = 3,
+      opt_crit = "I",
+      transform_beta = F)
+    
+    
+    info = tibble(
+      kappa = kappa,
+      d_opt_value = c(d_opt_value_ioptdes),
+      i_opt_value = c(i_opt_value_ioptdes),
+      type_design = c("I_optimal"),
+      author = "Becerra"
+    )
+    
+    out = list(
+      design = cornell_designs[[i]]$i_opt$X,
+      info = info
+    )
+    
+  }
+})
+
+
+# Create a list with all the designs
+all_designs = c(ruseckaite_designs_list, mbc_designs_list)
+
+# Create a single dataframe with the information of each design
+all_designs_optimality_values = map_df(seq_along(all_designs), function(i){
+  out = all_designs[[i]]$info %>%
+    mutate(index_in_list = i)
+  
+  return(out)
+}) %>%
+  arrange(kappa, type_design, desc(author))
+
+all_designs_optimality_values
+
+
+```
+
+```{r, , fig.height=20, fig.width=10}
+
+## Create a list with the plots of the optimal designs
+optimal_designs_plots = all_designs_optimality_values %>%
+  # filter(type_design == "D_optimal") %>%
+  pull(index_in_list) %>%
+  lapply(., function(ix){
+    
+    out_plot = suppressWarnings(
+      plot_choice_set_utility(
+        all_designs[[ix]]$design,
+        utilities_cornell_bayesian_plot,
+        utility_point_size = utility_point_size
+      ) +
+        ggtitle(
+          paste0(
+            all_designs[[ix]]$info$author, " ", all_designs[[ix]]$info$type_design, " ",
+            "kappa = ", all_designs[[ix]]$info$kappa
+          ),
+          subtitle = paste0(
+            "D-opt vale: ", round(all_designs[[ix]]$info$d_opt_value, 2),
+            "    ",
+            "I-opt vale: ", round(all_designs[[ix]]$info$i_opt_value, 2)
+          )
+        )
+    )
+    
+    return(out_plot)
+    
+    
+  })
+
+
+# Couldn't get it to print with the list only
+
+ggtern::grid.arrange(
+  optimal_designs_plots[[1]],
+  optimal_designs_plots[[2]],
+  optimal_designs_plots[[3]],
+  optimal_designs_plots[[4]],
+  optimal_designs_plots[[5]],
+  optimal_designs_plots[[6]],
+  optimal_designs_plots[[7]],
+  optimal_designs_plots[[8]],
+  optimal_designs_plots[[9]],
+  optimal_designs_plots[[10]],
+  optimal_designs_plots[[11]],
+  optimal_designs_plots[[12]],
+  ncol = 3)
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
