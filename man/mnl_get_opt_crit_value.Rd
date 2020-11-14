@@ -4,7 +4,7 @@
 \alias{mnl_get_opt_crit_value}
 \title{Function that computes optimality criterion value for MNL model}
 \usage{
-mnl_get_opt_crit_value(X, beta, order, opt_crit = 0)
+mnl_get_opt_crit_value(X, beta, order, opt_crit = "D", transform_beta = T)
 }
 \arguments{
 \item{X}{3 dimensional array with dimensions (q, J, S) where:
@@ -12,9 +12,9 @@ q is the number of ingredient proportions,
 J is the number of alternatives within a choice set,
 S is the number of choice sets.}
 
-\item{beta}{numeric vector containing the parameters. Should be of length (q^3 + 5*q)/6. Must extend to Bayesian case and have the option of it to be a matrix.}
+\item{beta}{numeric vector containing the parameters or numeric matrix containing draws of the prior distribution of the parameters.}
 
-\item{opt_crit}{optimality criterion: 0 is D-optimality and 1 is I-optimality}
+\item{opt_crit}{optimality criterion: 0 or "D" is D-optimality and 1 or "I" is I-optimality}
 }
 \value{
 Returns the value of the optimality criterion for this particular design and this beta vector

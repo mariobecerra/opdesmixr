@@ -4,7 +4,13 @@
 \alias{gaussian_create_random_initial_design}
 \title{TODO: write doc}
 \usage{
-gaussian_create_random_initial_design(n_runs, q, seed = NULL)
+gaussian_create_random_initial_design(
+  n_runs,
+  q,
+  n_pv = 0,
+  pv_bounds = NULL,
+  seed = NULL
+)
 }
 \description{
 TODO: write doc

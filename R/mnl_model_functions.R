@@ -39,7 +39,7 @@ mnl_create_random_initial_design = function(q, J, S, seed = NULL){
 #' @param opt_crit optimality criterion: 0 or "D" is D-optimality and 1 or "I" is I-optimality
 #' @return Returns the value of the optimality criterion for this particular design and this beta vector
 #' @export
-mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D"){
+mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta = T){
 
   # Recode opt_crit
   if(opt_crit == "D") opt_crit = 0
@@ -58,9 +58,22 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D"){
     }
   }
 
-  if(is.vector(beta)) if(m != length(beta)) stop("Incompatible size in beta and q: beta must be of length ", m)
 
-  if(is.matrix(beta)) if(m != ncol(beta)) stop("Incompatible size in beta and q: beta must have ", m,  "columns")
+
+  if(is.vector(beta)) {
+    if(m != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
+    if(m-1 != length(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m-1)
+  }
+
+  if(is.matrix(beta)) {
+    if(m != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
+    if(m-1 != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m-1,  " columns")
+  }
+
+
+  if(is.vector(beta)) beta_mat = matrix(beta, nrow = 1)
+  else beta_mat = beta
+
 
 
   if(opt_crit == 0){
@@ -71,12 +84,8 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D"){
     W = mnl_create_moment_matrix(q, order)
   }
 
-  if(is.matrix(beta)){
-    return(getOptCritValueMNL(X = X, beta = beta, opt_crit = opt_crit, verbose = 0, W = W, order = order))
-  } else{
-    beta_mat = matrix(beta, byrow = T, nrow = 1)
-  }
 
+  return(getOptCritValueMNL(X = X, beta = beta, opt_crit = opt_crit, verbose = 0, W = W, order = order, transform_beta = transform_beta))
 
 }
 
@@ -608,3 +617,57 @@ mnl_create_moment_matrix = function(q, order = 3){
 
 
 
+
+
+
+#' TODO: write doc
+#' Returns a 3 dimensional array to be used in the functions in the package
+#' des_df must be a dataframe  with (k+1) columns where the first k columns are the variables and the (k+1)-th column is the choice set.
+#' @export
+mnl_design_dataframe_to_array = function(des_df){
+  q = ncol(des_df) - 1
+  JS = nrow(des_df)
+  S = length(unique(des_df$choice_set))
+  J = JS/S
+
+  des_array = array(rep(NA_real_, JS*q), dim = c(q, J, S))
+
+  s = 1
+  for(cs in unique(des_df$choice_set)){
+    des_array[, , s] = t(as.matrix(des_df[which(des_df$choice_set == cs), 1:q]))
+    s = s + 1
+  }
+
+  return(des_array)
+}
+
+
+
+
+#' TODO: write doc
+#' Converts a design in an array to a more readable or plotable data frame.
+#' des_array must be a 3-dimensional design array of dimension (k, J, S) where k is the number of variables, J the number of alternatives in each choice set and S is the number of choice sets.
+#' Returns a dataframe  with (k+1) columns where the first q columns are the variables and the (k+1)-th column is the choice set.
+#' If names is null then the names of the columns are c(paste0("c", 1:k), "choice_set").
+#' Example:
+#'     des_array = mnl_create_random_initial_design(3, 2, 4)
+#'     design_array_to_dataframe(des_array, names = c("v1", "v2", "v3", "choice_set"))
+#' @export
+mnl_design_array_to_dataframe = function(des_array, names = NULL){
+  dim_X = dim(des_array)
+  k = dim_X[1]
+  S = dim_X[3]
+
+  if(is.null(names)) names = c(paste0("c", 1:k), "choice_set")
+
+  X_final_tbl = lapply(1:S, function(s){
+    t(des_array[,,s]) %>%
+      as_tibble() %>%
+      mutate(choice_set = as.character(s))
+  }) %>%
+    bind_rows() %>%
+    set_names(names)
+
+  return(X_final_tbl)
+
+}

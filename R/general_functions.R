@@ -183,6 +183,49 @@ get_halton_draws = function(beta, sd = 1, ndraws = 120){
 
 
 
+
+
+
+#' TODO: write doc
+#' Returns a matrix of dimension m x ndraws where m is the length of the beta vector and sigma is the correlation matrix between the parameters.
+#' Matrix sigma must be if size mxm.
+#' Example on how to use:
+#' beta = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)
+#'
+#' sigma = matrix(
+#'   c(6.14, 5.00, 2.74, -0.43, -2.81, -3.33,
+#'     5.00, 6.76, 4.47, -1.79, -6.13, -3.51,
+#'     2.74, 4.47, 3.45, -1.38, -4.71, -2.17,
+#'     -0.43, -1.79, -1.38, 1.18, 2.39, 0.71,
+#'     -2.81, -6.13, -4.71, 2.39, 7.43, 2.71,
+#'     -3.33, -3.51, -2.17, 0.71, 2.71, 2.49),
+#'   ncol = 6,
+#'   byrow = T)
+#' @export
+get_correlated_halton_draws = function(beta, sigma, n_draws = 128){
+
+  uncorrelated_draws = get_halton_draws(beta, sd = 1, ndraws = n_draws)
+  uncorrelated_draws_mean = apply(uncorrelated_draws, 2, mean)
+
+  chol_sigma = chol(sigma)
+
+  correlated_draws = uncorrelated_draws %*% chol_sigma
+  correlated_draws2 = correlated_draws - matrix(rep(apply(correlated_draws, 2, mean), n_draws), nrow = n_draws, byrow = T) + matrix(rep(uncorrelated_draws_mean, n_draws), nrow = n_draws, byrow = T)
+  return(correlated_draws2)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' Explicitly draw plot (\code{ggtern} and \code{ggplot2} compatible)
 #'
 #' Makes sure both \code{\link[ggtern:::print.ggplot]{ggtern}} and
@@ -207,3 +250,8 @@ print.ggplot <- function(x, newpage = is.null(vp), vp = NULL, ...){
     ggplot2:::print.ggplot(x, newpage = newpage, vp = vp, ...)
   }
 }
+
+
+
+
+
