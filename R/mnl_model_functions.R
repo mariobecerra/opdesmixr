@@ -671,3 +671,43 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
   return(X_final_tbl)
 
 }
+
+
+
+
+
+#' TODO: write doc
+#' Gets the information matrix of the MNL model.
+#' Parameters:
+#' X: 3-dimensional array
+#' beta: vector
+#' order
+#' transform_beta
+#' @export
+mnl_get_information_matrix = function(X, beta, order, transform_beta){
+  IM = getInformationMatrixMNL(
+    X = X,
+    beta = beta,
+    order = order,
+    transform_beta = transform_beta)
+
+  return(IM)
+}
+
+
+
+#' TODO: write doc
+#' Wrapper function for getXsMNL()
+#' @export
+mnl_get_Xs = function(X, s, order){
+  return(getXsMNL(X = X, s = s, order = order))
+}
+
+
+
+
+
+
+
+
+
