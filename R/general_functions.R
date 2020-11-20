@@ -21,11 +21,12 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
   # If component is null
   if(!is.null(comp) & length(comp) == 1){
     out = compute_cox_direction(x_in, comp, n_points) %>%
+      as.data.frame() %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
       ggtern::ggtern(ggtern::aes(c1, c2, c3)) +
       ggplot2::geom_path(linetype = "dashed") +
-      ggplot2::geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3])) +
+      ggplot2::geom_point(data = tibble::tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3])) +
       ggtern::theme_minimal() +
       ggtern::theme_nomask()
   } else{
@@ -33,16 +34,17 @@ plot_cox_direction = function(x_in, comp = NULL, n_points = 3){
 
     cox_dirs = lapply(1:length(comp), function(i){
       compute_cox_direction(x_in, i, 3) %>%
+        as.data.frame() %>%
         dplyr::as_tibble() %>%
         purrr::set_names(c("c1", "c2", "c3")) %>%
         dplyr::mutate(comp = i)
     }) %>%
-      bind_rows()
+      dplyr::bind_rows()
 
     out = cox_dirs %>%
       ggtern::ggtern(ggtern::aes(c1, c2, c3)) +
       ggplot2::geom_path(linetype = "dashed", aes(group = comp)) +
-      ggplot2::geom_point(data = tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3])) +
+      ggplot2::geom_point(data = tibble::tibble(c1 = x_in[1], c2 = x_in[2], c3 = x_in[3])) +
       ggtern::theme_minimal() +
       ggtern::theme_nomask()
   }
