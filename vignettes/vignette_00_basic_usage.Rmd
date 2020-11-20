@@ -22,6 +22,8 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(opdesmixr)
+library(tidyr)
+library(ggplot2)
 ```
 
 # Plot Cox direction
