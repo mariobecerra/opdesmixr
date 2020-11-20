@@ -711,3 +711,100 @@ mnl_get_Xs = function(X, s, order){
 
 
 
+
+
+#### Functions for FDS plots
+
+#' TODO: write doc
+#' Returns a dataframe with Monte Carlo simulations for Fraction of Design Space plots
+#' Output dataframe is of size J*n_points_per_alternative where J is the number of alternatives per choice set, i.e., the second element in dim(design_array).
+#' @export
+mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 0){
+
+  q = dim(design_array)[1]
+  J = dim(design_array)[2]
+  S = dim(design_array)[3]
+
+  pred_var = suppressWarnings(as.data.frame(matrix(rep(NA_real_, J*n_points_per_alternative), ncol = J))) %>%
+    set_names(paste0("V", 1:J))
+
+  progress_old = -1
+  for(k in 1:n_points_per_alternative){
+    if(verbose > 0){
+      progress = round(100*(k-1)/n_points_per_alternative, 0)
+      if(progress - progress_old >= 1){
+        cat('\r', "Progress: ", progress, "%", sep = "")
+        flush.console()
+      }
+      progress_old = progress
+    }
+    des_k = mnl_create_random_initial_design(q, J, S, seed = k)
+    vars_1 = rep(NA_real_, J)
+    for(j in 1:J){
+      f_x = mnl_get_Xs(des_k, 1, order = order)[j,]
+      acc = 0
+      for(i in 1:nrow(beta)){
+        inf_mat = mnl_get_information_matrix(design_array, beta = beta[i,], order = order, transform_beta = transform_beta)
+        acc = acc + t(f_x) %*% solve(inf_mat, f_x)
+      }
+      vars_1[j] = acc/nrow(beta)
+    }
+
+    pred_var[k,] = vars_1
+  }
+
+
+  out = tibble(pred_var = sort(unlist(pred_var))) %>%
+    mutate(fraction = 1:nrow(.)/nrow(.))
+
+  if(verbose > 0) cat("\nFinished\n\n")
+
+  return(out)
+}
+
+
+
+
+# mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 1){
+#
+#   q = dim(design_array)[1]
+#   J = dim(design_array)[2]
+#   S = dim(design_array)[3]
+#
+#   pred_var = suppressWarnings(as.data.frame(matrix(rep(NA_real_, J*n_points_per_alternative), ncol = J))) %>%
+#     set_names(paste0("V", 1:J))
+#   progress_old = -1
+#   for(k in 1:n_points_per_alternative){
+#
+#     if(verbose > 0){
+#       progress = round(100*(k-1)/n_points_per_alternative, 0)
+#       if(progress - progress_old >= 1){
+#         cat('\r', "Progress: ", progress, "%", sep = "")
+#         flush.console()
+#       }
+#       progress_old = progress
+#     }
+#
+#     des_k = mnl_create_random_initial_design(q, J, S, seed = k)
+#     vars_1 = rep(NA_real_, J)
+#     for(j in 1:J){
+#       f_x = mnl_get_Xs(des_k, 1, order = order)[j,]
+#       acc = 0
+#       for(i in 1:nrow(beta)){
+#         inf_mat = mnl_get_information_matrix(design_array, beta = beta[i,], order = order, transform_beta = transform_beta)
+#         acc = acc + t(f_x) %*% solve(inf_mat, f_x)
+#       }
+#       vars_1[j] = acc/nrow(beta)
+#     }
+#
+#     pred_var[k,] = vars_1
+#   }
+#
+#   out = tibble(pred_var = sort(apply(pred_var, 1, sum))) %>%
+#     mutate(fraction = 1:nrow(.)/nrow(.))
+#
+#   if(verbose > 0) cat("\nFinished\n\n")
+#
+#   return(out)
+# }
+

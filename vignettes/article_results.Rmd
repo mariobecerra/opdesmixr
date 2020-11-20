@@ -97,7 +97,7 @@ ggtern::grid.arrange(
 n_points_per_alternative_cocktail = 2000
 
 
-pred_vars_cocktail = get_pred_var(
+pred_vars_cocktail = mnl_get_fds_simulations(
   design_array = cocktail_I_opt$X,
   beta = cocktail_I_opt$beta,
   order = 3,
@@ -106,7 +106,7 @@ pred_vars_cocktail = get_pred_var(
   verbose = 0) %>%
   mutate(Design = "I-optimal") %>%
   bind_rows(
-    get_pred_var(
+    mnl_get_fds_simulations(
       design_array = cocktail_D_opt$X,
       beta = cocktail_D_opt$beta,
       order = 3,
@@ -264,7 +264,7 @@ pred_vars_cornell = lapply(
     kappa_i = cornell_designs[[i]]$kappa
     cat("\n\n\nkappa:", kappa_i, format(Sys.time(),'(%H:%M:%S)'), "\n")
 
-    pred_vars_cornell_i = get_pred_var(
+    pred_vars_cornell_i = mnl_get_fds_simulations(
         design_array = cornell_designs[[i]]$i_opt$X,
         beta = cornell_designs[[i]]$i_opt$beta,
         order = 3,
@@ -273,7 +273,7 @@ pred_vars_cornell = lapply(
         verbose = 0) %>%
       mutate(Design = "I-optimal") %>%
       bind_rows(
-        get_pred_var(
+        mnl_get_fds_simulations(
             design_array = cornell_designs[[i]]$d_opt$X,
             beta = cornell_designs[[i]]$d_opt$beta,
             order = 3,
