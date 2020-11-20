@@ -9,10 +9,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r, eval = F}
-rmarkdown::render(here::here("vignettes/article_results.Rmd"), output_dir = here::here("inst/doc"))
-```
-
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -118,7 +114,7 @@ pred_vars_cocktail = mnl_get_fds_simulations(
 
 
 
-pred_vars_cocktail %>%
+fds_plot_cocktail = pred_vars_cocktail %>%
   ggplot() +
   geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
   geom_hline(yintercept = pred_vars_cocktail %>%
@@ -133,6 +129,8 @@ pred_vars_cocktail %>%
   ylab("Prediction variance") +
   ggtitle("Cocktail experiment") +
   theme_bw()
+
+ggplot2:::print.ggplot(fds_plot_cocktail)
 
 ```
 
@@ -299,7 +297,7 @@ medians_pred_var_cornell = pred_vars_cornell %>%
 
 
 
-pred_vars_cornell %>%
+fds_plot_cornell = pred_vars_cornell %>%
   left_join(
     medians_pred_var_cornell
   ) %>%
@@ -315,7 +313,7 @@ pred_vars_cornell %>%
   theme_bw() +
   facet_wrap(~kappa2, scales = "free_y")
 
-
+ggplot2:::print.ggplot(fds_plot_cornell)
 
 
 ```
