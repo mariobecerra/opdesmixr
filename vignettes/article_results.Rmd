@@ -1,0 +1,350 @@
+---
+title: "Article results"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{article_results}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, eval = F}
+rmarkdown::render(here::here("vignettes/article_results.Rmd"))
+```
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  cache = T, 
+  fig.width = 8,
+  fig.height = 10
+)
+```
+
+
+```{r setup}
+library(opdesmixr)
+library(tidyverse)
+
+
+get_file_path = function(filepath){
+  # This function is useful to use when developing the package and working with data in the inst/ folder.
+  # If the package hasn't been installed, then system.file() won't work, then it goes to the folder.
+  # It assumes that the working directory is the project directory.
+  path_system_file = system.file(filepath, package = "opdesmixr", mustWork = F)
+  if(path_system_file == ""){
+    out_path = here::here(filepath)
+  } else{
+    out_path = path_system_file
+  }
+  return(out_path)
+}
+
+get_file_path_inst = function(filepath){
+  # This function is useful to use when developing the package and working with data in the inst/ folder.
+  # If the package hasn't been installed, then system.file() won't work, then it goes to the folder.
+  # It assumes that the working directory is the project directory.
+  path_system_file = system.file(filepath, package = "opdesmixr", mustWork = F)
+  if(path_system_file == ""){
+    out_path = here::here("inst/", filepath)
+  } else{
+    out_path = path_system_file
+  }
+  return(out_path)
+}
+
+
+designs_folder = get_file_path_inst("misc_output/cocktail_cornell_designs/")
+if(!dir.exists(designs_folder)) stop("Folder '", designs_folder, "' does not exist.")
+
+source(get_file_path("vignettes/vignette_utils.R"))
+
+```
+
+# Cocktail experiment
+
+```{r load_cocktail_data}
+
+##########################################################################################
+#### Load designs for cocktail experiment
+##########################################################################################
+
+beta0 = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)
+
+cocktail_d_opt_filename = paste0(designs_folder, "cocktail_d_optimal.rds")
+cocktail_i_opt_filename = paste0(designs_folder, "cocktail_i_optimal.rds")
+
+cocktail_D_opt = readRDS(cocktail_d_opt_filename)
+cocktail_I_opt = readRDS(cocktail_i_opt_filename)
+
+
+
+```
+
+```{r cocktail_design_plots, fig.height = 10, fig.width=8}
+
+##########################################################################################
+#### Design plots
+##########################################################################################
+
+levels_bayesian = c(0, .5625, 1.125, 1.6875, 2.25)
+utilities_cocktail_bayesian_plot = scheffe_order3_q3_utilities(beta0, 50000) %>%
+  mutate(utility_fact = cut(utility, levels_bayesian, right = F)) %>%
+  mutate(utility_int = as.integer(utility_fact)) %>%
+  mutate(utility_avg = case_when(
+    utility_int == 1 ~ (levels_bayesian[1] + levels_bayesian[2] - levels_bayesian[1])/2,
+    utility_int == 2 ~ (levels_bayesian[2] + levels_bayesian[3] - levels_bayesian[2])/2,
+    utility_int == 3 ~ (levels_bayesian[3] + levels_bayesian[4] - levels_bayesian[3])/2,
+    utility_int == 4 ~ (levels_bayesian[4] + levels_bayesian[5] - levels_bayesian[4])/2
+  ))
+
+
+
+ggtern::grid.arrange(
+  plot_choice_set_utility(cocktail_D_opt, utilities_cocktail_bayesian_plot) +
+    ggtitle("Bayesian D-optimal for cocktail experiment")
+  ,
+  plot_choice_set_utility(cocktail_I_opt, utilities_cocktail_bayesian_plot) +
+    ggtitle("Bayesian I-optimal for cocktail experiment")
+  ,
+  ncol = 2
+)
+
+```
+
+```{r cocktail_fds_plots, fig.height=5}
+
+##########################################################################################
+#### FDS plots
+##########################################################################################
+
+
+n_points_per_alternative_cocktail = 2000
+
+
+pred_vars_cocktail = get_pred_var(
+  design_array = cocktail_I_opt$X,
+  beta = cocktail_I_opt$beta,
+  order = 3,
+  n_points_per_alternative = n_points_per_alternative_cocktail,
+  transform_beta = F,
+  verbose = 0) %>%
+  mutate(Design = "I-optimal") %>%
+  bind_rows(
+    get_pred_var(
+      design_array = cocktail_D_opt$X,
+      beta = cocktail_D_opt$beta,
+      order = 3,
+      n_points_per_alternative = n_points_per_alternative_cocktail,
+      transform_beta = F,
+      verbose = 0) %>%
+      mutate(Design = "D-optimal")
+  )
+
+
+
+pred_vars_cocktail %>%
+  ggplot() +
+  geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
+  geom_hline(yintercept = pred_vars_cocktail %>%
+               group_by(Design) %>%
+               summarize(
+                 med = median(pred_var),
+                 mean = mean(pred_var)) %>%
+               pull(med),
+             linetype = "dashed", size = 0.2) +
+  geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
+  xlab("Fraction of design space") +
+  ylab("Prediction variance") +
+  ggtitle("Cocktail experiment") +
+  theme_bw()
+
+```
+
+
+# Cornell's experiment
+
+```{r load_cornell_data}
+
+##########################################################################################
+#### Load designs for Cornell's experiment
+##########################################################################################
+
+beta_2_prime = c(0.86, 0.21, 3.07, 2.34, 3.24, -20.59)
+kappas = c(0.5, 5, 10, 30)
+
+n_random_starts_2 = 128
+max_it_bayes = 20
+cornell_designs_basefilename = paste0(designs_folder, "cornell_experiment_untransformed_betas_rs", n_random_starts_2, "_maxit", max_it_bayes)
+
+
+## Read designs and save them in a list
+cornell_designs = lapply(kappas, function(k){
+
+  cat("kappa =", k, "\n")
+
+  d_opt_filename = paste0(cornell_designs_basefilename, "_kappa", k, "_Dopt.rds")
+  i_opt_filename = paste0(cornell_designs_basefilename, "_kappa", k, "_Iopt.rds")
+
+
+
+  if(file.exists(d_opt_filename)){
+    cat("\tD optimal file exists. Loading.\n")
+    cornell_beta_2_bayesian_d_opt = readRDS(d_opt_filename)
+  }else{
+    stop("\tD optimal file does not exist.\n")
+
+  }
+
+  if(file.exists(i_opt_filename)){
+    cat("\tI optimal file exists. Loading.\n")
+    cornell_beta_2_bayesian_i_opt = readRDS(i_opt_filename)
+  }else{
+    stop("\tI optimal file does not exist.\n")
+  }
+
+  return(list(
+    d_opt = cornell_beta_2_bayesian_d_opt,
+    i_opt = cornell_beta_2_bayesian_i_opt,
+    kappa = k
+  ))
+
+})
+
+
+```
+
+
+```{r cornell_design_plots, fig.height=20, fig.width=8}
+
+##########################################################################################
+#### Design plots
+##########################################################################################
+
+
+
+levels_cornell_bayesian = c(0, 0.375, 0.75, 1.125, 1.33333)
+utilities_cornell_bayesian_plot = scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
+  mutate(utility_fact = cut(utility, levels_cornell_bayesian, right = F)) %>%
+  mutate(utility_int = as.integer(utility_fact)) %>%
+  mutate(utility_avg = case_when(
+    utility_int == 1 ~ (levels_cornell_bayesian[1] + levels_cornell_bayesian[2] - levels_cornell_bayesian[1])/2,
+    utility_int == 2 ~ (levels_cornell_bayesian[2] + levels_cornell_bayesian[3] - levels_cornell_bayesian[2])/2,
+    utility_int == 3 ~ (levels_cornell_bayesian[3] + levels_cornell_bayesian[4] - levels_cornell_bayesian[3])/2,
+    utility_int == 4 ~ (levels_cornell_bayesian[4] + levels_cornell_bayesian[5] - levels_cornell_bayesian[4])/2
+  ))
+
+
+## Create a list with the plots of the optimal designs
+cornell_optimal_designs_plots = lapply(seq_along(cornell_designs), function(i){
+
+  out_list = list(
+    d_opt_plot = plot_choice_set_utility(
+      cornell_designs[[i]]$d_opt$X, utilities_cornell_bayesian_plot,
+      legend.position = "bottom"
+      ) +
+      ggtitle("", subtitle = paste0("D-optimal, kappa = ", cornell_designs[[i]]$kappa))
+    ,
+    i_opt_plot = plot_choice_set_utility(
+      cornell_designs[[i]]$i_opt$X, utilities_cornell_bayesian_plot,
+      legend.position = "bottom"
+      ) +
+      ggtitle("", subtitle = paste0("I-optimal, kappa = ", cornell_designs[[i]]$kappa))
+
+    ,
+    kappa = cornell_designs[[i]]$kappa
+  )
+
+    return(out_list)
+
+
+  })
+
+
+# Couldn't get it to print with the list only
+
+ggtern::grid.arrange(
+  cornell_optimal_designs_plots[[1]][[1]], cornell_optimal_designs_plots[[1]][[2]],
+  cornell_optimal_designs_plots[[2]][[1]], cornell_optimal_designs_plots[[2]][[2]],
+  cornell_optimal_designs_plots[[3]][[1]], cornell_optimal_designs_plots[[3]][[2]],
+  cornell_optimal_designs_plots[[4]][[1]], cornell_optimal_designs_plots[[4]][[2]],
+  top = grid::textGrob(paste0("kappas: 0.5, 5, 10, 30"), gp = grid::gpar(fontsize = 15)),
+  ncol = 2)
+
+
+
+```
+
+```{r cornell_fds_plots, fig.height=6}
+
+##########################################################################################
+#### FDS plots
+##########################################################################################
+
+n_points_per_alternative_cornell = 2000
+
+pred_vars_cornell = lapply(
+  seq_along(cornell_designs), function(i){
+
+    kappa_i = cornell_designs[[i]]$kappa
+    cat("\n\n\nkappa:", kappa_i, format(Sys.time(),'(%H:%M:%S)'), "\n")
+
+    pred_vars_cornell_i = get_pred_var(
+        design_array = cornell_designs[[i]]$i_opt$X,
+        beta = cornell_designs[[i]]$i_opt$beta,
+        order = 3,
+        n_points_per_alternative = n_points_per_alternative_cornell,
+        transform_beta = F,
+        verbose = 0) %>%
+      mutate(Design = "I-optimal") %>%
+      bind_rows(
+        get_pred_var(
+            design_array = cornell_designs[[i]]$d_opt$X,
+            beta = cornell_designs[[i]]$d_opt$beta,
+            order = 3,
+            n_points_per_alternative = n_points_per_alternative_cornell,
+            transform_beta = F,
+            verbose = 0) %>%
+          mutate(Design = "D-optimal")
+      )
+
+    return(pred_vars_cornell_i %>%
+             mutate(kappa = kappa_i))
+
+  }) %>%
+  bind_rows()
+
+
+
+medians_pred_var_cornell = pred_vars_cornell %>%
+  group_by(Design, kappa) %>%
+  summarize(
+    med = median(pred_var),
+    mean = mean(pred_var))
+
+
+
+pred_vars_cornell %>%
+  left_join(
+    medians_pred_var_cornell
+  ) %>%
+  mutate(kappa2 = paste0("kappa = ", kappa)) %>%
+  mutate(kappa2 = fct_reorder(kappa2, kappa)) %>%
+  ggplot() +
+  geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
+  geom_hline(aes(yintercept = med), linetype = "dashed", size = 0.2) +
+  geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
+  xlab("Fraction of design space") +
+  ylab("Prediction variance") +
+  ggtitle("Cornell's experiment") +
+  theme_bw() +
+  facet_wrap(~kappa2, scales = "free_y")
+
+
+
+
+```
+
