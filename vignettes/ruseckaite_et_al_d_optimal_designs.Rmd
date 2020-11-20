@@ -10,11 +10,6 @@ editor_options:
 ---
 
 
-```{r, eval = F, include = F}
-rmarkdown::render(here::here("vignettes/ruseckaite_et_al_d_optimal_designs.Rmd"))
-```
-
-
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -25,128 +20,20 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(opdesmixr)
 library(tidyverse)
-library(here)
 
 # Original Ruseckaite et. al designs:
 # https://rss.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Frssc.12174&file=rssc12174-sup-0001-Appendix.pdf
 
-designs_folder = here("inst/misc_output/cocktail_cornell_designs/")
-dir.create(designs_folder, showWarnings = F)
 
-ruseckaite_cocktail_designs = read_csv(here("inst/exdata/ruseckaite_cocktail_designs.csv"))
-ruseckaite_cornell_designs = read_csv(here("inst/exdata/ruseckaite_cornell_designs.csv"))
+ruseckaite_designs_folder = opdesmixr:::get_file_path_inst("exdata/")
+ruseckaite_cocktail_designs = read_csv(paste0(ruseckaite_designs_folder, "/ruseckaite_cocktail_designs.csv"))
+ruseckaite_cornell_designs = read_csv(paste0(ruseckaite_designs_folder, "/ruseckaite_cornell_designs.csv"))
 
-# ruseckaite_cocktail_designs = read_csv(system.file("extdata", "ruseckaite_cocktail_designs.csv", package = "opdesmixr", mustWork = TRUE))
-# ruseckaite_cornell_designs = read_csv(system.file("extdata", "ruseckaite_cornell_designs", package = "opdesmixr", mustWork = TRUE))
 
+designs_folder = opdesmixr:::get_file_path_inst("misc_output/cocktail_cornell_designs/")
 
 n_cores = parallel::detectCores()
 utility_point_size = 0.1
-
-```
-
-
-```{r function_definitions}
-create_2d_simplex_grid = function(n_out){
-  # Returns a grid of points inside the 2-dimensional simplex.
-  # The output is a dataframe of approximately n_out rows.
-  
-  n_points = floor(sqrt(2*n_out))
-  
-  simplex_grid = expand.grid(x1 = seq(0, 1, length.out = n_points),
-                             x2 = seq(0, 1, length.out = n_points)) %>%
-    filter(x1 + x2 <= 1) %>%
-    as_tibble() %>%
-    mutate(x3 = 1-x1-x2)
-  
-  return(simplex_grid)
-}
-
-
-
-
-scheffe_order3_q3_utilities = function(beta, n_out = 1000){
-  
-  out = create_2d_simplex_grid(n_out) %>%
-    mutate(utility = beta[1]*x1 + beta[2]*x2 + beta[3]*x1*x2 + beta[4]*x1*x3 + beta[5]*x2*x3 + beta[6]*x1*x2*x3)
-  
-  return(out)
-}
-
-
-
-
-
-plot_choice_set_utility = function(
-  design_object,
-  utility_data,
-  design_point_size = 2,
-  utility_point_size = 0.3,
-  utility_point_shape = "square",
-  low_color_gradient = "light blue",
-  high_color_gradient = "dark blue",
-  legend.position = "bottom",
-  legend.box = "vertical"){
-  
-  if(class(design_object) == "list"){
-    # If object is the result of the algorithm
-    dim_X = dim(design_object$X)
-    q = dim_X[1]
-    S = dim_X[3]
-    
-    if(q != 3) stop("Design must be of 3 ingredients.")
-    
-    X_final_tbl = mnl_design_array_to_dataframe(design_object$X)
-    
-  } else{
-    # If it's just an array
-    if(inherits(design_object, "array")){
-      
-      dim_X = dim(design_object)
-      q = dim_X[1]
-      S = dim_X[3]
-      
-      if(q != 3) stop("Design must be of 3 ingredients.")
-      
-      
-      X_final_tbl = mnl_design_array_to_dataframe(design_object)
-      
-    } else{
-      if(inherits(design_object, "data.frame")){
-        q = ncol(design_object) - 1
-        
-        if(q != 3) stop("Design must be of 3 ingredients.")
-        
-        X_final_tbl = design_object %>%
-          set_names(c("c1", "c2", "c3", "choice_set")) %>%
-          mutate(choice_set = as.character(choice_set))
-        
-      } else{
-        stop("Unknown type of design")
-      }
-      
-    }
-  }
-  
-  out_plot = ggtern::ggtern(data = utility_data) +
-    ggplot2::geom_point(
-      aes(x = x1, y = x2, z = x3, color = utility_avg),
-      size = utility_point_size,
-      shape = utility_point_shape) +
-    ggplot2::scale_color_gradient(
-      low = low_color_gradient, high = high_color_gradient) +
-    ggplot2::geom_point(
-      data = X_final_tbl,
-      ggtern::aes(c1, c2, c3, shape = choice_set),
-      # https://stackoverflow.com/questions/26223857/more-than-six-shapes-in-ggplot
-      color = "black", size = design_point_size, stroke = 1.5, inherit.aes = F) +
-    ggtern::theme_nomask() +
-    scale_shape_manual(values = 1:length(unique(X_final_tbl$choice_set))) +
-    theme(legend.position = legend.position, legend.box = legend.box)
-  
-  return(out_plot)
-  
-}
 
 ```
 
@@ -254,7 +141,7 @@ if(file.exists(cocktail_i_opt_filename)){
 ##########################################################################################
 
 levels_cocktail_bayesian = c(0, .5625, 1.125, 1.6875, 2.25)
-utilities_cocktail_bayesian_plot = scheffe_order3_q3_utilities(beta0, 50000) %>%
+utilities_cocktail_bayesian_plot = opdesmixr:::scheffe_order3_q3_utilities(beta0, 50000) %>%
   mutate(utility_fact = cut(utility, levels_cocktail_bayesian, right = F)) %>%
   mutate(utility_int = as.integer(utility_fact)) %>%
   mutate(utility_avg = case_when(
@@ -263,9 +150,6 @@ utilities_cocktail_bayesian_plot = scheffe_order3_q3_utilities(beta0, 50000) %>%
     utility_int == 3 ~ (levels_cocktail_bayesian[3] + levels_cocktail_bayesian[4] - levels_cocktail_bayesian[3])/2,
     utility_int == 4 ~ (levels_cocktail_bayesian[4] + levels_cocktail_bayesian[5] - levels_cocktail_bayesian[4])/2
   ))
-
-
-
 
 ```
 
@@ -280,7 +164,7 @@ beta_correlated_draws_cocktail_plot = get_correlated_halton_draws(beta0, sigma0,
 
 suppressWarnings(
   ggtern::grid.arrange(
-    plot_choice_set_utility(
+    opdesmixr:::plot_choice_set_utility(
       ruseckaite_beta0_design, 
       utilities_cocktail_bayesian_plot,
       utility_point_size = utility_point_size) +
@@ -308,7 +192,7 @@ suppressWarnings(
       )
     ,
     
-    plot_choice_set_utility(
+    opdesmixr:::plot_choice_set_utility(
       cocktail_D_opt, 
       utilities_cocktail_bayesian_plot,
       utility_point_size = utility_point_size) +
@@ -336,7 +220,7 @@ suppressWarnings(
       )
     ,
     
-    plot_choice_set_utility(
+    opdesmixr:::plot_choice_set_utility(
       cocktail_I_opt, 
       utilities_cocktail_bayesian_plot,
       utility_point_size = utility_point_size) +
@@ -375,8 +259,6 @@ suppressWarnings(
 # Cornell experiment
 
 ```{r}
-
-
 n_cores = parallel::detectCores()
 seed = 2020
 
@@ -394,7 +276,7 @@ beta_2_prime = c(0.86, 0.21, 3.07, 2.34, 3.24, -20.59)
 ##########################################################################################
 
 levels_cornell_utilities_1 = c(0, 0.5, 1, 1.5, 1.8)
-utilities_1 = scheffe_order3_q3_utilities(beta_1_prime, 50000) %>%
+utilities_1 = opdesmixr:::scheffe_order3_q3_utilities(beta_1_prime, 50000) %>%
   mutate(utility_fact = cut(utility, levels_cornell_utilities_1, right = F)) %>%
   mutate(utility_int = as.integer(utility_fact)) %>%
   mutate(utility_avg = case_when(
@@ -408,7 +290,7 @@ utilities_1 = scheffe_order3_q3_utilities(beta_1_prime, 50000) %>%
 
 
 levels_cornell_utilities_2 = c(0, 0.375, 0.75, 1.125, 1.34)
-utilities_2 = scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
+utilities_2 = opdesmixr:::scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
   mutate(utility_fact = cut(utility, levels_cornell_utilities_2, right = F)) %>%
   mutate(utility_int = as.integer(utility_fact)) %>%
   mutate(utility_avg = case_when(
@@ -424,7 +306,7 @@ utilities_2 = scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
 
 
 levels_cornell_bayesian = c(0, 0.375, 0.75, 1.125, 1.33333)
-utilities_cornell_bayesian_plot = scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
+utilities_cornell_bayesian_plot = opdesmixr:::scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
   mutate(utility_fact = cut(utility, levels_cornell_bayesian, right = F)) %>%
   mutate(utility_int = as.integer(utility_fact)) %>%
   mutate(utility_avg = case_when(
@@ -546,16 +428,16 @@ if(file.exists(cornell_beta_2_locally_i_opt_filename)){
 
 suppressWarnings(
   ggtern::grid.arrange(
-    plot_choice_set_utility(cornell_beta_1_locally_d_opt, utilities_1, utility_point_size = utility_point_size) +
+    opdesmixr:::plot_choice_set_utility(cornell_beta_1_locally_d_opt, utilities_1, utility_point_size = utility_point_size) +
       ggtitle("Locally D-optimal beta 1")
     ,
-    plot_choice_set_utility(cornell_beta_2_locally_d_opt, utilities_2, utility_point_size = utility_point_size) +
+    opdesmixr:::plot_choice_set_utility(cornell_beta_2_locally_d_opt, utilities_2, utility_point_size = utility_point_size) +
       ggtitle("Locally D-optimal beta 2")
     ,
-    plot_choice_set_utility(cornell_beta_1_locally_i_opt, utilities_1, utility_point_size = utility_point_size) +
+    opdesmixr:::plot_choice_set_utility(cornell_beta_1_locally_i_opt, utilities_1, utility_point_size = utility_point_size) +
       ggtitle("Locally I-optimal beta 1")
     ,
-    plot_choice_set_utility(cornell_beta_2_locally_i_opt, utilities_2, utility_point_size = utility_point_size) +
+    opdesmixr:::plot_choice_set_utility(cornell_beta_2_locally_i_opt, utilities_2, utility_point_size = utility_point_size) +
       ggtitle("Locally I-optimal beta 2")
     ,
     ncol = 2
@@ -800,7 +682,7 @@ optimal_designs_plots = all_designs_optimality_values %>%
   lapply(., function(ix){
     
     out_plot = suppressWarnings(
-      plot_choice_set_utility(
+      opdesmixr:::plot_choice_set_utility(
         all_designs[[ix]]$design,
         utilities_cornell_bayesian_plot,
         utility_point_size = utility_point_size

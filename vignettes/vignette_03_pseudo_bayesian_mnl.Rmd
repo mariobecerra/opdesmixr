@@ -9,12 +9,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-
-```{r, eval = F, include = F}
-rmarkdown::render(here::here("vignettes/vignette_03_pseudo_bayesian_mnl.Rmd"))
-```
-
-
 # Mixtures and MNL model
 
 Notation:

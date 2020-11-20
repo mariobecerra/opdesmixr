@@ -10,7 +10,7 @@ editor_options:
 ---
 
 ```{r, eval = F}
-rmarkdown::render(here::here("vignettes/article_results.Rmd"))
+rmarkdown::render(here::here("vignettes/article_results.Rmd"), output_dir = here::here("inst/doc"))
 ```
 
 
@@ -30,37 +30,9 @@ library(opdesmixr)
 library(tidyverse)
 
 
-get_file_path = function(filepath){
-  # This function is useful to use when developing the package and working with data in the inst/ folder.
-  # If the package hasn't been installed, then system.file() won't work, then it goes to the folder.
-  # It assumes that the working directory is the project directory.
-  path_system_file = system.file(filepath, package = "opdesmixr", mustWork = F)
-  if(path_system_file == ""){
-    out_path = here::here(filepath)
-  } else{
-    out_path = path_system_file
-  }
-  return(out_path)
-}
 
-get_file_path_inst = function(filepath){
-  # This function is useful to use when developing the package and working with data in the inst/ folder.
-  # If the package hasn't been installed, then system.file() won't work, then it goes to the folder.
-  # It assumes that the working directory is the project directory.
-  path_system_file = system.file(filepath, package = "opdesmixr", mustWork = F)
-  if(path_system_file == ""){
-    out_path = here::here("inst/", filepath)
-  } else{
-    out_path = path_system_file
-  }
-  return(out_path)
-}
-
-
-designs_folder = get_file_path_inst("misc_output/cocktail_cornell_designs/")
+designs_folder = opdesmixr:::get_file_path_inst("misc_output/cocktail_cornell_designs/")
 if(!dir.exists(designs_folder)) stop("Folder '", designs_folder, "' does not exist.")
-
-source(get_file_path("vignettes/vignette_utils.R"))
 
 ```
 
@@ -91,7 +63,7 @@ cocktail_I_opt = readRDS(cocktail_i_opt_filename)
 ##########################################################################################
 
 levels_bayesian = c(0, .5625, 1.125, 1.6875, 2.25)
-utilities_cocktail_bayesian_plot = scheffe_order3_q3_utilities(beta0, 50000) %>%
+utilities_cocktail_bayesian_plot = opdesmixr:::scheffe_order3_q3_utilities(beta0, 50000) %>%
   mutate(utility_fact = cut(utility, levels_bayesian, right = F)) %>%
   mutate(utility_int = as.integer(utility_fact)) %>%
   mutate(utility_avg = case_when(
@@ -104,10 +76,10 @@ utilities_cocktail_bayesian_plot = scheffe_order3_q3_utilities(beta0, 50000) %>%
 
 
 ggtern::grid.arrange(
-  plot_choice_set_utility(cocktail_D_opt, utilities_cocktail_bayesian_plot) +
+  opdesmixr:::plot_choice_set_utility(cocktail_D_opt, utilities_cocktail_bayesian_plot) +
     ggtitle("Bayesian D-optimal for cocktail experiment")
   ,
-  plot_choice_set_utility(cocktail_I_opt, utilities_cocktail_bayesian_plot) +
+  opdesmixr:::plot_choice_set_utility(cocktail_I_opt, utilities_cocktail_bayesian_plot) +
     ggtitle("Bayesian I-optimal for cocktail experiment")
   ,
   ncol = 2
@@ -227,7 +199,7 @@ cornell_designs = lapply(kappas, function(k){
 
 
 levels_cornell_bayesian = c(0, 0.375, 0.75, 1.125, 1.33333)
-utilities_cornell_bayesian_plot = scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
+utilities_cornell_bayesian_plot = opdesmixr:::scheffe_order3_q3_utilities(beta_2_prime, 50000) %>%
   mutate(utility_fact = cut(utility, levels_cornell_bayesian, right = F)) %>%
   mutate(utility_int = as.integer(utility_fact)) %>%
   mutate(utility_avg = case_when(
@@ -242,13 +214,13 @@ utilities_cornell_bayesian_plot = scheffe_order3_q3_utilities(beta_2_prime, 5000
 cornell_optimal_designs_plots = lapply(seq_along(cornell_designs), function(i){
 
   out_list = list(
-    d_opt_plot = plot_choice_set_utility(
+    d_opt_plot = opdesmixr:::plot_choice_set_utility(
       cornell_designs[[i]]$d_opt$X, utilities_cornell_bayesian_plot,
       legend.position = "bottom"
       ) +
       ggtitle("", subtitle = paste0("D-optimal, kappa = ", cornell_designs[[i]]$kappa))
     ,
-    i_opt_plot = plot_choice_set_utility(
+    i_opt_plot = opdesmixr:::plot_choice_set_utility(
       cornell_designs[[i]]$i_opt$X, utilities_cornell_bayesian_plot,
       legend.position = "bottom"
       ) +
