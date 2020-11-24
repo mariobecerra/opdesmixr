@@ -202,6 +202,38 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order, boo
 }
 
 
+arma::mat getInformationMatrixMNL(arma::cube& X, arma::cube& Xs_cube, arma::vec& beta, int order, bool transform_beta = true){
+  // Redefinition of getInformationMatrixMNL() so that it has an extra parameter, Xs_cube. This extra parameter is an Armadillo cube that
+  // has the Xs marices precomputed for each choice set s. It is useful to save time in the Bayesian case so that the matrix Xs is not
+  // recomputed with each draw from the prior distribution.
+
+  int J = X.n_cols;
+  int S = X.n_elem/(X.n_cols*X.n_rows);
+  int m;
+
+  if(transform_beta) m = beta.n_elem;
+  else m = beta.n_elem + 1;
+
+  arma::mat Xs(J, m-1);
+  arma::mat I(m-1, m-1, fill::zeros);
+  arma::mat identity(J, J, fill::eye);
+  arma::mat ps_ps_t(J, J);
+  arma::mat middle(J, J);
+  arma::vec ps;
+
+  // Compute information matrix for each choice set s, and sum.
+  for(int s = 1; s <= S; s++){
+    Xs = Xs_cube(arma::span(s-1), arma::span::all, arma::span::all);
+    ps = getPsMNL(X, beta, s, Xs, transform_beta);
+    ps_ps_t = ps*ps.t();
+    middle = ps_ps_t;
+    middle.diag() = ps_ps_t.diag() - ps;
+    I = I - (Xs.t())*middle*Xs;
+  }
+  return I;
+}
+
+
 
 
 
@@ -228,43 +260,62 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
 
   vec beta = zeros(m-1);
 
-  arma::mat L; // matrix for Cholesky decomposition
-  bool chol_success; // flag for success of the decomposition
+  bool opt_success; // flag for success of the decomposition
+
+  int J = X.n_cols;
+  int S = X.n_elem/(X.n_cols*X.n_rows);
+
+  // Create the cube Xs_cube with the Xs matrix for each choice set s.
+  arma::mat Xs(J, m-1);
+  arma::cube Xs_cube(S, J, m-1);
+  for(int s = 1; s <= S; s++){
+    Xs = getXsMNL(X, s, order);
+    // Copy the information from Xs to the cube. Still can't find a way to copy a matrix to a subcube in Armadillo.
+    for(int ix1 = 0; ix1 < J; ix1++){
+      for(int ix2 = 0; ix2 < m-1; ix2++){
+        Xs_cube(s-1, ix1, ix2) = Xs(ix1, ix2);
+      }
+    }
+  }
 
   // Iterate over all prior draws
   for(int i = 0; i < n_sims; i++){
     beta = conv_to<vec>::from(beta_mat.row(i));
-    I = getInformationMatrixMNL(X, beta, order, transform_beta);
+    I = getInformationMatrixMNL(X, Xs_cube, beta, order, transform_beta);
     if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
 
-    // If the decomposition fails chol(R,X) resets R and returns a bool set to false (exception is not thrown) (http://arma.sourceforge.net/docs.html#chol)
-    chol_success = chol(L, I);
+    if(opt_crit == 0){
+      // D-optimality
+      arma::mat L; // matrix for Cholesky decomposition
 
-    if(chol_success){
-      if(opt_crit == 0){
-        // D-optimality
+      opt_success = chol(L, I);
+      // If the decomposition fails chol(R,X) resets R and returns a bool set to false (exception is not thrown) (http://arma.sourceforge.net/docs.html#chol)
+      if(opt_success){
         acc = acc - 2*sum(log(L.diag()));
-      } else{
-        // I-optimality
-        arma::mat A = solve(trimatl(L.t()), W);
-        arma::mat C = solve(trimatu(L), A);
-        acc = acc + log(trace(C));
+      } else {
+        // If Cholesky decomposition fails, it is likely because information matrix was not numerically positive definite.
+        break;
       }
-    } else {
-      // If Cholesky decomposition fails, it is likely because information matrix
-      // was not numerically positive definite.
-      // If this happens, it is probably because a numerical inestability.
-      // The function then returns the efficiency value as a big positive number, this
-      // way the algorithm does nothing in this iteration because the algorithm thinks
-      // there was no improvement when swapping the proportions.
 
-      // If Cholesky decomposition failed, exits and returns a final value of 1000
-      // Rcpp::warning("Error in Cholesky decomposition with message: '%c'.\n\tReturning eff_crit = 1000.");
-      break;
+    } else{
+      // I-optimality
+      arma::mat C; // Matrix for the solution of the linear system involving I and W.
+
+      opt_success = solve(C, I, W, solve_opts::likely_sympd);
+      // If no solution is found solve(X,A,B) resets X and returns a bool set to false (exception is not thrown)
+      if(opt_success){
+        acc = acc + log(trace(C));
+      } else {
+        break;
+      }
     }
+
   } // end for
 
-  if(!chol_success){
+  if(!opt_success){
+    // If either the Cholesky decomposition or the solving of the linear system fail, it is probably because a numerical inestability.
+    // The function then returns the efficiency value as a big positive number (1000), this way the algorithm does nothing in this iteration
+    // because it thinks there was no improvement when swapping the proportions.
     eff_crit_val = 1000;
   } else{
     eff_crit_val = acc/n_sims;
