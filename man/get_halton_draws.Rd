@@ -5,7 +5,7 @@
 \title{TODO: write doc
 Returns a matrix of dimension m x ndraws where m is the length of the beta vector.
 Example on how to use:
-beta_means = create_random_beta(q)
+beta_means = mnl_create_random_beta(q)
 beta_prior_draws = get_halton_draws(beta_means$beta)}
 \usage{
 get_halton_draws(beta, sd = 1, ndraws = 120)
@@ -14,6 +14,6 @@ get_halton_draws(beta, sd = 1, ndraws = 120)
 TODO: write doc
 Returns a matrix of dimension m x ndraws where m is the length of the beta vector.
 Example on how to use:
-beta_means = create_random_beta(q)
+beta_means = mnl_create_random_beta(q)
 beta_prior_draws = get_halton_draws(beta_means$beta)
 }

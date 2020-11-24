@@ -17,7 +17,7 @@ test_that("mnl_locally_optimal",{
           J = 2
           S = 5*q
 
-          beta_vec = create_random_beta(q, order = order, seed = seed)$beta
+          beta_vec = mnl_create_random_beta(q, order = order, seed = seed)$beta
 
           res_alg = mnl_mixture_coord_exch(
             q = q,

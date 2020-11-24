@@ -93,15 +93,15 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
 
 #' Creation of a random parameter vector for MNL model
 #'
-#' \code{create_random_beta} creates a random parameter vector
+#' \code{mnl_create_random_beta} creates a random parameter vector
 #' @param q integer specifying the number of ingredients
 #' @return Returns a list in which the first element of the list is
 #'     a numerical vector with the parameters and the second element is a matrix with
 #'     the indices as in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
 #' @examples
-#' create_random_beta(3)
+#' mnl_create_random_beta(3)
 #' @export
-create_random_beta = function(q, order = 3, seed = NULL){
+mnl_create_random_beta = function(q, order = 3, seed = NULL){
 
   stopifnot(order %in% 1:3)
   if(!all.equal(q, floor(q))) stop("q does not seem to an integer.")
@@ -662,11 +662,11 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
 
   X_final_tbl = lapply(1:S, function(s){
     t(des_array[,,s]) %>%
-      as_tibble() %>%
-      mutate(choice_set = as.character(s))
+      tibble::as_tibble() %>%
+      dplyr::mutate(choice_set = as.character(s))
   }) %>%
-    bind_rows() %>%
-    set_names(names)
+    dplyr::bind_rows() %>%
+    purrr::set_names(names)
 
   return(X_final_tbl)
 
@@ -718,6 +718,81 @@ mnl_get_Xs = function(X, s, order){
 #' TODO: write doc
 #' Returns a dataframe with Monte Carlo simulations for Fraction of Design Space plots
 #' Output dataframe is of size J*n_points_per_alternative where J is the number of alternatives per choice set, i.e., the second element in dim(design_array).
+#' beta = mnl_create_random_beta(q = 3, order = 3)$beta
+#'
+#' @examples
+#' # Example 1:
+#' beta = mnl_create_random_beta(q = 3, order = 3)$beta
+#' mnl_design = mnl_mixture_coord_exch(q = 3, J = 2, S = 10, n_random_starts = 1, beta = get_halton_draws(beta, sd = 1, ndraws = 128))
+#' fds_sims = mnl_get_fds_simulations(mnl_design$X, mnl_design$beta, order = 3, n_points_per_alternative = 500, transform_beta = T, verbose = 1)
+#' # Plot:
+#' fds_sims %>%
+#'   ggplot() +
+#'   geom_line(aes(fraction, pred_var), size = 0.8)
+#'
+#'
+#'
+#'
+#' # Example 2:
+#'
+#' library(opdesmixr)
+#' library(dplyr)
+#'
+#' beta = mnl_create_random_beta(q = 3, order = 3)$beta
+#' beta_draws = get_halton_draws(beta, sd = 1, ndraws = 128)
+#'
+#' mnl_I_opt_design = mnl_mixture_coord_exch(
+#'   q = 3, J = 2, S = 10,
+#'   n_random_starts = 1,
+#'   beta = beta_draws,
+#'   max_it = 5,
+#'   opt_crit = "I")
+#'
+#' mnl_D_opt_design = mnl_mixture_coord_exch(
+#'   q = 3, J = 2, S = 10,
+#'   n_random_starts = 1,
+#'   beta = beta_draws,
+#'   max_it = 5,
+#'   opt_crit = "D")
+#'
+#'
+#' fds_sims =  mnl_get_fds_simulations(
+#'   design_array = mnl_I_opt_design$X,
+#'   beta = mnl_I_opt_design$beta,
+#'   order = 3,
+#'   n_points_per_alternative = 500,
+#'   transform_beta = T,
+#'   verbose = 1) %>%
+#'   mutate(Design = "I-optimal") %>%
+#'   bind_rows(
+#'     mnl_get_fds_simulations(
+#'       design_array = mnl_D_opt_design$X,
+#'       beta = mnl_D_opt_design$beta,
+#'       order = 3,
+#'       n_points_per_alternative = 500,
+#'       transform_beta = T,
+#'       verbose = 1) %>%
+#'       mutate(Design = "D-optimal")
+#'   )
+#'
+#'
+#' fds_sims %>%
+#'   ggplot() +
+#'   geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
+#'   geom_hline(yintercept = fds_sims %>%
+#'                group_by(Design) %>%
+#'                summarize(
+#'                  med = median(pred_var),
+#'                  mean = mean(pred_var)) %>%
+#'                pull(med),
+#'              linetype = "dashed", size = 0.2) +
+#'   geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
+#'   xlab("Fraction of design space") +
+#'   ylab("Prediction variance") +
+#'   ggtitle("I-optimal vs D-optimal design") +
+#'   theme_bw()
+
+#'
 #' @export
 mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 0){
 
@@ -726,7 +801,7 @@ mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alter
   S = dim(design_array)[3]
 
   pred_var = suppressWarnings(as.data.frame(matrix(rep(NA_real_, J*n_points_per_alternative), ncol = J))) %>%
-    set_names(paste0("V", 1:J))
+    purrr::set_names(paste0("V", 1:J))
 
   progress_old = -1
   for(k in 1:n_points_per_alternative){
@@ -753,9 +828,16 @@ mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alter
     pred_var[k,] = vars_1
   }
 
+  # out = tibble(pred_var = sort(unlist(pred_var))) %>%
+    # mutate(fraction = 1:nrow(.)/nrow(.))
 
-  out = tibble(pred_var = sort(unlist(pred_var))) %>%
-    mutate(fraction = 1:nrow(.)/nrow(.))
+  pred_var = unlist(pred_var)
+
+  out = dplyr::tibble(
+    fraction = (0:length(pred_var))/length(pred_var)
+  ) %>%
+    dplyr::mutate(pred_var = quantile(pred_var, probs = fraction, type = 1))
+
 
   if(verbose > 0) cat("\nFinished\n\n")
 

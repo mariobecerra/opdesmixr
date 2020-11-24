@@ -298,7 +298,7 @@ q = 3
 J = 5
 S = 4
 
-beta_q3_o3 = create_random_beta(q, order = 3, seed = 3)
+beta_q3_o3 = mnl_create_random_beta(q, order = 3, seed = 3)
 beta_q3_o3_prior_draws = get_halton_draws(beta_q3_o3$beta)
 
 
@@ -422,7 +422,7 @@ q = 3
 J = 5
 S = 4
 
-beta_q3_o2 = create_random_beta(q, order = 2, seed = 2)
+beta_q3_o2 = mnl_create_random_beta(q, order = 2, seed = 2)
 beta_q3_o2_prior_draws = get_halton_draws(beta_q3_o2$beta)
 
 
@@ -507,7 +507,7 @@ q = 3
 J = 5
 S = 4
 
-beta_q3_o1 = create_random_beta(q, order = 1, seed = 2)
+beta_q3_o1 = mnl_create_random_beta(q, order = 1, seed = 2)
 beta_q3_o1_prior_draws = get_halton_draws(beta_q3_o1$beta)
 
 
@@ -586,7 +586,7 @@ q = 4
 J = 3
 S = 10
 
-beta_q4_01 = create_random_beta(q)
+beta_q4_01 = mnl_create_random_beta(q)
 beta_q4_01_prior_draws = get_halton_draws(beta_q4_01$beta)
 
 

@@ -117,7 +117,7 @@ q = 3
 J = 5
 S = 4
 X4 = mnl_create_random_initial_design(q, J, S, seed = 3)
-beta4_2 = create_random_beta(q)
+beta4_2 = mnl_create_random_beta(q)
 
 
 

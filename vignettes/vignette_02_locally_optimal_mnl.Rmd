@@ -266,7 +266,7 @@ q = 3
 J = 3
 S = 6
 X3 = mnl_create_random_initial_design(q, J, S, seed = 3)
-beta3_2 = create_random_beta(q)
+beta3_2 = mnl_create_random_beta(q)
 
 X3_2_opt_D = mnl_mixture_coord_exch(
   X = X3,
