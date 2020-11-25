@@ -14,11 +14,13 @@ mixture_coord_ex(
   S = NULL,
   beta = NULL,
   model = "Gaussian",
-  n_cox_points = 50,
-  max_it = 5,
+  opt_method = "B",
+  max_it = 10,
+  tol = 1e-04,
+  n_cox_points = NULL,
   plot_designs = F,
-  opt_crit = 0,
   verbose = 1,
+  opt_crit = 0,
   seed = NULL,
   n_cores = 1
 )

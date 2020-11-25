@@ -41,3 +41,10 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
+doc
+Meta
+
+
+temporary_scripts/*
+inst/article_results/*
+

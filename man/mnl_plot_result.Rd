@@ -4,7 +4,7 @@
 \alias{mnl_plot_result}
 \title{TODO: write doc}
 \usage{
-mnl_plot_result(res_alg)
+mnl_plot_result(res_alg, ...)
 }
 \description{
 TODO: write doc

@@ -5,51 +5,63 @@ computeCoxDirection <- function(x, comp, n_points, verbose) {
     .Call(`_opdesmixr_computeCoxDirection`, x, comp, n_points, verbose)
 }
 
-getScheffeGaussian <- function(X, order) {
-    .Call(`_opdesmixr_getScheffeGaussian`, X, order)
+getScheffeGaussian <- function(X, order, n_pv = 0L) {
+    .Call(`_opdesmixr_getScheffeGaussian`, X, order, n_pv)
 }
 
-getDCritValueGaussian <- function(X, order) {
-    .Call(`_opdesmixr_getDCritValueGaussian`, X, order)
+getOptCritValueGaussian <- function(X, order, q, opt_crit, W, n_pv = 0L) {
+    .Call(`_opdesmixr_getOptCritValueGaussian`, X, order, q, opt_crit, W, n_pv)
 }
 
-getICritValueGaussian <- function(X, order, q, W) {
-    .Call(`_opdesmixr_getICritValueGaussian`, X, order, q, W)
+changeIngredientDesignCoxGaussian <- function(theta, X, i, j, n_pv) {
+    invisible(.Call(`_opdesmixr_changeIngredientDesignCoxGaussian`, theta, X, i, j, n_pv))
 }
 
-getOptCritValueGaussian <- function(X, order, q, opt_crit, W) {
-    .Call(`_opdesmixr_getOptCritValueGaussian`, X, order, q, opt_crit, W)
+efficiencyCoxScheffeGaussian <- function(theta, X, i, j, order, opt_crit, W, n_pv) {
+    .Call(`_opdesmixr_efficiencyCoxScheffeGaussian`, theta, X, i, j, order, opt_crit, W, n_pv)
 }
 
-mixtureCoordinateExchangeGaussian <- function(X_orig, order, n_cox_points, max_it, verbose, opt_crit, W) {
-    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, n_cox_points, max_it, verbose, opt_crit, W)
+mixtureCoordinateExchangeGaussian <- function(X_orig, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, n_pv) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeGaussian`, X_orig, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, n_pv)
 }
 
-getXsMNL <- function(X, s) {
-    .Call(`_opdesmixr_getXsMNL`, X, s)
+getXsMNL <- function(X, s, order) {
+    .Call(`_opdesmixr_getXsMNL`, X, s, order)
 }
 
-getUsMNL <- function(X, beta, s, Xs) {
-    .Call(`_opdesmixr_getUsMNL`, X, beta, s, Xs)
+getUsMNL <- function(X, beta, s, Xs, transform_beta = TRUE) {
+    .Call(`_opdesmixr_getUsMNL`, X, beta, s, Xs, transform_beta)
 }
 
-getPsMNL <- function(X, beta, s, Xs) {
-    .Call(`_opdesmixr_getPsMNL`, X, beta, s, Xs)
+getPsMNL <- function(X, beta, s, Xs, transform_beta = TRUE) {
+    .Call(`_opdesmixr_getPsMNL`, X, beta, s, Xs, transform_beta)
 }
 
-getInformationMatrixMNL <- function(X, beta) {
-    .Call(`_opdesmixr_getInformationMatrixMNL`, X, beta)
+getInformationMatrixMNL <- function(X, beta, order, transform_beta = TRUE) {
+    .Call(`_opdesmixr_getInformationMatrixMNL`, X, beta, order, transform_beta)
 }
 
-getOptCritValueMNL <- function(X, beta_mat, verbose, opt_crit, W) {
-    .Call(`_opdesmixr_getOptCritValueMNL`, X, beta_mat, verbose, opt_crit, W)
+getOptCritValueMNL <- function(X, beta_mat, verbose, opt_crit, W, order, transform_beta = TRUE) {
+    .Call(`_opdesmixr_getOptCritValueMNL`, X, beta_mat, verbose, opt_crit, W, order, transform_beta)
 }
 
-findBestCoxDirMNL <- function(cox_dir, X_in, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W) {
-    .Call(`_opdesmixr_findBestCoxDirMNL`, cox_dir, X_in, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W)
+findBestCoxDirMNLDiscrete <- function(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order, transform_beta = TRUE) {
+    invisible(.Call(`_opdesmixr_findBestCoxDirMNLDiscrete`, cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order, transform_beta))
 }
 
-mixtureCoordinateExchangeMNL <- function(X_orig, beta_mat, n_cox_points, max_it, verbose, opt_crit, W) {
-    .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta_mat, n_cox_points, max_it, verbose, opt_crit, W)
+changeIngredientDesignMNL <- function(theta, X, i, j, s) {
+    invisible(.Call(`_opdesmixr_changeIngredientDesignMNL`, theta, X, i, j, s))
+}
+
+efficiencyCoxScheffeMNL <- function(theta, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta = TRUE) {
+    .Call(`_opdesmixr_efficiencyCoxScheffeMNL`, theta, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta)
+}
+
+findBestCoxDirMNLBrent <- function(X, beta_mat, i, j, s, opt_crit, order, W, lower = 0, upper = 1, tol = 0.0001, verbose = 0L, transform_beta = TRUE) {
+    invisible(.Call(`_opdesmixr_findBestCoxDirMNLBrent`, X, beta_mat, i, j, s, opt_crit, order, W, lower, upper, tol, verbose, transform_beta))
+}
+
+mixtureCoordinateExchangeMNL <- function(X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta = TRUE) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta)
 }
 
