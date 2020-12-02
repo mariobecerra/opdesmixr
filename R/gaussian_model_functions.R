@@ -141,7 +141,7 @@ gaussian_mixture_coord_exch = function(
   if(opt_method == "B") opt_method = 0
   if(opt_method == "D") opt_method = 1
 
-
+  seeds_designs = NULL
   #############################################
   ## Create random initial designs or check that
   ## the provide design is okay.
@@ -157,7 +157,7 @@ gaussian_mixture_coord_exch = function(
     })
   } else{
     n_runs = nrow(X)
-    q = ncol(X)
+    q = ncol(X) - n_pv
 
     # Check that rows in first q columns of X sum to 1
     row_sums = apply(X[, 1:q], 1, sum)
@@ -181,7 +181,7 @@ gaussian_mixture_coord_exch = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = gaussian_create_moment_matrix(q, order)
+    W = gaussian_create_moment_matrix(q = q, n_pv = n_pv, order = order)
   }
 
   #############################################
@@ -249,7 +249,10 @@ gaussian_mixture_coord_exch = function(
     opt_crit_value = X_result$opt_crit_value,
     n_iter = X_result$n_iter,
     efficiency_value_per_iteration = X_result$efficiency_value_per_iteration,
-    opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality")
+    opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality"),
+    q = q,
+    n_pv = n_pv,
+    seed = seeds_designs[which.min(optimality_values)]
   )
 
   if(plot_designs) {
@@ -269,7 +272,7 @@ gaussian_plot_result = function(res_alg){
   # res_alg: output of a call to gaussian_mixture_coord_exch() function
 
   ggtern::grid.arrange(
-    res_alg$X_orig %>%
+    res_alg$X_orig[, 1:res_alg$q] %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
       ggtern::ggtern(ggtern::aes(c1, c2, c3)) +
@@ -280,7 +283,7 @@ gaussian_plot_result = function(res_alg){
         label = paste0("Criterion: ", res_alg$opt_crit),
         subtitle = paste0("Value = ", round(res_alg$opt_crit_value_orig, 3)))
     ,
-    res_alg$X %>%
+    res_alg$X[, 1:res_alg$q] %>%
       dplyr::as_tibble() %>%
       purrr::set_names(c("c1", "c2", "c3")) %>%
       ggtern::ggtern(ggtern::aes(c1, c2, c3)) +
@@ -292,8 +295,6 @@ gaussian_plot_result = function(res_alg){
     ,
     ncol = 2
   )
-
-
 }
 
 
@@ -308,9 +309,37 @@ gaussian_plot_result = function(res_alg){
 
 #' TODO: write doc
 #' @export
-gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0){
+gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
 
-  q = dim(X)[2]
+
+
+  #############################################
+  ## Check that the order is okay
+  #############################################
+  if(order != 1 & order != 2 & order != 3 & order != 4){
+    stop("Inadmissible value for order. Must be 1, 2, 3 or 4")
+  }
+
+
+  q = dim(X)[2] - n_pv
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
+
+  #############################################
+  ## Check that optimality criterion is okay
+  #############################################
+  if(!(opt_crit %in% c(0, 1) | opt_crit %in% c("D", "I"))){
+    stop('Unknown optimality criterion. Must be either "D" or 0 for D-optimality, or "I" or 1 for I-optimality.' )
+  }
+
+  # Recode opt_crit
+  if(opt_crit == "D") opt_crit = 0
+  if(opt_crit == "I") opt_crit = 1
+
+
+
 
   if(opt_crit == 0){
     # "D-optimality"
@@ -320,7 +349,7 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0){
     W = gaussian_create_moment_matrix(q, order)
   }
 
-  return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W))
+  return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W, n_pv = n_pv))
 }
 
 
@@ -334,9 +363,12 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0){
 
 #' TODO: write doc
 #' @export
-gaussian_create_moment_matrix = function(q, order = 3){
+gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3){
 
-  stopifnot(order %in% 1:3)
+  stopifnot(order %in% 1:4)
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
 
   if(order == 1){
     m = q
@@ -344,11 +376,15 @@ gaussian_create_moment_matrix = function(q, order = 3){
     if(order == 2){
       m = q*(q-1)/2 + q
     } else{
-      m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      if(order == 3){
+        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      } else{
+        m = q + q*(q-1)/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+      }
     }
   }
 
-  f_matrix = matrix(rep(0L, m*q), ncol = q)
+  f_matrix = matrix(rep(0L, m*(q + n_pv)), ncol = q + n_pv)
 
   counter = 0
   # Fill indicators of first part of the model expansion
@@ -371,7 +407,7 @@ gaussian_create_moment_matrix = function(q, order = 3){
 
 
   # Fill indicators of third part of the model expansion
-  if(order >= 3){
+  if(order == 3){
     for(i in 1:(q-2)){
       for(j in (i+1):(q-1)){
         for(k in (j+1):q){
@@ -385,15 +421,60 @@ gaussian_create_moment_matrix = function(q, order = 3){
   }
 
 
+
+  # Fill indicators of fourth part of the model expansion when n_pv > 0
+  if(order == 4){
+
+    for(i in 1:n_pv){
+      for(k in 1:q){
+        counter = counter + 1
+        f_matrix[counter, q + i] = 1
+        f_matrix[counter, k] = 1
+      }
+    }
+
+    if(n_pv > 1){
+      for(i in 1:(n_pv-1)){
+        for(j in (i+1):n_pv){
+          counter = counter + 1
+          f_matrix[counter, q + i] = 1
+          f_matrix[counter, q + j] = 1
+        }
+      }
+    }
+
+
+    for(i in 1:n_pv){
+      counter = counter + 1
+      f_matrix[counter, q + i] = 2
+    }
+
+  }
+
+
   W = matrix(rep(NA_real_, m*m), ncol = m)
 
   for(i in 1:m){
     for(j in 1:m){
 
-      aux_ij = f_matrix[i,] + f_matrix[j,]
-      num_ij = prod(factorial(aux_ij))
-      denom_ij = factorial(2 + sum(aux_ij))
-      W[i,j] = num_ij/denom_ij
+      aux_ij_1 = f_matrix[i, 1:q] + f_matrix[j, 1:q]
+      if(sum(aux_ij_1 > 0)){
+        num_ij_1 = prod(factorial(aux_ij_1))
+        denom_ij_1 = factorial(2 + sum(aux_ij_1))
+      } else{
+        num_ij_1 = 1
+        denom_ij_1 = 1
+      }
+
+      denom_ij_2 = 1
+      if(n_pv > 0){
+        aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
+        if(sum(aux_ij_2 > 0)){
+          denom_ij_2 = prod(1 + aux_ij_2)
+        }
+      }
+
+      W[i,j] = (num_ij_1/denom_ij_1)*(1/denom_ij_2)
     }
   }
 
