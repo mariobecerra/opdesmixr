@@ -23,6 +23,9 @@ designs_folder = here("inst/misc_output/cocktail_cornell_designs/")
 out_folder = here("inst/misc_output/cocktail_cornell_plots/")
 dir.create(out_folder, showWarnings = F)
 
+low_color_gradient = "yellow"
+high_color_gradient = "red"
+
 ##########################################################################################
 #### Load designs for cocktail experiment
 ##########################################################################################
@@ -151,7 +154,9 @@ ggtern::ggsave(
     cocktail_D_opt,
     utilities_cocktail_bayesian_plot,
     utility_point_size = utility_point_size_cocktail,
-    utility_point_shape = utility_point_shape_cocktail
+    utility_point_shape = utility_point_shape_cocktail,
+    low_color_gradient = low_color_gradient,
+    high_color_gradient = high_color_gradient
     ) +
     # ggtitle("Bayesian D-optimal for cocktail experiment") +
     theme(legend.position = "none"),
@@ -166,7 +171,9 @@ ggtern::ggsave(
     cocktail_I_opt,
     utilities_cocktail_bayesian_plot,
     utility_point_size = utility_point_size_cocktail,
-    utility_point_shape = utility_point_shape_cocktail
+    utility_point_shape = utility_point_shape_cocktail,
+    low_color_gradient = low_color_gradient,
+    high_color_gradient = high_color_gradient
     ) +
     # ggtitle("Bayesian I-optimal for cocktail experiment") +
     theme(legend.position = "none"),
@@ -249,6 +256,132 @@ ggplot2::ggsave(
 
 
 
+
+
+# mnl_get_fds_simulations_all = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 0){
+#
+#   q = dim(design_array)[1]
+#   J = dim(design_array)[2]
+#   S = dim(design_array)[3]
+#
+#   pred_var = suppressWarnings(as.data.frame(matrix(rep(NA_real_, nrow(beta)*J*n_points_per_alternative), ncol = J))) %>%
+#     purrr::set_names(paste0("V", 1:J)) %>%
+#     mutate(beta_ix = rep(1:nrow(beta), n_points_per_alternative))
+#
+#   progress_old = -1
+#   for(k in 1:n_points_per_alternative){
+#     if(verbose > 0){
+#       progress = round(100*(k-1)/n_points_per_alternative, 0)
+#       if(progress - progress_old >= 1){
+#         cat('\r', "Progress: ", progress, "%", sep = "")
+#         flush.console()
+#       }
+#       progress_old = progress
+#     }
+#     des_k = mnl_create_random_initial_design(q, J, S, seed = k)
+#     vars_1 = matrix(rep(NA_real_, J*nrow(beta)), ncol = J)
+#     for(j in 1:J){
+#       f_x = mnl_get_Xs(des_k, 1, order = order)[j,]
+#       acc = 0
+#       for(i in 1:nrow(beta)){
+#         inf_mat = mnl_get_information_matrix(design_array, beta = beta[i,], order = order, transform_beta = transform_beta)
+#         vars_1[i,j] = t(f_x) %*% solve(inf_mat, f_x)
+#       }
+#
+#     }
+#
+#     pred_var[((k-1)*nrow(beta) + 1):(k*nrow(beta)),1:J] = vars_1
+#   }
+#
+#   # out = tibble(pred_var = sort(unlist(pred_var))) %>%
+#   # mutate(fraction = 1:nrow(.)/nrow(.))
+#
+#   out = pred_var %>%
+#     pivot_longer(cols = -beta_ix, values_to = "pred_var") %>%
+#     select(-name) %>%
+#     group_by(beta_ix) %>%
+#     # mutate(ix = 1:n()) %>%
+#     # ungroup() %>%
+#     # group_by(ix) %>%
+#     mutate(fraction = (0:(n()-1))/n()) %>%
+#     mutate(pred_var = quantile(pred_var, probs = fraction, type = 1)) %>%
+#     ungroup()
+#
+#   # pred_var = unlist(pred_var)
+#   #
+#   # out = dplyr::tibble(
+#   #   fraction = (0:length(pred_var))/length(pred_var)
+#   # ) %>%
+#   #   dplyr::mutate(pred_var = quantile(pred_var, probs = fraction, type = 1))
+#
+#
+#   if(verbose > 0) cat("\nFinished\n\n")
+#
+#   return(out)
+# }
+#
+#
+# fds_test = mnl_get_fds_simulations_all(
+#   design_array = cocktail_I_opt$X,
+#   beta = cocktail_I_opt$beta,
+#   order = 3,
+#   n_points_per_alternative = 500,
+#   transform_beta = F,
+#   verbose = 1)
+#
+# fds_test %>%
+#   ggplot() +
+#   geom_line(aes(fraction, pred_var, group = beta_ix), size = 0.2) +
+#   xlab("Fraction of design space") +
+#   ylab("Prediction variance") +
+#   ggtitle("Cocktail experiment") +
+#   theme_bw() +
+#   theme(legend.position = "right")
+#
+# fds_test %>%
+#   ggplot() +
+#   geom_line(aes(fraction, pred_var, group = beta_ix), size = 0.2) +
+#   xlab("Fraction of design space") +
+#   ylab("Prediction variance") +
+#   ggtitle("Cocktail experiment") +
+#   theme_bw() +
+#   theme(legend.position = "right") +
+#   ylim(0, 4)
+#
+# fds_test %>%
+#   group_by(beta_ix) %>%
+#   mutate(ix = 1:n()) %>%
+#   ungroup() %>%
+#   group_by(ix, fraction) %>%
+#   summarize(pred_var = mean(pred_var)) %>%
+#   ungroup() %>%
+#   ggplot() +
+#   geom_line(aes(fraction, pred_var), size = 0.8) +
+#   xlab("Fraction of design space") +
+#   ylab("Prediction variance") +
+#   ggtitle("Cocktail experiment") +
+#   theme_bw() +
+#   theme(legend.position = "right") +
+#   ylim(0, 4)
+#
+# aaa = mnl_get_fds_simulations(
+#   design_array = cocktail_I_opt$X,
+#   beta = cocktail_I_opt$beta,
+#   order = 3,
+#   n_points_per_alternative = 500,
+#   transform_beta = F,
+#   verbose = 1)
+#
+# aaa %>%
+#   ggplot() +
+#   geom_line(aes(fraction, pred_var), size = 0.8) +
+#   xlab("Fraction of design space") +
+#   ylab("Prediction variance") +
+#   ggtitle("Cocktail experiment") +
+#   theme_bw() +
+#   theme(legend.position = "right") +
+#   ylim(0, 4)
+
 ##########################################################################################
 #### Plot designs for Cornell's experiment
 ##########################################################################################
@@ -295,7 +428,9 @@ for(i in seq_along(cornell_designs_transf)){
     cornell_designs_transf[[i]]$d_opt$X, utilities_cornell_bayesian_plot,
     utility_point_size = utility_point_size_cornell,
     utility_point_shape = utility_point_shape_cornell,
-    legend.position = "none"
+    legend.position = "none",
+    low_color_gradient = low_color_gradient,
+    high_color_gradient = high_color_gradient
   ) +
     theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
 
@@ -303,7 +438,9 @@ for(i in seq_along(cornell_designs_transf)){
     cornell_designs_transf[[i]]$i_opt$X, utilities_cornell_bayesian_plot,
     utility_point_size = utility_point_size_cornell,
     utility_point_shape = utility_point_shape_cornell,
-    legend.position = "none"
+    legend.position = "none",
+    low_color_gradient = low_color_gradient,
+    high_color_gradient = high_color_gradient
   ) +
     theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
 
@@ -417,7 +554,9 @@ for(i in seq_along(cornell_designs_untransf)){
     cornell_designs_untransf[[i]]$d_opt$X, utilities_cornell_bayesian_plot,
     utility_point_size = utility_point_size_cornell,
     utility_point_shape = utility_point_shape_cornell,
-    legend.position = "none"
+    legend.position = "none",
+    low_color_gradient = low_color_gradient,
+    high_color_gradient = high_color_gradient
   ) +
     theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
 
@@ -425,7 +564,9 @@ for(i in seq_along(cornell_designs_untransf)){
     cornell_designs_untransf[[i]]$i_opt$X, utilities_cornell_bayesian_plot,
     utility_point_size = utility_point_size_cornell,
     utility_point_shape = utility_point_shape_cornell,
-    legend.position = "none"
+    legend.position = "none",
+    low_color_gradient = low_color_gradient,
+    high_color_gradient = high_color_gradient
   ) +
     theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
 
