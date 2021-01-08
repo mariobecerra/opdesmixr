@@ -254,6 +254,64 @@ suppressWarnings(
 )
 ```
 
+```{r}
+
+n_points_per_alternative_cocktail = 500
+beta_correlated_draws_cocktail_plot_2 = get_correlated_halton_draws(beta0, sigma0, 500)
+
+
+
+
+pred_vars_cocktail = mnl_get_fds_simulations(
+  design_array = cocktail_I_opt$X,
+  beta = beta_correlated_draws_cocktail_plot_2,
+  order = 3,
+  n_points_per_alternative = n_points_per_alternative_cocktail,
+  transform_beta = F,
+  verbose = 0) %>%
+  mutate(Design = "I-optimal") %>%
+  bind_rows(
+    mnl_get_fds_simulations(
+      design_array = cocktail_D_opt$X,
+      beta = beta_correlated_draws_cocktail_plot_2,
+      order = 3,
+      n_points_per_alternative = n_points_per_alternative_cocktail,
+      transform_beta = F,
+      verbose = 0) %>%
+      mutate(Design = "D-optimal")
+  ) %>% 
+  bind_rows(
+    mnl_get_fds_simulations(
+      design_array = ruseckaite_beta0_design,
+      beta = beta_correlated_draws_cocktail_plot_2,
+      order = 3,
+      n_points_per_alternative = n_points_per_alternative_cocktail,
+      transform_beta = F,
+      verbose = 0) %>%
+      mutate(Design = "Ruseckaite")
+  )
+
+
+
+
+pred_vars_cocktail %>%
+  ggplot() +
+  geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
+  geom_hline(yintercept = pred_vars_cocktail %>%
+               group_by(Design) %>%
+               summarize(
+                 med = median(pred_var),
+                 mean = mean(pred_var)) %>%
+               pull(med),
+             linetype = "dashed", size = 0.2) +
+  geom_line(aes(fraction, pred_var, linetype = Design, color = Design), size = 0.8) +
+  xlab("Fraction of design space") +
+  ylab("Prediction variance") +
+  ggtitle("Cocktail experiment") +
+  theme_bw() +
+  theme(legend.position = "right")
+
+```
 
 
 
