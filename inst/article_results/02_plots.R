@@ -17,14 +17,82 @@ library(here)
 #
 # source(get_file_path("article_results/R_scripts/functions.R"))
 
-# Assuming this sript is run before installing.
+# Assuming this script is run before installing package.
 designs_folder = here("inst/misc_output/cocktail_cornell_designs/")
 
 out_folder = here("inst/misc_output/cocktail_cornell_plots/")
 dir.create(out_folder, showWarnings = F)
 
-low_color_gradient = "yellow"
-high_color_gradient = "red"
+
+# Folder with the designs by Ruseckaite
+ruseckaite_designs_folder = opdesmixr:::get_file_path_inst("exdata/")
+
+
+# Plotting function
+plot_choice_set_utility_discrete_palette = function(
+  design_object, utility_data, design_point_size = 2,
+  utility_point_size = 0.3, utility_point_shape = "square",
+  legend.position = "bottom", legend.box = "vertical",
+  color_palette = NULL) {
+
+  if (class(design_object) == "list") {
+    dim_X = dim(design_object$X)
+    q = dim_X[1]
+    S = dim_X[3]
+    if (q != 3)
+      stop("Design must be of 3 ingredients.")
+    X_final_tbl = mnl_design_array_to_dataframe(design_object$X)
+  }
+  else {
+    if (inherits(design_object, "array")) {
+      dim_X = dim(design_object)
+      q = dim_X[1]
+      S = dim_X[3]
+      if (q != 3)
+        stop("Design must be of 3 ingredients.")
+      X_final_tbl = mnl_design_array_to_dataframe(design_object)
+    }
+    else {
+      if (inherits(design_object, "data.frame")) {
+        q = ncol(design_object) - 1
+        if (q != 3)
+          stop("Design must be of 3 ingredients.")
+        X_final_tbl = design_object %>% set_names(c("c1",
+                                                    "c2", "c3", "choice_set")) %>% mutate(choice_set = as.character(choice_set))
+      }
+      else {
+        stop("Unknown type of design")
+      }
+    }
+  }
+
+  if(is.null(color_palette)){
+    # Create palette that goes from yellow to red
+    green_levels = 1 - seq(0, 1, length.out = length(unique(utilities_cocktail_bayesian_plot$utility_int)))
+
+    color_palette = tibble(g = green_levels) %>%
+      mutate(r = 1, b = 0) %>%
+      mutate(color = rgb(r, g, b)) %>%
+      pull(color)
+  }
+
+
+  out_plot = ggtern::ggtern(data = utility_data) +
+    ggplot2::geom_point(
+      aes(x = x1,
+          y = x2, z = x3, color = factor(utility_int)),
+      size = utility_point_size,
+      shape = utility_point_shape) +
+    ggplot2::scale_color_manual(values = color_palette) +
+    ggplot2::geom_point(data = X_final_tbl, ggtern::aes(c1, c2, c3, shape = choice_set), color = "black", size = design_point_size, stroke = 1.5, inherit.aes = F) +
+    ggtern::theme_nomask() +
+    scale_shape_manual(values = 1:length(unique(X_final_tbl$choice_set))) +
+    theme(legend.position = legend.position, legend.box = legend.box)
+  return(out_plot)
+}
+
+
+
 
 ##########################################################################################
 #### Load designs for cocktail experiment
@@ -38,7 +106,13 @@ cocktail_i_opt_filename = paste0(designs_folder, "cocktail_i_optimal.rds")
 cocktail_D_opt = readRDS(cocktail_d_opt_filename)
 cocktail_I_opt = readRDS(cocktail_i_opt_filename)
 
+ruseckaite_cocktail_designs = read_csv(paste0(ruseckaite_designs_folder, "/ruseckaite_cocktail_designs.csv"))
 
+ruseckaite_cocktail_beta0_design = mnl_design_dataframe_to_array(
+  ruseckaite_cocktail_designs %>%
+    filter(prior == "beta_0 and sigma_0") %>%
+    select(-prior)
+)
 
 ##########################################################################################
 #### Load designs for Cornell's experiment
@@ -54,6 +128,8 @@ max_it_bayes = 20
 cornell_designs_basefilename_transf = paste0(designs_folder, "cornell_experiment_transformed_betas_rs", n_random_starts_2, "_maxit", max_it_bayes)
 
 cornell_designs_basefilename_untransf = paste0(designs_folder, "cornell_experiment_untransformed_betas_rs", n_random_starts_2, "_maxit", max_it_bayes)
+
+ruseckaite_cornell_designs = read_csv(paste0(ruseckaite_designs_folder, "/ruseckaite_cornell_designs.csv"))
 
 
 
@@ -125,6 +201,20 @@ cornell_designs_untransf = lapply(kappas, function(k){
 
 })
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ##########################################################################################
 #### Plot cocktail designs
 ##########################################################################################
@@ -143,6 +233,26 @@ utilities_cocktail_bayesian_plot = opdesmixr:::scheffe_order3_q3_utilities(beta0
   ))
 
 
+
+# Color palette that goes from yellow to red
+color_palette_cocktail = tibble(cutoffs = unique(utilities_cocktail_bayesian_plot$utility_fact)) %>%
+  mutate(g = 1 - seq(0, 1, length.out = nrow(.)), r = 1, b = 0) %>%
+  mutate(color = rgb(r, g, b))
+
+# # Plot cutoffs to create legend (not useful in the end because I did it in Latex)
+# color_palette_cocktail %>%
+#   ggplot() +
+#   geom_rect(
+#     aes(xmin = r,
+#         xmax = r + resolution(r),
+#         ymin = g,
+#         ymax = g + resolution(g),
+#         fill = rgb(r, g, b)), color = "white", size = 0.1) +
+#   scale_fill_identity() +
+#   geom_text(aes(x = r + resolution(r)/2, y = g + resolution(g)/2, label = cutoffs)) +
+#   theme_void()
+
+# Settings for plots in PNG files
 width_cocktail_simplex = 10
 height_cocktail_simplex = 10
 utility_point_size_cocktail = 0.01
@@ -150,15 +260,13 @@ utility_point_shape_cocktail = "circle"
 
 ggtern::ggsave(
   filename = paste0(out_folder, "res_cocktail_design_db_simplex.png"),
-  plot = opdesmixr:::plot_choice_set_utility(
+  plot = plot_choice_set_utility_discrete_palette(
     cocktail_D_opt,
     utilities_cocktail_bayesian_plot,
     utility_point_size = utility_point_size_cocktail,
     utility_point_shape = utility_point_shape_cocktail,
-    low_color_gradient = low_color_gradient,
-    high_color_gradient = high_color_gradient
+    color_palette = color_palette_cocktail$color
     ) +
-    # ggtitle("Bayesian D-optimal for cocktail experiment") +
     theme(legend.position = "none"),
   width = width_cocktail_simplex,
   height = height_cocktail_simplex,
@@ -167,15 +275,13 @@ ggtern::ggsave(
 
 ggtern::ggsave(
   filename = paste0(out_folder, "res_cocktail_design_ib_simplex.png"),
-  plot = opdesmixr:::plot_choice_set_utility(
+  plot = plot_choice_set_utility_discrete_palette(
     cocktail_I_opt,
     utilities_cocktail_bayesian_plot,
     utility_point_size = utility_point_size_cocktail,
     utility_point_shape = utility_point_shape_cocktail,
-    low_color_gradient = low_color_gradient,
-    high_color_gradient = high_color_gradient
+    color_palette = color_palette_cocktail$color
     ) +
-    # ggtitle("Bayesian I-optimal for cocktail experiment") +
     theme(legend.position = "none"),
   width = width_cocktail_simplex,
   height = height_cocktail_simplex,
@@ -203,7 +309,6 @@ ggtern::ggsave(
 
 n_points_per_alternative_cocktail = 2000
 
-
 pred_vars_cocktail = mnl_get_fds_simulations(
   design_array = cocktail_I_opt$X,
   beta = cocktail_I_opt$beta,
@@ -221,6 +326,16 @@ pred_vars_cocktail = mnl_get_fds_simulations(
       transform_beta = F,
       verbose = 1) %>%
       mutate(Design = "D-optimal")
+  ) %>%
+  bind_rows(
+    mnl_get_fds_simulations(
+      design_array = ruseckaite_cocktail_beta0_design,
+      beta = cocktail_D_opt$beta,
+      order = 3,
+      n_points_per_alternative = n_points_per_alternative_cocktail,
+      transform_beta = F,
+      verbose = 0) %>%
+      mutate(Design = "Ruseckaite et al.")
   )
 
 
@@ -235,12 +350,13 @@ cocktail_fds_plots_untransf = pred_vars_cocktail %>%
                  mean = mean(pred_var)) %>%
                pull(med),
              linetype = "dashed", size = 0.2) +
-  geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
+  geom_line(aes(fraction, pred_var, color = Design), size = 0.8) +
   xlab("Fraction of design space") +
   ylab("Prediction variance") +
-  ggtitle("Cocktail experiment") +
+  # ggtitle("Cocktail experiment") +
   theme_bw() +
-  theme(legend.position = "right")
+  theme(legend.position = "right") +
+  scale_color_manual(values = c("red", "blue", "dark green"))
 
 
 width_cocktail_fds = 18
@@ -253,9 +369,6 @@ ggplot2::ggsave(
   height = height_cocktail_fds,
   units = "cm"
 )
-
-
-
 
 
 # mnl_get_fds_simulations_all = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 0){
@@ -382,6 +495,18 @@ ggplot2::ggsave(
 #   theme(legend.position = "right") +
 #   ylim(0, 4)
 
+
+
+
+
+
+
+
+
+
+
+
+
 ##########################################################################################
 #### Plot designs for Cornell's experiment
 ##########################################################################################
@@ -396,7 +521,7 @@ width_cornell_fds = 20
 height_cornell_fds = 12
 
 # Number of sampled points for FDS plot
-fds_n_points_per_alternative_cornell = 2000
+fds_n_points_per_alternative_cornell = 1000
 
 # Create utility contours
 levels_cornell_bayesian = c(0, 0.375, 0.75, 1.125, 1.34)
@@ -411,131 +536,10 @@ utilities_cornell_bayesian_plot = opdesmixr:::scheffe_order3_q3_utilities(beta_2
   ))
 
 
-
-
-
-##### Transformed betas
-
-
-## Save PNGs of designs
-
-for(i in seq_along(cornell_designs_transf)){
-
-  kappa = cornell_designs_transf[[i]]$kappa
-  cat("Doing kappa =", kappa, "\n")
-
-  d_opt_plot_transf_i = opdesmixr:::plot_choice_set_utility(
-    cornell_designs_transf[[i]]$d_opt$X, utilities_cornell_bayesian_plot,
-    utility_point_size = utility_point_size_cornell,
-    utility_point_shape = utility_point_shape_cornell,
-    legend.position = "none",
-    low_color_gradient = low_color_gradient,
-    high_color_gradient = high_color_gradient
-  ) +
-    theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
-
-  i_opt_plot_transf_i = opdesmixr:::plot_choice_set_utility(
-    cornell_designs_transf[[i]]$i_opt$X, utilities_cornell_bayesian_plot,
-    utility_point_size = utility_point_size_cornell,
-    utility_point_shape = utility_point_shape_cornell,
-    legend.position = "none",
-    low_color_gradient = low_color_gradient,
-    high_color_gradient = high_color_gradient
-  ) +
-    theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
-
-
-  plot_filename_basename = paste0("res_cornell_transf_simplex_kappa_", sprintf("%03d", kappa*10), "_")
-
-  ggtern::ggsave(
-    filename = paste0(out_folder, plot_filename_basename, "D_opt.png"),
-    plot = d_opt_plot_transf_i,
-    width = width_cornell_simplex,
-    height = height_cornell_simplex,
-    units = "cm"
-  )
-
-  ggtern::ggsave(
-    filename = paste0(out_folder, plot_filename_basename, "I_opt.png"),
-    plot = i_opt_plot_transf_i,
-    width = width_cornell_simplex,
-    height = height_cornell_simplex,
-    units = "cm"
-  )
-}
-
-
-##### FDS plots
-
-pred_vars_cornell_transf = lapply(
-  seq_along(cornell_designs_transf), function(i){
-
-    kappa_i = cornell_designs_transf[[i]]$kappa
-    cat("\n\n\nkappa:", kappa_i, format(Sys.time(),'(%H:%M:%S)'), "\n")
-
-    pred_vars_cornell_transf_i = mnl_get_fds_simulations(
-      design_array = cornell_designs_transf[[i]]$i_opt$X,
-      beta = cornell_designs_transf[[i]]$i_opt$beta,
-      order = 3,
-      n_points_per_alternative = fds_n_points_per_alternative_cornell,
-      transform_beta = T,
-      verbose = 1) %>%
-      mutate(Design = "I-optimal") %>%
-      bind_rows(
-        mnl_get_fds_simulations(
-          design_array = cornell_designs_transf[[i]]$d_opt$X,
-          beta = cornell_designs_transf[[i]]$d_opt$beta,
-          order = 3,
-          n_points_per_alternative = fds_n_points_per_alternative_cornell,
-          transform_beta = T,
-          verbose = 1) %>%
-          mutate(Design = "D-optimal")
-      )
-
-    return(pred_vars_cornell_transf_i %>%
-             mutate(kappa = kappa_i))
-
-  }) %>%
-  bind_rows()
-
-
-
-cornell_fds_plots_transf = pred_vars_cornell_transf %>%
-  left_join(
-    pred_vars_cornell_transf %>%
-      group_by(Design, kappa) %>%
-      summarize(
-        med = median(pred_var),
-        mean = mean(pred_var))
-  ) %>%
-  mutate(kappa2 = paste0("kappa = ", kappa)) %>%
-  mutate(kappa2 = fct_reorder(kappa2, kappa)) %>%
-  ggplot() +
-  geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
-  geom_hline(aes(yintercept = med), linetype = "dashed", size = 0.2) +
-  geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
-  xlab("Fraction of design space") +
-  ylab("Prediction variance") +
-  ggtitle("Cornell's experiment") +
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  facet_wrap(~kappa2, scales = "free_y")
-
-
-
-
-
-ggplot2::ggsave(
-  filename = paste0(out_folder, "res_cornell_transf_fds_db_vs_ib_plot.png"),
-  plot = cornell_fds_plots_transf,
-  width = width_cornell_fds,
-  height = height_cornell_fds,
-  units = "cm"
-)
-
-
-
-
+# Color palette that goes from yellow to red
+color_palette_cornell = tibble(cutoffs = unique(utilities_cornell_bayesian_plot$utility_fact)) %>%
+  mutate(g = 1 - seq(0, 1, length.out = nrow(.)), r = 1, b = 0) %>%
+  mutate(color = rgb(r, g, b))
 
 
 
@@ -550,23 +554,21 @@ for(i in seq_along(cornell_designs_untransf)){
   kappa = cornell_designs_untransf[[i]]$kappa
   cat("Doing kappa =", kappa, "\n")
 
-  d_opt_plot_untransf_i = opdesmixr:::plot_choice_set_utility(
+  d_opt_plot_untransf_i = plot_choice_set_utility_discrete_palette(
     cornell_designs_untransf[[i]]$d_opt$X, utilities_cornell_bayesian_plot,
     utility_point_size = utility_point_size_cornell,
     utility_point_shape = utility_point_shape_cornell,
     legend.position = "none",
-    low_color_gradient = low_color_gradient,
-    high_color_gradient = high_color_gradient
+    color_palette = color_palette_cornell$color
   ) +
     theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
 
-  i_opt_plot_untransf_i = opdesmixr:::plot_choice_set_utility(
+  i_opt_plot_untransf_i = plot_choice_set_utility_discrete_palette(
     cornell_designs_untransf[[i]]$i_opt$X, utilities_cornell_bayesian_plot,
     utility_point_size = utility_point_size_cornell,
     utility_point_shape = utility_point_shape_cornell,
     legend.position = "none",
-    low_color_gradient = low_color_gradient,
-    high_color_gradient = high_color_gradient
+    color_palette = color_palette_cornell$color
   ) +
     theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
 
@@ -600,9 +602,11 @@ pred_vars_cornell_untransf = lapply(
     kappa_i = cornell_designs_untransf[[i]]$kappa
     cat("\n\n\nkappa:", kappa_i, format(Sys.time(),'(%H:%M:%S)'), "\n")
 
+    beta_prior_draws_cornell = get_halton_draws(beta_2_prime, sd = sqrt(kappa_i), ndraws = 100)
+
     pred_vars_cornell_untransf_i = mnl_get_fds_simulations(
       design_array = cornell_designs_untransf[[i]]$i_opt$X,
-      beta = cornell_designs_untransf[[i]]$i_opt$beta,
+      beta = beta_prior_draws_cornell,
       order = 3,
       n_points_per_alternative = fds_n_points_per_alternative_cornell,
       transform_beta = F,
@@ -611,12 +615,25 @@ pred_vars_cornell_untransf = lapply(
       bind_rows(
         mnl_get_fds_simulations(
           design_array = cornell_designs_untransf[[i]]$d_opt$X,
-          beta = cornell_designs_untransf[[i]]$d_opt$beta,
+          beta = beta_prior_draws_cornell,
           order = 3,
           n_points_per_alternative = fds_n_points_per_alternative_cornell,
           transform_beta = F,
           verbose = 1) %>%
           mutate(Design = "D-optimal")
+      ) %>%
+      bind_rows(
+        mnl_get_fds_simulations(
+          design_array = ruseckaite_cornell_designs %>%
+            filter(k == kappa_i) %>%
+            select(-k) %>%
+            mnl_design_dataframe_to_array(),
+          beta = beta_prior_draws_cornell,
+          order = 3,
+          n_points_per_alternative = fds_n_points_per_alternative_cornell,
+          transform_beta = F,
+          verbose = 1) %>%
+          mutate(Design = "Ruseckaite et al.")
       )
 
     return(pred_vars_cornell_untransf_i %>%
@@ -640,13 +657,14 @@ cornell_fds_plots_untransf = pred_vars_cornell_untransf %>%
   ggplot() +
   geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
   geom_hline(aes(yintercept = med), linetype = "dashed", size = 0.2) +
-  geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
+  geom_line(aes(fraction, pred_var, color = Design), size = 0.8) +
   xlab("Fraction of design space") +
   ylab("Prediction variance") +
-  ggtitle("Cornell's experiment") +
+  # ggtitle("Cornell's experiment") +
   theme_bw() +
   theme(legend.position = "bottom") +
-  facet_wrap(~kappa2, scales = "free_y")
+  facet_wrap(~kappa2, scales = "free_y") +
+  scale_color_manual(values = c("red", "blue", "dark green"))
 
 
 
@@ -699,3 +717,133 @@ ggplot2::ggsave(
 #   top = grid::textGrob(paste0("kappa = 0.5, 5, 10, 30"), gp = grid::gpar(fontsize = 15)),
 #   ncol = 2)
 
+
+
+
+
+# ##### Transformed betas
+#
+# ## Save PNGs of designs
+#
+# for(i in seq_along(cornell_designs_transf)){
+#
+#   kappa = cornell_designs_transf[[i]]$kappa
+#   cat("Doing kappa =", kappa, "\n")
+#
+#   d_opt_plot_transf_i = plot_choice_set_utility_discrete_palette(
+#     cornell_designs_transf[[i]]$d_opt$X, utilities_cornell_bayesian_plot,
+#     utility_point_size = utility_point_size_cornell,
+#     utility_point_shape = utility_point_shape_cornell,
+#     legend.position = "none",
+#     color_palette = color_palette_cornell$color
+#   ) +
+#     theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
+#
+#   i_opt_plot_transf_i = plot_choice_set_utility_discrete_palette(
+#     cornell_designs_transf[[i]]$i_opt$X, utilities_cornell_bayesian_plot,
+#     utility_point_size = utility_point_size_cornell,
+#     utility_point_shape = utility_point_shape_cornell,
+#     legend.position = "none",
+#     color_palette = color_palette_cornell$color
+#   ) +
+#     theme(plot.margin = unit(c(-5000000, -0.5, -5000000, -0.5), "cm")) # top, right, bottom, and left margins
+#
+#
+#   plot_filename_basename = paste0("res_cornell_transf_simplex_kappa_", sprintf("%03d", kappa*10), "_")
+#
+#   ggtern::ggsave(
+#     filename = paste0(out_folder, plot_filename_basename, "D_opt.png"),
+#     plot = d_opt_plot_transf_i,
+#     width = width_cornell_simplex,
+#     height = height_cornell_simplex,
+#     units = "cm"
+#   )
+#
+#   ggtern::ggsave(
+#     filename = paste0(out_folder, plot_filename_basename, "I_opt.png"),
+#     plot = i_opt_plot_transf_i,
+#     width = width_cornell_simplex,
+#     height = height_cornell_simplex,
+#     units = "cm"
+#   )
+# }
+#
+#
+# ##### FDS plots
+#
+# pred_vars_cornell_transf = lapply(
+#   seq_along(cornell_designs_transf), function(i){
+#
+#     kappa_i = cornell_designs_transf[[i]]$kappa
+#     cat("\n\n\nkappa:", kappa_i, format(Sys.time(),'(%H:%M:%S)'), "\n")
+#
+#     pred_vars_cornell_transf_i = mnl_get_fds_simulations(
+#       design_array = cornell_designs_transf[[i]]$i_opt$X,
+#       beta = cornell_designs_transf[[i]]$i_opt$beta,
+#       order = 3,
+#       n_points_per_alternative = fds_n_points_per_alternative_cornell,
+#       transform_beta = T,
+#       verbose = 1) %>%
+#       mutate(Design = "I-optimal") %>%
+#       bind_rows(
+#         mnl_get_fds_simulations(
+#           design_array = cornell_designs_transf[[i]]$d_opt$X,
+#           beta = cornell_designs_transf[[i]]$d_opt$beta,
+#           order = 3,
+#           n_points_per_alternative = fds_n_points_per_alternative_cornell,
+#           transform_beta = T,
+#           verbose = 1) %>%
+#           mutate(Design = "D-optimal")
+#       )
+#
+#     return(pred_vars_cornell_transf_i %>%
+#              mutate(kappa = kappa_i))
+#
+#   }) %>%
+#   bind_rows()
+#
+#
+#
+# cornell_fds_plots_transf = pred_vars_cornell_transf %>%
+#   left_join(
+#     pred_vars_cornell_transf %>%
+#       group_by(Design, kappa) %>%
+#       summarize(
+#         med = median(pred_var),
+#         mean = mean(pred_var))
+#   ) %>%
+#   mutate(kappa2 = paste0("kappa = ", kappa)) %>%
+#   mutate(kappa2 = fct_reorder(kappa2, kappa)) %>%
+#   ggplot() +
+#   geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
+#   geom_hline(aes(yintercept = med), linetype = "dashed", size = 0.2) +
+#   geom_line(aes(fraction, pred_var, color = Design), size = 0.8) +
+#   xlab("Fraction of design space") +
+#   ylab("Prediction variance") +
+#   # ggtitle("Cornell's experiment") +
+#   theme_bw() +
+#   theme(legend.position = "bottom") +
+#   facet_wrap(~kappa2, scales = "free_y") +
+#   scale_color_manual(values = c("red", "blue", "dark green"))
+#
+#
+#
+#
+#
+# ggplot2::ggsave(
+#   filename = paste0(out_folder, "res_cornell_transf_fds_db_vs_ib_plot.png"),
+#   plot = cornell_fds_plots_transf,
+#   width = width_cornell_fds,
+#   height = height_cornell_fds,
+#   units = "cm"
+# )
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
