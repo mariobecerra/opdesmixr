@@ -706,6 +706,14 @@ mnl_get_Xs = function(X, s, order){
 
 
 
+#' TODO: write doc
+#' Wrapper function for getPsMNL()
+#' @export
+mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T){
+  Xs = mnl_get_Xs(X, s, order)
+  return(as.vector(getPsMNL(X = X, beta = beta, s = s, Xs = Xs, transform_beta = transform_beta)))
+}
+
 
 
 

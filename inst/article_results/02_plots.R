@@ -1,5 +1,6 @@
 library(opdesmixr)
 library(tidyverse)
+library(xtable)
 library(here)
 
 # get_file_path = function(filepath){
@@ -26,6 +27,79 @@ dir.create(out_folder, showWarnings = F)
 
 # Folder with the designs by Ruseckaite
 ruseckaite_designs_folder = opdesmixr:::get_file_path_inst("exdata/")
+
+
+
+
+##########################################################################################
+#### Functions
+##########################################################################################
+
+
+mnl_get_choice_probabilities = function(X, beta, order, transform_beta = T){
+  # Returns a tibble with the choice probabilities of each choice set.
+  # The output is a tibble in which each row is a choice set and the first J columns are the probability of choosing that option.
+  dim_X = dim(X)
+  S = dim_X[3]
+
+  probs_df = as.data.frame(matrix(rep(NA_real_, dim_X[2]*S), nrow = S)) %>%
+    set_names(paste0("p_", 1:dim_X[2]))
+
+  for(s in 1:S){
+    probs_df[s,] = mnl_get_Ps(X, beta, s, 3, T)
+  }
+
+  probs_df %>%
+    as_tibble() %>%
+    mutate(choice_set = 1:nrow(.)) %>%
+    return()
+
+}
+
+
+
+
+get_product_of_choice_probabilities = function(design_array, beta, order = 3, transform_beta = T){
+  # Returns a tibble with the choice probabilities of each choice set. and its product.
+  # The output is a tibble in which each row is a choice set and the first J columns are the probability of choosing that option.
+  # The (J+1)-th column denotes the choice set, and the last column contains the product of the choice probabilities in each choice set.
+
+  choice_probs = mnl_get_choice_probabilities(design_array, beta, order, transform_beta)
+
+  prods = Reduce(`*`, select(choice_probs, all_of(1:(ncol(choice_probs)-1))))
+
+  choice_probs %>%
+    mutate(prods = prods) %>%
+    return()
+
+}
+
+
+
+
+get_distances_within_choice_set = function(design_array){
+  # Computes the Euclidean distances between the two alternatives within a choice set for a design.
+
+  dim_array = dim(design_array)
+  J = dim_array[2]
+  if(J != 2) stop("This function only works for designs with two alternatives within each choice set.")
+
+  S = dim_array[3]
+  distances = tibble(dist = rep(NA_real_, S))
+
+  for(s in 1:S){
+    square_diff = (design_array[,1,s] - design_array[,2,s])^2
+    distances[s,] = sqrt(sum(square_diff))
+  }
+
+  distances %>%
+    mutate(choice_set = 1:nrow(.)) %>%
+    return()
+
+}
+
+
+
 
 
 # Plotting function
@@ -94,11 +168,187 @@ plot_choice_set_utility_discrete_palette = function(
 
 
 
+
+
+
+min_dist_i = function(design_tibble, i, use_unique_points = F){
+  # design_tibble must be a tibble where the first q columns are ingredient proportions and the q-th column is a choice set indicator.
+  # If use_unique_points is TRUE, the function will only use unique points
+
+  q = ncol(design_tibble) - 1
+
+  xi = as.numeric(design_tibble[i, 1:q])
+
+  if(use_unique_points){
+    design_tibble = design_tibble %>%
+      select(all_of(1:q)) %>%
+      distinct()
+  }
+
+  min_dist = Inf
+  for(j in setdiff(1:nrow(design_tibble), i)){
+
+    xj = as.numeric(design_tibble[j, 1:q])
+
+    dist_ij = sqrt(sum((xi - xj)^2))
+    min_dist = min(dist_ij, min_dist)
+
+  }
+
+  return(min_dist)
+
+}
+
+
+
+
+
+
+min_dist = function(design_tibble, use_unique_points = F){
+  # design_tibble must be a tibble where the first q columns are ingredient proportions and the q-th column is a choice set indicator.
+  # If use_unique_points is TRUE, the function will only use unique points
+
+  q = ncol(design_tibble) - 1
+
+  if(use_unique_points){
+    design_tibble = design_tibble %>%
+      select(all_of(1:q)) %>%
+      distinct()
+  }
+
+  min_dist = Inf
+  for(i in 1:(nrow(design_tibble)-1)){
+
+    min_dist = min(min_dist, min_dist_i(design_tibble = design_tibble, i = i, use_unique_points = use_unique_points))
+
+  }
+
+  return(min_dist)
+
+}
+
+
+
+
+
+
+mean_dist = function(design_tibble, use_unique_points = F){
+  # design_tibble must be a tibble where the first q columns are ingredient proportions and the q-th column is a choice set indicator.
+  # If use_unique_points is TRUE, the function will only use unique points
+
+  q = ncol(design_tibble) - 1
+
+  if(use_unique_points){
+    design_tibble = design_tibble %>%
+      select(all_of(1:q)) %>%
+      distinct()
+  }
+
+  N = nrow(design_tibble)
+  mean_dist_acc = 0.0
+  for(i in 1:N){
+
+    mean_dist_acc = mean_dist_acc + min_dist_i(design_tibble = design_tibble, i = i, use_unique_points = use_unique_points)
+
+  }
+  return(mean_dist_acc/N)
+
+}
+
+
+
+
+
+
+
+
+
+
+
+coverage = function(design_tibble, use_unique_points = F){
+
+  if(use_unique_points){
+    design_tibble = design_tibble %>%
+      select(all_of(1:q)) %>%
+      distinct()
+  }
+
+  N = nrow(design_tibble)
+  min_distances = rep(NA_real_, N)
+  for(i in seq_along(min_distances)){
+    min_distances[i] = min_dist_i(design_tibble = design_tibble, i, use_unique_points = use_unique_points)
+  }
+
+  gamma_bar = mean(min_distances)
+
+  return(sqrt(sum((min_distances - gamma_bar)^2)/N)/gamma_bar)
+}
+
+
+
+
+
+
+std_dev_of_min_dist = function(design_tibble, use_unique_points = F){
+
+  if(use_unique_points){
+    design_tibble = design_tibble %>%
+      select(all_of(1:q)) %>%
+      distinct()
+  }
+
+  N = nrow(design_tibble)
+  min_distances = rep(NA_real_, N)
+  for(i in seq_along(min_distances)){
+    min_distances[i] = min_dist_i(design_tibble = design_tibble, i, use_unique_points = use_unique_points)
+  }
+
+  gamma_bar = mean(min_distances)
+
+  return(sqrt(sum((min_distances - gamma_bar)^2)/N))
+
+}
+
+
+
+
+
+transform_from_pseudocomp_to_comp = function(x, l, sum_l){
+  a = l + (1 - sum_l)*x
+  return(a)
+}
+
+
+transform_tibble_from_pseudocomp_to_comp = function(design_tibble, lower_bounds, var_indices){
+  # Returns a tibble with p + q columns and n rows with the transformation from pseudo-components to the original components in the mixture. Here, q is the number of ingredietns proportions, p is the number of original columns in design_tibble, and n is the number of rows in design_tibble.
+  sum_lower_bounds = sum(lower_bounds)
+  q = length(lower_bounds)
+
+  if(q != length(var_indices)) stop("Incompatible sizes of lower_bounds and var_indices")
+
+  transformed_df = as_tibble(matrix(rep(NA_real_, nrow(design_tibble)*q), ncol = q)) %>%
+    set_names(paste0(names(design_tibble)[var_indices], "_original"))
+
+  for(i in seq_along(var_indices)){
+    transformed_df[[i]] = transform_from_pseudocomp_to_comp(design_tibble[[var_indices[i]]], lower_bounds[i], sum_lower_bounds)
+  }
+
+  return(bind_cols(design_tibble, transformed_df))
+}
+
+
+
 ##########################################################################################
 #### Load designs for cocktail experiment
 ##########################################################################################
 
 beta0 = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)
+
+# x1, mango juice, 0.3
+# x2, blackcurrant syrup, 0.15
+# x3, lemon juice, 0.1
+lower_bounds_cocktail = c(0.3, 0.15, 0.1)
+sum_lower_bounds = sum(lower_bounds_cocktail)
 
 cocktail_d_opt_filename = paste0(designs_folder, "cocktail_d_optimal.rds")
 cocktail_i_opt_filename = paste0(designs_folder, "cocktail_i_optimal.rds")
@@ -113,6 +363,8 @@ ruseckaite_cocktail_beta0_design = mnl_design_dataframe_to_array(
     filter(prior == "beta_0 and sigma_0") %>%
     select(-prior)
 )
+
+
 
 ##########################################################################################
 #### Load designs for Cornell's experiment
@@ -134,38 +386,38 @@ ruseckaite_cornell_designs = read_csv(paste0(ruseckaite_designs_folder, "/ruseck
 
 
 
-## Read designs with transformed betas and save them in a list
-cornell_designs_transf = lapply(kappas, function(k){
-
-  cat("kappa =", k, "\n")
-
-  d_opt_filename = paste0(cornell_designs_basefilename_transf, "_kappa", k, "_Dopt.rds")
-  i_opt_filename = paste0(cornell_designs_basefilename_transf, "_kappa", k, "_Iopt.rds")
-
-
-
-  if(file.exists(d_opt_filename)){
-    cat("\tD optimal file exists. Loading.\n")
-    cornell_beta_2_bayesian_d_opt = readRDS(d_opt_filename)
-  }else{
-    stop("\tD optimal file does not exist.\n")
-
-  }
-
-  if(file.exists(i_opt_filename)){
-    cat("\tI optimal file exists. Loading.\n")
-    cornell_beta_2_bayesian_i_opt = readRDS(i_opt_filename)
-  }else{
-    stop("\tI optimal file does not exist.\n")
-  }
-
-  return(list(
-    d_opt = cornell_beta_2_bayesian_d_opt,
-    i_opt = cornell_beta_2_bayesian_i_opt,
-    kappa = k
-  ))
-
-})
+# ## Read designs with transformed betas and save them in a list
+# cornell_designs_transf = lapply(kappas, function(k){
+#
+#   cat("kappa =", k, "\n")
+#
+#   d_opt_filename = paste0(cornell_designs_basefilename_transf, "_kappa", k, "_Dopt.rds")
+#   i_opt_filename = paste0(cornell_designs_basefilename_transf, "_kappa", k, "_Iopt.rds")
+#
+#
+#
+#   if(file.exists(d_opt_filename)){
+#     cat("\tD optimal file exists. Loading.\n")
+#     cornell_beta_2_bayesian_d_opt = readRDS(d_opt_filename)
+#   }else{
+#     stop("\tD optimal file does not exist.\n")
+#
+#   }
+#
+#   if(file.exists(i_opt_filename)){
+#     cat("\tI optimal file exists. Loading.\n")
+#     cornell_beta_2_bayesian_i_opt = readRDS(i_opt_filename)
+#   }else{
+#     stop("\tI optimal file does not exist.\n")
+#   }
+#
+#   return(list(
+#     d_opt = cornell_beta_2_bayesian_d_opt,
+#     i_opt = cornell_beta_2_bayesian_i_opt,
+#     kappa = k
+#   ))
+#
+# })
 
 
 ## Read designs with untransformed betas and save them in a list
@@ -209,7 +461,81 @@ cornell_designs_untransf = lapply(kappas, function(k){
 
 
 
+##########################################################################################
+#### Print designs for Latex
+##########################################################################################
 
+
+col_names_cocktail_table = c("Choice set", "x1", "x2", "x3", "a1", "a2", "a3")
+
+cat("Writing table for cocktail D-optimal design...")
+transform_tibble_from_pseudocomp_to_comp(mnl_design_array_to_dataframe(cocktail_D_opt$X), lower_bounds_cocktail, 1:3) %>%
+  select(4, 1:3, 5:7) %>%
+  set_names(col_names_cocktail_table) %>%
+  xtable::xtable(.,
+                 caption = "D-optimal design for cocktail experiment",
+                 label = "tab:cocktail_exp_d_optimal_des") %>%
+  print(., include.rownames = F, file = paste0(out_folder, "res_cocktail_table_d_opt_design.tex"))
+cat("Done\n\n")
+
+
+
+cat("Writing table for cocktail I-optimal design...")
+transform_tibble_from_pseudocomp_to_comp(mnl_design_array_to_dataframe(cocktail_I_opt$X), lower_bounds_cocktail, 1:3) %>%
+  select(4, 1:3, 5:7) %>%
+  set_names(col_names_cocktail_table) %>%
+  xtable::xtable(.,
+                 caption = "I-optimal design for cocktail experiment",
+                 label = "tab:cocktail_exp_i_optimal_des") %>%
+  print(., include.rownames = F, file = paste0(out_folder, "res_cocktail_table_i_opt_design.tex"))
+cat("Done\n\n")
+
+
+
+
+
+col_names_cornell_table = c("Choice set", "x1", "x2", "x3")
+cornell_tables_filename = paste0(out_folder, "res_cornell_table_designs.tex")
+for(i in seq_along(cornell_designs_untransf)){
+
+  kappa_i = cornell_designs_untransf[[i]]$kappa
+
+  cat("%Cornell, kappa =", kappa_i, "\n\n")
+  # Cornell's D-optimal design
+  cat("%Cornell's D-optimal design\n")
+  mnl_design_array_to_dataframe(cornell_designs_untransf[[i]]$d_opt$X) %>%
+    select(4, 1:3) %>%
+    set_names(col_names_cornell_table) %>%
+    xtable::xtable(
+      .,
+      caption = paste0("D-optimal design for artificial sweetener experiment, $\\kappa = ", kappa_i, "$"),
+      label = paste0("tab:cornell_exp_d_optimal_des_kappa_", kappa_i)
+      ) %>%
+    print(.,
+          include.rownames = F,
+          file = cornell_tables_filename,
+          append = T)
+  cat("\n\n")
+
+
+
+  # Cornell's I-optimal design
+  cat("%Cornell's I-optimal design\n")
+  mnl_design_array_to_dataframe(cornell_designs_untransf[[i]]$i_opt$X) %>%
+    select(4, 1:3) %>%
+    set_names(col_names_cornell_table) %>%
+    xtable::xtable(
+      .,
+      caption = paste0("I-optimal design for artificial sweetener experiment, $\\kappa = ", kappa_i, "$"),
+      label = paste0("tab:cornell_exp_i_optimal_des_kappa_", kappa_i)
+      ) %>%
+    print(.,
+          include.rownames = F,
+          file = cornell_tables_filename,
+          append = T)
+  cat("\n\n\n\n\n\n\n")
+
+}
 
 
 
@@ -218,6 +544,55 @@ cornell_designs_untransf = lapply(kappas, function(k){
 ##########################################################################################
 #### Plot cocktail designs
 ##########################################################################################
+
+
+### Utility balance
+(
+  get_product_of_choice_probabilities(cocktail_I_opt$X, cocktail_I_opt$beta, order = 3, transform_beta = T) %>%
+    mutate(Design = "I-optimal") %>%
+    bind_rows(
+      get_product_of_choice_probabilities(cocktail_D_opt$X, cocktail_D_opt$beta, order = 3, transform_beta = T) %>%
+        mutate(Design = "D-optimal")
+    ) %>%
+    ggplot() +
+    geom_boxplot(aes(x = Design, y = prods)) +
+    theme_bw() +
+    ylab("Product of choice probabilities") +
+    ylim(0, 0.25)
+) %>%
+  ggplot2::ggsave(
+    filename = paste0(out_folder, "res_cocktail_choice_probs_plot.png"),
+    plot = .,
+    width = 8,
+    height = 9,
+    units = "cm"
+  )
+
+
+
+### Distances between  alternatives within each choice set
+(
+  get_distances_within_choice_set(cocktail_I_opt$X) %>%
+    mutate(Design = "I-optimal") %>%
+    bind_rows(
+      get_distances_within_choice_set(cocktail_D_opt$X) %>%
+        mutate(Design = "D-optimal")
+    ) %>%
+    ggplot() +
+    geom_boxplot(aes(x = Design, y = dist)) +
+    theme_bw() +
+    ylab("Distance between alternatives")
+) %>%
+  ggplot2::ggsave(
+    filename = paste0(out_folder, "res_cocktail_distances_within_choice_set.png"),
+    plot = .,
+    width = 8,
+    height = 9,
+    units = "cm"
+  )
+
+
+
 
 ### Design plots
 
@@ -266,7 +641,7 @@ ggtern::ggsave(
     utility_point_size = utility_point_size_cocktail,
     utility_point_shape = utility_point_shape_cocktail,
     color_palette = color_palette_cocktail$color
-    ) +
+  ) +
     theme(legend.position = "none"),
   width = width_cocktail_simplex,
   height = height_cocktail_simplex,
@@ -281,7 +656,7 @@ ggtern::ggsave(
     utility_point_size = utility_point_size_cocktail,
     utility_point_shape = utility_point_shape_cocktail,
     color_palette = color_palette_cocktail$color
-    ) +
+  ) +
     theme(legend.position = "none"),
   width = width_cocktail_simplex,
   height = height_cocktail_simplex,
@@ -510,6 +885,94 @@ ggplot2::ggsave(
 ##########################################################################################
 #### Plot designs for Cornell's experiment
 ##########################################################################################
+
+cornell_untrans_choice_probs = lapply(seq_along(cornell_designs_untransf), function(i){
+
+  kappa = cornell_designs_untransf[[i]]$kappa
+
+  get_product_of_choice_probabilities(cornell_designs_untransf[[i]]$i_opt$X,
+                                      cornell_designs_untransf[[i]]$i_opt$beta,
+                                      order = 3, transform_beta = F) %>%
+    mutate(Design = "I-optimal") %>%
+    bind_rows(
+      get_product_of_choice_probabilities(cornell_designs_untransf[[i]]$d_opt$X,
+                                          cornell_designs_untransf[[i]]$d_opt$beta,
+                                          order = 3, transform_beta = F) %>%
+        mutate(Design = "D-optimal")
+    ) %>%
+    mutate(kappa = kappa)
+}) %>%
+  bind_rows()
+
+
+cornell_untrans_choice_probs_plot = cornell_untrans_choice_probs %>%
+  mutate(kappa2 = paste0("kappa = ", kappa)) %>%
+  mutate(kappa2 = fct_reorder(kappa2, kappa)) %>%
+  ggplot() +
+  geom_boxplot(aes(x = Design, y = prods)) +
+  facet_wrap(~kappa2, ncol = 4) +
+  ylab("Product of choice probabilities") +
+  ylim(0, 0.25) +
+  theme_bw()
+
+
+ggplot2::ggsave(
+  filename = paste0(out_folder, "res_cornell_untransf_choice_probs_plot.png"),
+  plot = cornell_untrans_choice_probs_plot,
+  width = 21,
+  height = 6,
+  units = "cm"
+)
+
+
+
+
+
+
+
+
+
+cornell_untrans_distances_within_choice_set = lapply(seq_along(cornell_designs_untransf), function(i){
+
+  kappa = cornell_designs_untransf[[i]]$kappa
+
+  get_distances_within_choice_set(cornell_designs_untransf[[i]]$i_opt$X) %>%
+    mutate(Design = "I-optimal") %>%
+    bind_rows(
+      get_distances_within_choice_set(cornell_designs_untransf[[i]]$d_opt$X) %>%
+        mutate(Design = "D-optimal")
+    )  %>%
+    mutate(kappa = kappa)
+
+
+}) %>%
+  bind_rows()
+
+
+cornell_untrans_distances_within_choice_set_plot = cornell_untrans_distances_within_choice_set %>%
+  mutate(kappa2 = paste0("kappa = ", kappa)) %>%
+  mutate(kappa2 = fct_reorder(kappa2, kappa)) %>%
+  ggplot() +
+  geom_boxplot(aes(x = Design, y = dist)) +
+  theme_bw() +
+  ylab("Distance between alternatives") +
+  facet_wrap(~kappa2, ncol = 4)
+
+
+ggplot2::ggsave(
+  filename = paste0(out_folder, "res_cornell_untransf_distances_within_choice_set.png"),
+  plot = cornell_untrans_distances_within_choice_set_plot,
+  width = 21,
+  height = 6,
+  units = "cm"
+)
+
+
+
+
+
+
+
 
 # Parameters for saving plots in PNG
 width_cornell_simplex = 10

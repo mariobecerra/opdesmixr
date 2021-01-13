@@ -4,7 +4,7 @@
 \alias{gaussian_get_opt_crit_value}
 \title{TODO: write doc}
 \usage{
-gaussian_get_opt_crit_value(X, order = 1, opt_crit = 0)
+gaussian_get_opt_crit_value(X, order = 1, opt_crit = 0, n_pv = 0)
 }
 \description{
 TODO: write doc

@@ -4,7 +4,7 @@
 \alias{gaussian_create_moment_matrix}
 \title{TODO: write doc}
 \usage{
-gaussian_create_moment_matrix(q, order = 3)
+gaussian_create_moment_matrix(q, n_pv = 0, order = 3)
 }
 \description{
 TODO: write doc
