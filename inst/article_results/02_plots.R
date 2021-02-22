@@ -232,7 +232,7 @@ min_dist = function(design_tibble, use_unique_points = F){
 
 
 
-mean_dist = function(design_tibble, use_unique_points = F){
+mean_min_dist = function(design_tibble, use_unique_points = F){
   # design_tibble must be a tibble where the first q columns are ingredient proportions and the q-th column is a choice set indicator.
   # If use_unique_points is TRUE, the function will only use unique points
 
@@ -245,13 +245,13 @@ mean_dist = function(design_tibble, use_unique_points = F){
   }
 
   N = nrow(design_tibble)
-  mean_dist_acc = 0.0
+  mean_min_dist_acc = 0.0
   for(i in 1:N){
 
-    mean_dist_acc = mean_dist_acc + min_dist_i(design_tibble = design_tibble, i = i, use_unique_points = use_unique_points)
+    mean_min_dist_acc = mean_min_dist_acc + min_dist_i(design_tibble = design_tibble, i = i, use_unique_points = use_unique_points)
 
   }
-  return(mean_dist_acc/N)
+  return(mean_min_dist_acc/N)
 
 }
 
@@ -311,8 +311,45 @@ std_dev_of_min_dist = function(design_tibble, use_unique_points = F){
 
 
 
+audze_eglais = function(design_tibble, use_unique_points = T){
+
+  q = ncol(design_tibble) - 1
+
+  if(use_unique_points){
+    design_tibble = design_tibble %>%
+      select(all_of(1:q)) %>%
+      distinct()
+  }
+
+  N = nrow(design_tibble)
+
+  acc = 0.0
+  for(i in 1:(N-1)){
+    for(j in (i+1):N){
+
+      xi = as.numeric(design_tibble[i, 1:q])
+      xj = as.numeric(design_tibble[j, 1:q])
+
+      square_dist_ij = sum((xi - xj)^2)
+
+      acc = acc + 1/square_dist_ij
+    }
+  }
+
+  return(acc)
+
+}
 
 
+
+
+
+
+
+
+# Transforms from pseudocomponent x to original component a.
+# x is a scalar or a vector, l is a scalar denoting the lower bound.
+# sum_l is a scalar denoting the sum of the lower bounds.
 transform_from_pseudocomp_to_comp = function(x, l, sum_l){
   a = l + (1 - sum_l)*x
   return(a)
@@ -500,9 +537,11 @@ for(i in seq_along(cornell_designs_untransf)){
 
   kappa_i = cornell_designs_untransf[[i]]$kappa
 
-  cat("%Cornell, kappa =", kappa_i, "\n\n")
-  # Cornell's D-optimal design
-  cat("%Cornell's D-optimal design\n")
+  cat("% Saving optimal design tables for Cornell's experiment, kappa =", kappa_i, "\n")
+
+
+  # # Cornell's D-optimal design
+  # cat("%Cornell's D-optimal design\n")
   mnl_design_array_to_dataframe(cornell_designs_untransf[[i]]$d_opt$X) %>%
     select(4, 1:3) %>%
     set_names(col_names_cornell_table) %>%
@@ -515,12 +554,12 @@ for(i in seq_along(cornell_designs_untransf)){
           include.rownames = F,
           file = cornell_tables_filename,
           append = T)
-  cat("\n\n")
+  # cat("\n\n")
 
 
 
-  # Cornell's I-optimal design
-  cat("%Cornell's I-optimal design\n")
+  # # Cornell's I-optimal design
+  # cat("%Cornell's I-optimal design\n")
   mnl_design_array_to_dataframe(cornell_designs_untransf[[i]]$i_opt$X) %>%
     select(4, 1:3) %>%
     set_names(col_names_cornell_table) %>%
@@ -533,7 +572,7 @@ for(i in seq_along(cornell_designs_untransf)){
           include.rownames = F,
           file = cornell_tables_filename,
           append = T)
-  cat("\n\n\n\n\n\n\n")
+  # cat("\n\n\n\n\n\n\n")
 
 }
 
@@ -590,6 +629,21 @@ for(i in seq_along(cornell_designs_untransf)){
     height = 9,
     units = "cm"
   )
+
+
+
+# mean_min_dist(mnl_design_array_to_dataframe(cocktail_D_opt$X))
+# mean_min_dist(mnl_design_array_to_dataframe(cocktail_I_opt$X))
+#
+# audze_eglais(mnl_design_array_to_dataframe(cocktail_D_opt$X))
+# audze_eglais(mnl_design_array_to_dataframe(cocktail_I_opt$X))
+#
+# std_dev_of_min_dist(mnl_design_array_to_dataframe(cocktail_D_opt$X))
+# std_dev_of_min_dist(mnl_design_array_to_dataframe(cocktail_I_opt$X))
+#
+# coverage(mnl_design_array_to_dataframe(cocktail_D_opt$X))
+# coverage(mnl_design_array_to_dataframe(cocktail_I_opt$X))
+
 
 
 
