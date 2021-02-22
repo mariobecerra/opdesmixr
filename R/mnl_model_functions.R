@@ -52,7 +52,7 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
     m = q
   } else{
     if(order == 2){
-      m = q*(q-1)/2 + q
+      m = q*(q-1)/2 + q # = q*(q+1)/2
     } else{
       m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
     }
@@ -604,7 +604,7 @@ mnl_create_moment_matrix = function(q, order = 3){
 
       aux_ij = f_matrix[i, ] + f_matrix[j, ]
       num_ij = prod(factorial(aux_ij))
-      denom_ij = factorial(2 + sum(aux_ij))
+      denom_ij = factorial(q - 1 + sum(aux_ij))
       W[i,j] = num_ij/denom_ij
     }
   }
