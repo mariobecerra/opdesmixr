@@ -463,7 +463,7 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3){
         denom_ij_1 = factorial(q - 1 + sum(aux_ij_1))
       } else{
         num_ij_1 = 1
-        denom_ij_1 = 1
+        denom_ij_1 =  factorial(q - 1)
       }
 
       denom_ij_2 = 1
