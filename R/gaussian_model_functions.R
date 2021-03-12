@@ -533,3 +533,167 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NUL
 
   return(W)
 }
+
+
+
+
+#' TODO: write doc
+#' Function created for testing. There's really no reason to use this function.
+#' @export
+gaussian_create_moment_matrix_numerically = function(q, n_pv = 0, order = 3, n_points = 5000, pv_bounds = c(-1, 1), seed  = NULL){
+
+  if(!is.null(seed)) set.seed(seed)
+
+  stopifnot(order %in% 1:4)
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
+
+  if(n_pv > 0){
+    if(is.null(pv_bounds)){
+      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
+      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
+    } else{
+
+      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
+        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
+        stopifnot(pv_bounds[2] > pv_bounds[1])
+        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
+      }
+
+      stopifnot(is.matrix(pv_bounds))
+      stopifnot(ncol(pv_bounds) == 2)
+      stopifnot(nrow(pv_bounds) == n_pv)
+      for(i in 1:nrow(pv_bounds)){
+        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
+      }
+    }
+  }
+
+
+  if(order == 1){
+    m = q
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q
+    } else{
+      if(order == 3){
+        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      } else{
+        m = q + q*(q-1)/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+      }
+    }
+  }
+
+  f_matrix = matrix(rep(0L, m*(q + n_pv)), ncol = q + n_pv)
+
+  counter = 0
+  # Fill indicators of first part of the model expansion
+  for(i in 1:q){
+    counter = counter + 1
+    f_matrix[counter, i] = 1
+  }
+
+
+  # Fill indicators of second part of the model expansion
+  if(order >= 2){
+    for(i in 1:(q-1)){
+      for(j in (i+1):q){
+        counter = counter + 1
+        f_matrix[counter, i] = 1
+        f_matrix[counter, j] = 1
+      }
+    }
+  }
+
+
+  # Fill indicators of third part of the model expansion
+  if(order == 3){
+    for(i in 1:(q-2)){
+      for(j in (i+1):(q-1)){
+        for(k in (j+1):q){
+          counter = counter + 1
+          f_matrix[counter, i] = 1
+          f_matrix[counter, j] = 1
+          f_matrix[counter, k] = 1
+        }
+      }
+    }
+  }
+
+
+
+  # Fill indicators of fourth part of the model expansion when n_pv > 0
+  if(order == 4){
+
+    for(i in 1:n_pv){
+      for(k in 1:q){
+        counter = counter + 1
+        f_matrix[counter, q + i] = 1
+        f_matrix[counter, k] = 1
+      }
+    }
+
+    if(n_pv > 1){
+      for(i in 1:(n_pv-1)){
+        for(j in (i+1):n_pv){
+          counter = counter + 1
+          f_matrix[counter, q + i] = 1
+          f_matrix[counter, q + j] = 1
+        }
+      }
+    }
+
+
+    for(i in 1:n_pv){
+      counter = counter + 1
+      f_matrix[counter, q + i] = 2
+    }
+
+  }
+
+  sample_mat = MCMCpack::rdirichlet(n_points, rep(1, q))
+
+  if(n_pv > 0){
+
+    sample_mat = cbind(sample_mat, matrix(rep(NA_real_, n_pv*n_points), ncol = n_pv))
+    for(l in 1:n_pv){
+      sample_mat[, q+l] = runif(n_points, min = pv_bounds[l, 1], max = pv_bounds[l, 2])
+    }
+
+  }
+
+  W = matrix(rep(NA_real_, m*m), ncol = m)
+
+
+  aux_pv_pdf = 1.0
+  if(n_pv > 0){
+    for(l in 1:n_pv){
+      aux_pv_pdf = aux_pv_pdf * (pv_bounds[l,2] - pv_bounds[l,1])
+    }
+  }
+
+
+  joint_pdf_value = factorial(q-1)/(aux_pv_pdf)
+
+
+  for(i in 1:m){
+    for(j in 1:m){
+
+      aux_ij = f_matrix[i, ] + f_matrix[j, ]
+
+      out_ij = 1.0
+      f = rep(1.0, n_points)
+      for(k in seq_along(aux_ij)){
+        f = f * sample_mat[, k]^aux_ij[k]
+      }
+
+
+      W[i,j] = mean(f)/joint_pdf_value
+
+    }
+  }
+
+  return(W)
+}
