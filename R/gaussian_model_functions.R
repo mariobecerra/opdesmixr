@@ -2,8 +2,14 @@
 #' TODO: write doc
 #' @export
 gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds = NULL, seed = NULL){
+  # pv_bounds must be either:
+  #     - NULL (for default values), or
+  #     - a vector with 2 scalars (the second element must be greater than the first), or
+  #     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+
   # gaussian_create_random_initial_design(10, 3, 2, seed = 3)
-  # gaussian_create_random_initial_design(10, 3, 2, pv_bounds = list(c(-1, 0), c(-1, 0)), 3)
+  # gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 0, -1, 0), byrow = T, ncol = 2), seed = 3)
+  # gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 1, 0, 1), byrow = T, ncol = 2), seed = 3)
 
   if(!is.null(seed)) set.seed(seed)
 
@@ -17,23 +23,30 @@ gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds 
     X[i,] = rands/sum(rands)
   }
 
-  # Process variables
   if(n_pv > 0){
     if(is.null(pv_bounds)){
-      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval (0, 1) for all process variables.")
-      pv_bounds = lapply(1:n_pv, function(.) return(c(0, 1)))
+      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
+      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
     } else{
-      stopifnot(is.list(pv_bounds))
-      for(k in 1:length(pv_bounds)){
-        stopifnot(length(pv_bounds[[k]]) == 2)
+
+      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
+        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
+        stopifnot(pv_bounds[2] > pv_bounds[1])
+        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
       }
-      stopifnot(length(pv_bounds) == n_pv)
+
+      stopifnot(is.matrix(pv_bounds))
+      stopifnot(ncol(pv_bounds) == 2)
+      stopifnot(nrow(pv_bounds) == n_pv)
+      for(i in 1:nrow(pv_bounds)){
+        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
+      }
     }
 
     # Create matrix and randomly fill them
     X_pv = matrix(rep(NA_real_, n_runs*n_pv), ncol = n_pv)
-    for(k in 1:n_pv){
-      X_pv[,k] = runif(n = n_runs, min = pv_bounds[[k]][1], max = pv_bounds[[k]][2])
+    for(l in 1:n_pv){
+      X_pv[, l] = runif(n = n_runs, min = pv_bounds[l, 1], max = pv_bounds[l, 2])
     }
     X = cbind(X, X_pv)
 
@@ -363,7 +376,32 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
 
 #' TODO: write doc
 #' @export
-gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3){
+gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
+  # pv_bounds must be either:
+  #     - NULL (for default values), or
+  #     - a vector with 2 scalars (the second element must be greater than the first), or
+  #     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+
+  if(n_pv > 0){
+    if(is.null(pv_bounds)){
+      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
+      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
+    } else{
+
+      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
+        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
+        stopifnot(pv_bounds[2] > pv_bounds[1])
+        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
+      }
+
+      stopifnot(is.matrix(pv_bounds))
+      stopifnot(ncol(pv_bounds) == 2)
+      stopifnot(nrow(pv_bounds) == n_pv)
+      for(i in 1:nrow(pv_bounds)){
+        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
+      }
+    }
+  }
 
   stopifnot(order %in% 1:4)
 
@@ -458,23 +496,38 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3){
     for(j in 1:m){
 
       aux_ij_1 = f_matrix[i, 1:q] + f_matrix[j, 1:q]
-      if(sum(aux_ij_1 > 0)){
-        num_ij_1 = prod(factorial(aux_ij_1))
-        denom_ij_1 = factorial(q - 1 + sum(aux_ij_1))
-      } else{
-        num_ij_1 = 1
-        denom_ij_1 =  factorial(q - 1)
-      }
+      num_ij_1 = prod(factorial(aux_ij_1))
+      denom_ij_1 = factorial(q - 1 + sum(aux_ij_1))
 
-      denom_ij_2 = 1
+
       if(n_pv > 0){
         aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
-        if(sum(aux_ij_2 > 0)){
-          denom_ij_2 = prod(1 + aux_ij_2)
+        num_ij_2 = 1.0
+        for(l in 1:n_pv){
+          num_ij_2 = num_ij_2 * (pv_bounds[l,2]^(aux_ij_2[l] + 1) - pv_bounds[l,1]^(aux_ij_2[l] + 1))
         }
-      }
 
-      W[i,j] = (num_ij_1/denom_ij_1)*(1/denom_ij_2)
+      } else{
+        aux_ij_2 = 0.0
+        num_ij_2 = 1.0
+      }
+      denom_ij_2 = prod(1 + aux_ij_2)
+
+      # # Same as:
+      # if(n_pv > 0){
+      #   aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
+      #   num_ij_2 = prod(pv_bounds[,2]^(aux_ij_2 + 1) - pv_bounds[,1]^(aux_ij_2 + 1))
+      # } else{
+      #   aux_ij_2 = 0
+      #   num_ij_2 = 1
+      # }
+      # denom_ij_2 = prod(1 + aux_ij_2)
+      # # This code is faster, but it may be harder to read. In this case we don't care about speed.
+
+
+
+      W[i,j] = (num_ij_1 * num_ij_2)/(denom_ij_1 * denom_ij_2)
+
     }
   }
 
