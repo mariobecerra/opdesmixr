@@ -139,6 +139,10 @@ gaussian_mixture_coord_exch = function(
   }
 
 
+  if(opt_method == "D" & order == 4){
+    stop("Discretization of Cox direction is not available for models that include process variables.")
+  }
+
 
   #############################################
   ## Check that optimization method is okay
@@ -194,7 +198,7 @@ gaussian_mixture_coord_exch = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = gaussian_create_moment_matrix(q = q, n_pv = n_pv, order = order)
+    W = gaussian_create_moment_matrix(q = q, n_pv = n_pv, order = order, pv_bounds = pv_bounds)
   }
 
   #############################################
