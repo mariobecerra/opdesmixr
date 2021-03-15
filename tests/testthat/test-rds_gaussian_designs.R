@@ -2,310 +2,74 @@ library(testthat)
 library(opdesmixr)
 
 
-# This test file checks that the final design matrices are equal to the previous versions.
-# I only check the X matrices because I wrote the tests by hand.
-# Should have done it programatically but I didn't know how to do it at the time.
-
+# This test file checks that the final I-optimality and D-optimality values are equal to the previous versions.
 
 out_folder = here::here("tests/testthat/rds_gaussian_designs/")
 
-# D-optimality, 30 runs, 3 ingredients
 
-test_that("gaussian_D_q3_nruns30_rs100_o1_seed10", {
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 30,
-      q = 3,
-      n_random_starts = 100,
-      order = 1,
-      opt_crit = "D",
-      opt_method = "B",
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q3_nruns30_rs100_o1_seed10_brent_X.rds")
-  )
+n_runs = 50
+n_random_starts = 4
+n_cores = parallel::detectCores()
 
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 30,
-      q = 3,
-      n_random_starts = 100,
-      order = 1,
-      opt_crit = "D",
-      opt_method = "D",
-      n_cox_points = 50,
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q3_nruns30_rs100_o1_seed10_discrete_X.rds"))
-})
+test_that("gaussian_rds",{
 
+  for(optimization_method in c("B", "D")){
+    for(optimality_criterion in c("D", "I")){
+      for(order in 1:3){
+        for(q in c(3, 4, 5)){
 
-test_that("gaussian_D_q3_nruns30_rs100_o2_seed10", {
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 30,
-      q = 3,
-      n_random_starts = 100,
-      order = 2,
-      opt_crit = "D",
-      opt_method = "B",
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q3_nruns30_rs100_o2_seed10_brent_X.rds"))
+          res_alg = gaussian_mixture_coord_exch(
+            q = q,
+            n_runs = n_runs,
+            n_random_starts = n_random_starts,
+            order = order,
+            opt_crit = optimality_criterion,
+            opt_method = optimization_method,
+            n_cox_points = 50,
+            plot_designs = F,
+            verbose = 0,
+            n_cores = n_cores,
+            max_it = 3,
+            seed = 10)
 
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 30,
-      q = 3,
-      n_random_starts = 100,
-      order = 2,
-      opt_crit = "D",
-      opt_method = "D",
-      n_cox_points = 50,
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q3_nruns30_rs100_o2_seed10_discrete_X.rds"))
-})
+          base_filename = paste0(
+            "gaussian_", optimality_criterion, "opt_q", q, "_nruns", n_runs, "_rs", n_random_starts, "_order", order, "_optmeth", optimization_method
+          )
+
+          # expect_equal_to_reference(
+          #   object = res_alg$X_orig,
+          #   file = paste0(out_folder, base_filename, "_X_orig.rds")
+          # )
+
+          # expect_equal_to_reference(
+          #   object = res_alg$X,
+          #   file = paste0(out_folder, base_filename, "_X.rds")
+          # )
+
+          expect_equal_to_reference(
+            object = res_alg$opt_crit_value_orig,
+            file = paste0(out_folder, base_filename, "_opt_crit_value_orig.rds")
+          )
+
+          expect_equal_to_reference(
+            object = res_alg$opt_crit_value,
+            file = paste0(out_folder, base_filename, "_opt_crit_value_final.rds")
+          )
 
 
+        }
 
-test_that("gaussian_D_q3_nruns30_rs50_o3_seed10", {
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 30,
-      q = 3,
-      n_random_starts = 50,
-      order = 2,
-      opt_crit = "D",
-      opt_method = "B",
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q3_nruns30_rs50_o3_seed10_brent_X.rds")
-  )
+      }
+    }
+  }
 
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 30,
-      q = 3,
-      n_random_starts = 50,
-      order = 2,
-      opt_crit = "D",
-      opt_method = "D",
-      n_cox_points = 50,
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q3_nruns30_rs50_o3_seed10_discrete_X.rds")
-  )
+
 })
 
 
 
 
 
-# I-optimality, 30 runs, 3 ingredients
-
-test_that("gaussian_I_q3_nruns30_rs50_o3_seed10", {
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 30,
-      q = 3,
-      n_random_starts = 50,
-      order = 3,
-      opt_crit = "I",
-      opt_method = "B",
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_I_q3_nruns30_rs50_o3_seed10_brent_X.rds")
-  )
-
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 30,
-      q = 3,
-      n_random_starts = 50,
-      order = 3,
-      opt_crit = "I",
-      opt_method = "D",
-      n_cox_points = 30,
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_I_q3_nruns30_rs50_o3_seed10_discrete_X.rds")
-  )
-})
-
-
-
-# D-optimality, 60 runs, 5 ingredients
-
-test_that("gaussian_D_q5_nruns60_rs50_o1_seed10", {
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 60,
-      q = 5,
-      n_random_starts = 50,
-      order = 1,
-      opt_crit = "D",
-      opt_method = "B",
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q5_nruns60_rs50_o1_seed10_brent_X.rds")
-  )
-
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 60,
-      q = 5,
-      n_random_starts = 50,
-      order = 1,
-      opt_crit = "D",
-      opt_method = "D",
-      n_cox_points = 30,
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 5,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q5_nruns60_rs50_o1_seed10_discrete_X.rds")
-  )
-})
-
-
-
-test_that("gaussian_D_q5_nruns60_o2_seed10", {
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 60,
-      q = 5,
-      n_random_starts = 10,
-      order = 2,
-      opt_crit = "D",
-      opt_method = "B",
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 3,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q5_nruns60_o2_seed10_brent_X.rds")
-  )
-
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 60,
-      q = 5,
-      n_random_starts = 10,
-      order = 2,
-      opt_crit = "D",
-      opt_method = "D",
-      n_cox_points = 30,
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 3,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q5_nruns60_o2_seed10_discrete_X.rds")
-  )
-})
-
-
-test_that("gaussian_D_q5_nruns60_o3_seed10", {
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 60,
-      q = 5,
-      n_random_starts = 10,
-      order = 3,
-      opt_crit = "D",
-      opt_method = "B",
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 3,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q5_nruns60_o3_seed10_brent_X.rds")
-  )
-
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 60,
-      q = 5,
-      n_random_starts = 10,
-      order = 3,
-      opt_crit = "D",
-      opt_method = "D",
-      n_cox_points = 30,
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 3,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_D_q5_nruns60_o3_seed10_discrete_X.rds")
-  )
-})
-
-
-# I-optimality, 60 runs, 5 ingredients
-
-test_that("gaussian_I_q5_nruns60_rs50_o3_seed10", {
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 60,
-      q = 5,
-      n_random_starts = 10,
-      order = 3,
-      opt_crit = "I",
-      opt_method = "B",
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 2,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_I_q5_nruns60_rs50_o3_seed10_brent_X.rds")
-  )
-
-  expect_equal_to_reference(
-    object = gaussian_mixture_coord_exch(
-      n_runs = 60,
-      q = 5,
-      n_random_starts = 10,
-      order = 3,
-      opt_crit = "I",
-      opt_method = "D",
-      n_cox_points = 30,
-      plot_designs = F,
-      verbose = 0,
-      n_cores = 1,
-      max_it = 2,
-      seed = 10)$X,
-    file = paste0(out_folder, "gaussian_I_q5_nruns60_rs50_o3_seed10_discrete_X.rds")
-  )
-})
 
 
 
