@@ -547,7 +547,7 @@ mnl_plot_result = function(res_alg, ...){
 
 #' TODO: write doc
 #' @export
-mnl_create_moment_matrix = function(q, order = 3){
+mnl_create_moment_matrix = function(q, order = 3, n_pv = NULL, pv_bounds = NULL){
 
   stopifnot(order %in% 1:3)
 
