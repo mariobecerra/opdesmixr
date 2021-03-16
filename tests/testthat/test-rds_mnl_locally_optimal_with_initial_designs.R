@@ -4,7 +4,7 @@ library(here)
 
 # The initial designs in the folder defined by the 'design_and_vector_folder' variable were created programmatically with an external script.
 
-design_and_vector_folder = here("tests/testthat/rds_mnl_locally_optimal_designs_initial_designs_do_not_edit_by_hand/")
+design_and_vector_folder = here("tests/testthat/rds_mnl_initial_designs_do_not_edit_by_hand/")
 out_folder = here("tests/testthat/rds_mnl_locally_optimal_designs_initial_designs_output/")
 dir.create(out_folder)
 
