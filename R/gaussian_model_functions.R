@@ -379,12 +379,22 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
 
 
 #' TODO: write doc
+#' pv_bounds must be either:
+#'     - NULL (for default values), or
+#'     - a vector with 2 scalars (the second element must be greater than the first), or
+#'     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
 #' @export
 gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
   # pv_bounds must be either:
   #     - NULL (for default values), or
   #     - a vector with 2 scalars (the second element must be greater than the first), or
   #     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+
+  stopifnot(order %in% 1:4)
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
 
   if(n_pv > 0){
     if(is.null(pv_bounds)){
@@ -407,10 +417,6 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NUL
     }
   }
 
-  stopifnot(order %in% 1:4)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
 
   if(order == 1){
     m = q
