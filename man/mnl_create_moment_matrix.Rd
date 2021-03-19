@@ -2,10 +2,18 @@
 % Please edit documentation in R/mnl_model_functions.R
 \name{mnl_create_moment_matrix}
 \alias{mnl_create_moment_matrix}
-\title{TODO: write doc}
+\title{TODO: write doc
+pv_bounds must be either:
+- NULL (for default values), or
+- a vector with 2 scalars (the second element must be greater than the first), or
+- a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.}
 \usage{
-mnl_create_moment_matrix(q, order = 3)
+mnl_create_moment_matrix(q, n_pv = 0, order = 3, pv_bounds = NULL)
 }
 \description{
 TODO: write doc
+pv_bounds must be either:
+- NULL (for default values), or
+- a vector with 2 scalars (the second element must be greater than the first), or
+- a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
 }
