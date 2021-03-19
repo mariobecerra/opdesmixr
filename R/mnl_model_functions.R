@@ -81,11 +81,11 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = mnl_create_moment_matrix(q, order)
+    W = mnl_create_moment_matrix(q = q, order = order)
   }
 
 
-  return(getOptCritValueMNL(X = X, beta = beta, opt_crit = opt_crit, verbose = 0, W = W, order = order, transform_beta = transform_beta))
+  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order, transform_beta = transform_beta))
 
 }
 
@@ -541,15 +541,43 @@ mnl_plot_result = function(res_alg, ...){
 
 
 
-
-
-
-
 #' TODO: write doc
+#' pv_bounds must be either:
+#'     - NULL (for default values), or
+#'     - a vector with 2 scalars (the second element must be greater than the first), or
+#'     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
 #' @export
-mnl_create_moment_matrix = function(q, order = 3, n_pv = NULL, pv_bounds = NULL){
+mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
 
-  stopifnot(order %in% 1:3)
+  stopifnot(order %in% 1:4)
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
+
+  if(n_pv > 0){
+    # Input checks for process variables
+    if(is.null(pv_bounds)){
+      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
+      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
+    } else{
+
+      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
+        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
+        stopifnot(pv_bounds[2] > pv_bounds[1])
+        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
+      }
+
+      stopifnot(is.matrix(pv_bounds))
+      stopifnot(ncol(pv_bounds) == 2)
+      stopifnot(nrow(pv_bounds) == n_pv)
+      for(i in 1:nrow(pv_bounds)){
+        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
+      }
+    }
+  }
+
+
 
   if(order == 1){
     m = q
@@ -557,11 +585,15 @@ mnl_create_moment_matrix = function(q, order = 3, n_pv = NULL, pv_bounds = NULL)
     if(order == 2){
       m = q*(q-1)/2 + q
     } else{
-      m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      if(order == 3){
+        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      } else{
+        m = q + q*(q-1)/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+      }
     }
   }
 
-  f_matrix = matrix(rep(0L, (m-1)*q), ncol = q)
+  f_matrix = matrix(rep(0L, (m-1)*(q + n_pv)), ncol = q + n_pv)
 
   counter = 0
   # Fill indicators of first part of the model expansion
@@ -583,7 +615,7 @@ mnl_create_moment_matrix = function(q, order = 3, n_pv = NULL, pv_bounds = NULL)
 
 
   # Fill indicators of third part of the model expansion
-  if(order >= 3){
+  if(order == 3){
     for(i in 1:(q-2)){
       for(j in (i+1):(q-1)){
         for(k in (j+1):q){
@@ -596,22 +628,84 @@ mnl_create_moment_matrix = function(q, order = 3, n_pv = NULL, pv_bounds = NULL)
     }
   }
 
+  # Fill indicators of fourth part of the model expansion when n_pv > 0
+  if(order == 4){
+
+    for(i in 1:n_pv){
+      for(k in 1:q){
+        counter = counter + 1
+        f_matrix[counter, q + i] = 1
+        f_matrix[counter, k] = 1
+      }
+    }
+
+    if(n_pv > 1){
+      for(i in 1:(n_pv-1)){
+        for(j in (i+1):n_pv){
+          counter = counter + 1
+          f_matrix[counter, q + i] = 1
+          f_matrix[counter, q + j] = 1
+        }
+      }
+    }
+
+
+    for(i in 1:n_pv){
+      counter = counter + 1
+      f_matrix[counter, q + i] = 2
+    }
+
+  }
+
 
   W = matrix(rep(NA_real_, (m-1)^2), ncol = m-1)
 
   for(i in 1:(m-1)){
     for(j in 1:(m-1)){
 
-      aux_ij = f_matrix[i, ] + f_matrix[j, ]
-      num_ij = prod(factorial(aux_ij))
-      denom_ij = factorial(q - 1 + sum(aux_ij))
-      W[i,j] = num_ij/denom_ij
+
+
+      aux_ij_1 = f_matrix[i, 1:q] + f_matrix[j, 1:q]
+      num_ij_1 = prod(factorial(aux_ij_1))
+      denom_ij_1 = factorial(q - 1 + sum(aux_ij_1))
+
+
+      if(n_pv > 0){
+        aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
+        num_ij_2 = 1.0
+        for(l in 1:n_pv){
+          num_ij_2 = num_ij_2 * (pv_bounds[l,2]^(aux_ij_2[l] + 1) - pv_bounds[l,1]^(aux_ij_2[l] + 1))
+        }
+
+      } else{
+        aux_ij_2 = 0.0
+        num_ij_2 = 1.0
+      }
+      denom_ij_2 = prod(1 + aux_ij_2)
+
+      # # Same as:
+      # if(n_pv > 0){
+      #   aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
+      #   num_ij_2 = prod(pv_bounds[,2]^(aux_ij_2 + 1) - pv_bounds[,1]^(aux_ij_2 + 1))
+      # } else{
+      #   aux_ij_2 = 0
+      #   num_ij_2 = 1
+      # }
+      # denom_ij_2 = prod(1 + aux_ij_2)
+      # # This code is faster, but it may be harder to read. In this case we don't care about speed.
+
+
+
+      W[i,j] = (num_ij_1 * num_ij_2)/(denom_ij_1 * denom_ij_2)
+
     }
   }
 
   return(W)
 
 }
+
+
 
 
 
