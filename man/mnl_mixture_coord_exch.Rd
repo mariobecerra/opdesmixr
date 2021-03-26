@@ -21,7 +21,8 @@ mnl_mixture_coord_exch(
   verbose = 1,
   opt_crit = 0,
   seed = NULL,
-  n_cores = 1
+  n_cores = 1,
+  save_all_designs = F
 )
 }
 \arguments{
@@ -57,6 +58,8 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{seed}{Seed for reproducibility.}
 
 \item{n_cores}{Number of cores for parallel processing.}
+
+\item{save_all_designs}{Whether the function should return a list with all the designs created at random or only the best.}
 }
 \value{
 list with 7 elements. See below for details.

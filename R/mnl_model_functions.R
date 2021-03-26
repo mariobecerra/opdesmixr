@@ -154,6 +154,7 @@ mnl_create_random_beta = function(q, order = 3, seed = NULL){
 #' @param opt_crit optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1).
 #' @param seed Seed for reproducibility.
 #' @param n_cores Number of cores for parallel processing.
+#' @param save_all_designs Whether the function should return a list with all the designs created at random or only the best.
 #'
 #' @return list with 7 elements. See below for details.
 #'
@@ -196,7 +197,8 @@ mnl_mixture_coord_exch = function(
   verbose = 1,
   opt_crit = 0,
   seed = NULL,
-  n_cores = 1
+  n_cores = 1,
+  save_all_designs = F
 ){
 
   t1 = Sys.time()
@@ -264,6 +266,8 @@ mnl_mixture_coord_exch = function(
     q = dim_X[1]
 
     designs = list(X)
+
+    n_random_starts = 0
   }
 
 
@@ -290,8 +294,11 @@ mnl_mixture_coord_exch = function(
   }
 
 
-  if(is.vector(beta)) beta_mat = matrix(beta, nrow = 1)
-  else beta_mat = beta
+  if(is.vector(beta)) {
+    beta_mat = matrix(beta, nrow = 1)
+  } else {
+    beta_mat = beta
+  }
 
 
 
@@ -363,24 +370,58 @@ mnl_mixture_coord_exch = function(
   # Get optimality values for all designs
   optimality_values = unlist(lapply(results, function(x) x$opt_crit_value))
 
-  # Return the result with the best optimality criterion
-  X_result = results[[which.min(optimality_values)]]
 
+  if(save_all_designs & n_random_starts > 1){
+    # Indices of optimality values in increasing order
+    optimality_values_indices = order(optimality_values, decreasing = F)
 
-  out_list = list(
-    X_orig = X_result$X_orig,
-    X = X_result$X,
-    beta = beta,
-    opt_crit_value_orig = X_result$opt_crit_value_orig,
-    opt_crit_value = X_result$opt_crit_value,
-    n_iter = X_result$n_iter,
-    efficiency_value_per_iteration = X_result$efficiency_value_per_iteration,
-    opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality")
-  )
+    out_list = lapply(optimality_values_indices, function(i){
+      X_result_i = results[[i]]
+      out = list(
+        X_orig = X_result_i$X_orig,
+        X = X_result_i$X,
+        beta = beta,
+        opt_crit_value_orig = X_result_i$opt_crit_value_orig,
+        opt_crit_value = X_result_i$opt_crit_value,
+        n_iter = X_result_i$n_iter,
+        efficiency_value_per_iteration = X_result_i$efficiency_value_per_iteration,
+        opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality"),
+        seed = seeds_designs[i]
+      )
+    })
+
+  } else{
+    # Find the index of the result with the best optimality criterion
+    best_index = which.min(optimality_values)
+
+    # Keep only the result with the best optimality criterion
+    X_result = results[[best_index]]
+
+    out_list = list(
+      X_orig = X_result$X_orig,
+      X = X_result$X,
+      beta = beta,
+      opt_crit_value_orig = X_result$opt_crit_value_orig,
+      opt_crit_value = X_result$opt_crit_value,
+      n_iter = X_result$n_iter,
+      efficiency_value_per_iteration = X_result$efficiency_value_per_iteration,
+      opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality"),
+      seed = seeds_designs[best_index]
+    )
+
+  }
 
   if(plot_designs) {
-    if(q == 3 | q == 4) mnl_plot_result(out_list)
-    else warning("Could not plot results because q is not 3 or 4.")
+    if(q == 3 | q == 4){
+      if(!save_all_designs){
+        mnl_plot_result(out_list)
+      } else{
+        warning("Plotted best design")
+        mnl_plot_result(out_list[[1]])
+      }
+    } else {
+      warning("Could not plot results because q is not 3 or 4.")
+    }
   }
 
   t2 = Sys.time()
@@ -944,6 +985,37 @@ mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alter
   if(verbose > 0) cat("\nFinished\n\n")
 
   return(out)
+}
+
+
+
+
+
+
+
+#' @export
+transform_varcov_matrix = function(Sigma, q){
+  # Transforms the variance covariance matrix of a multivariate normal vector to the identifiable space for a Scheffé model.
+  # Sigma is the original variance covariance matrix, and q is the index of the vector that is subtracted to the first q-1 entries.
+  m = nrow(Sigma)
+  if(m != ncol(Sigma)) stop("Sigma is not a square matrix")
+  if(q > m) stop("q can't be greater than the dimension of Sigma")
+
+
+
+  Sigma_prime = matrix(rep(0.0, (m-1)^2), m-1)
+  for(i in 1:(m-1)){
+    for(j in 1:(m-1)){
+      if(i <= q-1 & j <= q-1) Sigma_prime[i, j] = Sigma[i, j] - Sigma[i, q] - Sigma[j, q] + Sigma[q, q]
+      if(i >= q & j <= q-1) Sigma_prime[i, j] = Sigma[i+1, j] - Sigma[i+1, q]
+      if(i <= q-1 & j >= q) Sigma_prime[i, j] = Sigma[i, j+1] - Sigma[q, j+1]
+      if(i >= q & j >= q) Sigma_prime[i, j] = Sigma[i + 1, j + 1]
+    }
+  }
+  Sigma_prime
+
+  return(Sigma_prime)
+
 }
 
 
