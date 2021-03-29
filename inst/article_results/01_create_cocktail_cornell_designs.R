@@ -9,6 +9,14 @@ dir.create(designs_folder, showWarnings = F)
 
 n_cores = parallel::detectCores()
 
+
+
+
+
+
+
+
+
 ##########################################################################################
 #### Cocktail experiment
 ##########################################################################################
@@ -16,7 +24,7 @@ n_cores = parallel::detectCores()
 q = 3
 J = 2
 S = 16
-n_draws = 128
+n_draws_1 = 128
 
 beta0 = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)
 
@@ -30,11 +38,11 @@ sigma0 = matrix(
   ncol = 6,
   byrow = T)
 
-beta_correlated_draws_cocktail = get_correlated_halton_draws(beta0, sigma0, n_draws)
+beta_correlated_draws_cocktail = get_correlated_halton_draws(beta0, sigma0, n_draws_1)
 
 
-n_rand_starts = 40
-max_it = 10
+n_random_initial_starts_1 = 80
+max_it_cocktail = 10
 seed = 2020
 
 
@@ -45,13 +53,16 @@ cocktail_i_opt_filename = paste0(designs_folder, "cocktail_i_optimal.rds")
 #### Load or create the designs
 ##########################################################################################
 
+
 if(file.exists(cocktail_d_opt_filename)){
   cat("D_B optimal design already exists.\n")
 } else{
-  # 10 mins
+  # 15 mins with 64 random starts and 4 cores
+  # 25 mins with 80 random starts and 4 cores
+  cat("Doing D_B optimal design for cocktail experiment.\n")
   (t1D = Sys.time())
   cocktail_D_opt = mnl_mixture_coord_exch(
-    n_random_starts = n_rand_starts,
+    n_random_starts = n_random_initial_starts_1,
     q = q,
     J = J,
     S = S,
@@ -59,12 +70,14 @@ if(file.exists(cocktail_d_opt_filename)){
     transform_beta = F,
     opt_method = "B",
     opt_crit = "D",
-    max_it = max_it,
+    max_it = max_it_cocktail,
     verbose = 1,
     plot_designs = F,
     seed = seed,
-    n_cores = n_cores
+    n_cores = n_cores,
+    save_all_designs = F
   )
+
   (t2D = Sys.time())
   t2D - t1D
 
@@ -76,10 +89,11 @@ if(file.exists(cocktail_d_opt_filename)){
 if(file.exists(cocktail_i_opt_filename)){
   cat("I_B optimal design already exists.\n")
 } else{
-  # 14 mins
+  # 20 mins with 64 random starts and 4 cores
+  cat("Doing I_B optimal design for cocktail experiment.\n")
   (t1I = Sys.time())
   cocktail_I_opt =  mnl_mixture_coord_exch(
-    n_random_starts = n_rand_starts,
+    n_random_starts = n_random_initial_starts_1,
     q = q,
     J = J,
     S = S,
@@ -87,11 +101,12 @@ if(file.exists(cocktail_i_opt_filename)){
     transform_beta = F,
     opt_method = "B",
     opt_crit = "I",
-    max_it = max_it,
+    max_it = max_it_cocktail,
     verbose = 1,
     plot_designs = F,
     seed = seed,
-    n_cores = n_cores
+    n_cores = n_cores,
+    save_all_designs = F
   )
   (t2I = Sys.time())
   t2I - t1I
@@ -101,91 +116,38 @@ if(file.exists(cocktail_i_opt_filename)){
 
 
 
+
+
+
+
+
+
+
+
+
+
 ##########################################################################################
 #### Cornell's experiment
 ##########################################################################################
 
-# beta_0 = c(+11.25, +5.54, +3.73, +26.93, +20.52, +28.44, -180.68)
-# beta_0_prime = c(+11.25 - 3.73, +5.54 - 3.73, +26.93, +20.52, +28.44, -180.68)
-# beta_1_prime = c(1.15, 0.28, 4.12, 3.14, 4.36, -27.67)
+kappas = c(0.5, 5, 10, 30)
+n_draws_2 = 128
+n_random_initial_starts_2 = 80
+max_it_cornell = 20
+
+
 beta_2 = c(0.86, 0.21, 0, 3.07, 2.34, 3.24, -20.59)
 beta_2_prime = c(0.86, 0.21, 3.07, 2.34, 3.24, -20.59)
 
 
-kappas = c(0.5, 5, 10, 30)
-n_draws = 128
-n_random_starts_2 = 128
-max_it_bayes = 20
 
 
-###### Transformed betas
-
-cornell_designs_basefilename_transf = paste0(designs_folder, "cornell_experiment_transformed_betas_rs", n_random_starts_2, "_maxit", max_it_bayes)
 
 
-## Creating designs if they don't already exist
-(start_time = Sys.time())
-
-for(k in kappas){
-  # Each design takes around 53 and 87 seconds with 16 initial random designs, 128 halton draws, 10 max iterations and 4 cores.
-  # Each design takes around 99 and 160 seconds with 32 initial random designs, 128 halton draws, 10 max iterations and 4 cores.
-  # Each design takes around 13 and 20 minutes with 128 initial random designs, 128 halton draws, 20 max iterations and 4 cores.
-
-  cat("kappa =", k, "\n")
-
-  beta_2_prior_draws = get_halton_draws(beta_2, sd = sqrt(k), ndraws = n_draws)
-
-  d_opt_filename_transf = paste0(cornell_designs_basefilename_transf, "_kappa", k, "_Dopt.rds")
-
-  if(file.exists(d_opt_filename_transf)){
-    cat("\tD optimal file exists.\n")
-  }else{
-    cat("\tD optimal file does not exist. Creating design.\n")
-    cornell_beta_2_transf_pseudo_bayesian_d_opt = mnl_mixture_coord_exch(
-      q = 3,
-      J = 2,
-      S = 7,
-      verbose = 1,
-      n_random_starts = n_random_starts_2,
-      beta = beta_2_prior_draws,
-      transform_beta = T,
-      max_it = max_it_bayes,
-      n_cores = n_cores,
-      opt_crit = "D",
-      plot_designs = F)
-
-    saveRDS(cornell_beta_2_transf_pseudo_bayesian_d_opt, d_opt_filename_transf)
-  }
+###### Analytic transformation of betas
 
 
-  i_opt_filename_transf = paste0(cornell_designs_basefilename_transf, "_kappa", k, "_Iopt.rds")
-
-  if(file.exists(i_opt_filename_transf)){
-    cat("\tI optimal file exists.\n")
-  }else{
-    cat("\tI optimal file does not exist. Creating design.\n")
-    cornell_beta_2_transf_pseudo_bayesian_i_opt = mnl_mixture_coord_exch(
-      q = 3,
-      J = 2,
-      S = 7,
-      verbose = 1,
-      n_random_starts = n_random_starts_2,
-      beta = beta_2_prior_draws,
-      transform_beta = T,
-      max_it = max_it_bayes,
-      n_cores = n_cores,
-      opt_crit = "I",
-      plot_designs = F)
-
-    saveRDS(cornell_beta_2_transf_pseudo_bayesian_i_opt, i_opt_filename_transf)
-  }
-
-}
-
-
-###### Untransformed betas
-
-cornell_designs_basefilename_untransf = paste0(designs_folder, "cornell_experiment_untransformed_betas_rs", n_random_starts_2, "_maxit", max_it_bayes)
+cornell_designs_basefilename_analytic_transf = paste0(designs_folder, "cornell_experiment_analytic_transformed_betas_maxit", max_it_cornell)
 
 
 ## Creating designs if they don't already exist
@@ -198,51 +160,57 @@ for(k in kappas){
 
   cat("kappa =", k, "\n")
 
-  beta_2_prime_prior_draws = get_halton_draws(beta_2_prime, sd = sqrt(k), ndraws = n_draws)
 
-  d_opt_filename_untrans = paste0(cornell_designs_basefilename_untransf, "_kappa", k, "_Dopt.rds")
+  Sigma_prime = transform_varcov_matrix(k*diag(7), 3)
 
-  if(file.exists(d_opt_filename_untrans)){
+  beta_2_prior_draws = get_correlated_halton_draws(beta_2_prime, Sigma_prime, n_draws_2)
+  # beta_2_prior_draws = get_halton_draws(beta_2, sd = sqrt(k), ndraws = n_draws_2)
+
+  d_opt_filename_analytic_transf = paste0(cornell_designs_basefilename_analytic_transf, "_kappa", k, "_Dopt.rds")
+
+  if(file.exists(d_opt_filename_analytic_transf)){
     cat("\tD optimal file exists.\n")
   }else{
     cat("\tD optimal file does not exist. Creating design.\n")
-    cornell_beta_2_untransf_pseudo_bayesian_d_opt = mnl_mixture_coord_exch(
+    cornell_beta_2_analytic_transf_pseudo_bayesian_d_opt = mnl_mixture_coord_exch(
       q = 3,
       J = 2,
       S = 7,
       verbose = 1,
-      n_random_starts = n_random_starts_2,
-      beta = beta_2_prime_prior_draws,
+      n_random_starts = n_random_initial_starts_2,
+      beta = beta_2_prior_draws,
       transform_beta = F,
-      max_it = max_it_bayes,
+      max_it = max_it_cornell,
       n_cores = n_cores,
       opt_crit = "D",
-      plot_designs = F)
+      plot_designs = F,
+      save_all_designs = F)
 
-    saveRDS(cornell_beta_2_untransf_pseudo_bayesian_d_opt, d_opt_filename_untrans)
+    saveRDS(cornell_beta_2_analytic_transf_pseudo_bayesian_d_opt, d_opt_filename_analytic_transf)
   }
 
 
-  i_opt_filename_untrans = paste0(cornell_designs_basefilename_untransf, "_kappa", k, "_Iopt.rds")
+  i_opt_filename_analytic_transf = paste0(cornell_designs_basefilename_analytic_transf, "_kappa", k, "_Iopt.rds")
 
-  if(file.exists(i_opt_filename_untrans)){
+  if(file.exists(i_opt_filename_analytic_transf)){
     cat("\tI optimal file exists.\n")
   }else{
     cat("\tI optimal file does not exist. Creating design.\n")
-    cornell_beta_2_untransf_pseudo_bayesian_i_opt = mnl_mixture_coord_exch(
+    cornell_beta_2_analytic_transf_pseudo_bayesian_i_opt = mnl_mixture_coord_exch(
       q = 3,
       J = 2,
       S = 7,
       verbose = 1,
-      n_random_starts = n_random_starts_2,
-      beta = beta_2_prime_prior_draws,
+      n_random_starts = n_random_initial_starts_2,
+      beta = beta_2_prior_draws,
       transform_beta = F,
-      max_it = max_it_bayes,
+      max_it = max_it_cornell,
       n_cores = n_cores,
       opt_crit = "I",
-      plot_designs = F)
+      plot_designs = F,
+      save_all_designs = F)
 
-    saveRDS(cornell_beta_2_untransf_pseudo_bayesian_i_opt, i_opt_filename_untrans)
+    saveRDS(cornell_beta_2_analytic_transf_pseudo_bayesian_i_opt, i_opt_filename_analytic_transf)
   }
 
 }
