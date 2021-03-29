@@ -429,7 +429,7 @@ void changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, int s)
       // 1) If delta is numerically -1, it means that the change is from 1 to 0. Then, the rest of the ingredients must be 1/(q-1)
       // 2) If delta is not -1 and x(i) is numerically 1, then it means that the rest of the ingredients were 0, so they were in equal
       //    proportions and should remain that way.
-      x(k) = (1.0 - theta)/(q - 1.0); // Same as x(k) = (-delta)/(q - 1.0); and x(k) = (1-delta+x(i))/(q - 1.0);
+      x(k) = (1.0 - theta)/(q - 1.0); // Same as x(k) = (-delta)/(q - 1.0); and x(k) = (1-delta-x(i))/(q - 1.0);
     } else{ // In case x(i) is not numerically 1
       // Other case
       x(k) = x(k) - delta*x(k)/(1 - x(i));
