@@ -4,7 +4,13 @@
 \alias{gaussian_get_opt_crit_value}
 \title{TODO: write doc}
 \usage{
-gaussian_get_opt_crit_value(X, order = 1, opt_crit = 0, n_pv = 0)
+gaussian_get_opt_crit_value(
+  X,
+  order = 1,
+  opt_crit = 0,
+  n_pv = 0,
+  pv_bounds = NULL
+)
 }
 \description{
 TODO: write doc

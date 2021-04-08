@@ -176,6 +176,7 @@ arma::mat getScheffeGaussian(arma::mat& X, int order, int n_pv = 0){
 // [[Rcpp::export]]
 double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arma::mat& W, int n_pv = 0){
   //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
+  // Note: parameter q doesn't seem to be necessary. I don't remember why I included it in the first place. Perhaps I thought it would be necessary.
 
   arma::mat X_m = getScheffeGaussian(X, order, n_pv);
   arma::mat X_mT = trans(X_m);
@@ -405,6 +406,8 @@ double efficiencyPVScheffeGaussian(double theta, arma::mat& X, int i, int j, int
                                    int opt_crit, arma::mat& W, int n_pv){
   // Computes efficiency criterion of a design matrix X but where the j-th PV in the
   // i-th observation is changed to theta.
+  // Note: i should be shifted by the q proportion variables. That is, this function changes the i-th element
+  //       without checking whether it is a process variable or an ingredient proportion. This is done in the main algorithm.
   // Indices j and i are 0-indexed.
   // We want to minimize this.
 
@@ -570,7 +573,7 @@ Rcpp::List mixtureCoordinateExchangeGaussian(
       if(n_pv > 0){
         for(int pv = q; pv < n_pv + q; pv++){
           if(verbose >= 2) Rcout << "\nIter: " << it <<  ", run = " << run << ", pv = " << pv << std::endl;
-          findBestPVGaussianBrent(X, run-1, pv, order, opt_crit, W, lower, upper, tol, n_pv);
+          findBestPVGaussianBrent(X, run-1, pv, order, opt_crit, W, -1, 1, tol, n_pv);
           opt_crit_value_best = getOptCritValueGaussian(X, order, q, opt_crit, W, n_pv);
 
           if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;

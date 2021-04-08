@@ -19,8 +19,7 @@ gaussian_mixture_coord_exch(
   opt_crit = 0,
   seed = NULL,
   n_cores = 1,
-  n_pv = 0,
-  pv_bounds = NULL
+  n_pv = 0
 )
 }
 \arguments{

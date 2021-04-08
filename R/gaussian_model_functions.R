@@ -107,10 +107,9 @@ gaussian_mixture_coord_exch = function(
   opt_crit = 0,
   seed = NULL,
   n_cores = 1,
-  n_pv = 0,
-  pv_bounds = NULL
+  n_pv = 0
   ){
-
+  # Assumes process variables are bwteen -1 and 1
 
 
   #############################################
@@ -169,7 +168,7 @@ gaussian_mixture_coord_exch = function(
     seeds_designs = sample.int(1e9, n_random_starts)
 
     designs = lapply(seeds_designs, function(x){
-      des = gaussian_create_random_initial_design(n_runs = n_runs, q = q, seed = x, n_pv = n_pv, pv_bounds = pv_bounds)
+      des = gaussian_create_random_initial_design(n_runs = n_runs, q = q, seed = x, n_pv = n_pv, pv_bounds = c(-1, 1))
       return(des)
     })
   } else{
@@ -326,7 +325,7 @@ gaussian_plot_result = function(res_alg){
 
 #' TODO: write doc
 #' @export
-gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
+gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0, pv_bounds = NULL){
 
 
 
@@ -363,7 +362,7 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = gaussian_create_moment_matrix(q, order)
+    W = gaussian_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = pv_bounds)
   }
 
   return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W, n_pv = n_pv))
