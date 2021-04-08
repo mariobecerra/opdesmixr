@@ -4,7 +4,14 @@
 \alias{mnl_create_random_initial_design}
 \title{Creation of a random initial design for MNL model}
 \usage{
-mnl_create_random_initial_design(q, J, S, seed = NULL)
+mnl_create_random_initial_design(
+  q,
+  J,
+  S,
+  n_pv = 0,
+  pv_bounds = NULL,
+  seed = NULL
+)
 }
 \arguments{
 \item{q}{integer specifying the number of ingredients}

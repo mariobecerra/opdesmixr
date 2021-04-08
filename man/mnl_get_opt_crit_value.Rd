@@ -4,7 +4,14 @@
 \alias{mnl_get_opt_crit_value}
 \title{Function that computes optimality criterion value for MNL model}
 \usage{
-mnl_get_opt_crit_value(X, beta, order, opt_crit = "D", transform_beta = T)
+mnl_get_opt_crit_value(
+  X,
+  beta,
+  order,
+  opt_crit = "D",
+  transform_beta = T,
+  n_pv = 0
+)
 }
 \arguments{
 \item{X}{3 dimensional array with dimensions (q, J, S) where:

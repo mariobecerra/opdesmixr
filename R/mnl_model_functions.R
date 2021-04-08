@@ -10,8 +10,8 @@
 #' @examples
 #' mnl_create_random_initial_design(3, 5, 4, seed = 2020)
 #' @export
-mnl_create_random_initial_design = function(q, J, S, seed = NULL){
-  X = array(rep(NA_real_, q*J*S), dim = c(q, J, S))
+mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL, seed = NULL){
+  X = array(rep(NA_real_, (q+n_pv)*J*S), dim = c((q+n_pv), J, S))
 
   if(!is.null(seed)) set.seed(seed)
 
@@ -19,8 +19,35 @@ mnl_create_random_initial_design = function(q, J, S, seed = NULL){
     for(s in 1:S){
       rands = runif(q)
       # ingredients must sum up to 1
-      X[,j, s] = rands/sum(rands)
+      X[1:q,j, s] = rands/sum(rands)
     }
+  }
+
+  if(n_pv > 0){
+    if(is.null(pv_bounds)){
+      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
+      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
+    } else{
+
+      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
+        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
+        stopifnot(pv_bounds[2] > pv_bounds[1])
+        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
+      }
+
+      stopifnot(is.matrix(pv_bounds))
+      stopifnot(ncol(pv_bounds) == 2)
+      stopifnot(nrow(pv_bounds) == n_pv)
+      for(i in 1:nrow(pv_bounds)){
+        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
+      }
+    }
+
+    # Fill rest of array with process variables
+    for(l in 1:n_pv){
+      X[l + q, , ] = runif(n = J*S, min = pv_bounds[l, 1], max = pv_bounds[l, 2])
+    }
+
   }
 
   return(X)
@@ -39,13 +66,28 @@ mnl_create_random_initial_design = function(q, J, S, seed = NULL){
 #' @param opt_crit optimality criterion: 0 or "D" is D-optimality and 1 or "I" is I-optimality
 #' @return Returns the value of the optimality criterion for this particular design and this beta vector
 #' @export
-mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta = T){
+mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta = T, n_pv = 0){
 
   # Recode opt_crit
   if(opt_crit == "D") opt_crit = 0
   if(opt_crit == "I") opt_crit = 1
 
-  q = dim(X)[1]
+  q = dim(X)[1] - n_pv
+
+  #############################################
+  ## Check that the order is okay
+  #############################################
+  if(order != 1 & order != 2 & order != 3 & order != 4){
+    stop("Inadmissible value for order. Must be 1, 2, 3 or 4")
+  }
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
+
+  #############################################
+  ## Get m
+  #############################################
 
   # m = (q*q*q + 5*q)/6
   if(order == 1){
@@ -54,11 +96,24 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
     if(order == 2){
       m = q*(q-1)/2 + q # = q*(q+1)/2
     } else{
-      m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      if(order == 3){
+        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      } else{
+        if(order == 4){
+          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+        } else{
+          stop("Wrong order")
+          # This condition won't be met because of the checking in the previous lines.
+          # I leave it just for better legibility
+        }
+      }
+
     }
   }
 
-
+  #############################################
+  ## Check beta dimensions and transform if necessary
+  #############################################
 
   if(is.vector(beta)) {
     if(m != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
@@ -74,18 +129,23 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
   if(is.vector(beta)) beta_mat = matrix(beta, nrow = 1)
   else beta_mat = beta
 
-
+  #############################################
+  ## Get moment matrix
+  #############################################
 
   if(opt_crit == 0){
     # "D-optimality"
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = mnl_create_moment_matrix(q = q, order = order)
+    W = mnl_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1))
   }
 
+  #############################################
+  ## Get optimality criterion value
+  #############################################
 
-  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order, transform_beta = transform_beta))
+  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order, transform_beta = transform_beta, n_pv = n_pv))
 
 }
 
@@ -101,33 +161,42 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
 #' @examples
 #' mnl_create_random_beta(3)
 #' @export
-mnl_create_random_beta = function(q, order = 3, seed = NULL){
+mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 
-  stopifnot(order %in% 1:3)
+  stopifnot(order %in% 1:4)
   if(!all.equal(q, floor(q))) stop("q does not seem to an integer.")
   stopifnot(q > 0)
+  if(!all.equal(n_pv, floor(n_pv))) stop("n_pv does not seem to an integer.")
+  stopifnot(n_pv >= 0)
 
-  m1 = q
-  m2 = q*(q-1)/2
-  m3 = q*(q-1)*(q-2)/6
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
+
   if(order == 1){
-    m = m1
+    m = q
   } else{
     if(order == 2){
-      m = m1 + m2
+      m = q*(q-1)/2 + q # = q*(q+1)/2
     } else{
-      m = m1 + m2 + m3 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      if(order == 3){
+        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      } else{
+        if(order == 4){
+          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+        } else{
+          stop("Wrong order")
+          # This condition won't be met because of the checking in the previous lines.
+          # I leave it just for better legibility
+        }
+      }
+
     }
   }
 
   if(!is.null(seed)) set.seed(seed)
 
-  beta = rep(NA_real_, m)
-  beta[1:m1] = rnorm(m1)
-
-  if(order >= 2) beta[(m1+1):(m1+m2)] = rnorm(m2)
-
-  if(order >= 3) beta[(m1+m2+1):m] = rnorm(m3)
+  beta = rnorm(m)
 
   # Return a list for backwards compatibility, but eventually I'll have to change it to return only a vector
   return(list(beta = beta))
@@ -198,8 +267,10 @@ mnl_mixture_coord_exch = function(
   opt_crit = 0,
   seed = NULL,
   n_cores = 1,
-  save_all_designs = F
+  save_all_designs = F,
+  n_pv = 0
 ){
+  # Assumes process variables are bwteen -1 and 1
 
   t1 = Sys.time()
   if(verbose >= 1) cat("Starts at", substr(as.character(t1), 12, 19), "\n")
@@ -252,7 +323,7 @@ mnl_mixture_coord_exch = function(
     seeds_designs = sample.int(1e9, n_random_starts)
 
     designs = lapply(seeds_designs, function(x){
-      des = mnl_create_random_initial_design(q, J, S, seed = x)
+      des = mnl_create_random_initial_design(q, J, S, seed = x, n_pv = n_pv, pv_bounds = c(-1, 1))
       return(des)
     })
 
@@ -263,7 +334,9 @@ mnl_mixture_coord_exch = function(
     if(length(dim_X) != 3) stop("X must be a 3 dimensional array.")
     if(!(is.vector(beta) | is.matrix(beta))) stop("beta is not a vector or a matrix. It must be a numerical or integer vector or matrix.")
 
-    q = dim_X[1]
+    seeds_designs = NA
+
+    q = dim_X[1] - n_pv
 
     designs = list(X)
 
@@ -271,14 +344,35 @@ mnl_mixture_coord_exch = function(
   }
 
 
-  # m = (q*q*q + 5*q)/6
+
+  stopifnot(order %in% 1:4)
+  if(!all.equal(q, floor(q))) stop("q does not seem to an integer.")
+  stopifnot(q > 0)
+  if(!all.equal(n_pv, floor(n_pv))) stop("n_pv does not seem to an integer.")
+  stopifnot(n_pv >= 0)
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
+
   if(order == 1){
     m = q
   } else{
     if(order == 2){
-      m = q*(q-1)/2 + q
+      m = q*(q-1)/2 + q # = q*(q+1)/2
     } else{
-      m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      if(order == 3){
+        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      } else{
+        if(order == 4){
+          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+        } else{
+          stop("Wrong order")
+          # This condition won't be met because of the checking in the previous lines.
+          # I leave it just for better legibility
+        }
+      }
+
     }
   }
 
@@ -292,6 +386,7 @@ mnl_mixture_coord_exch = function(
     if(m != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
     if(m-1 != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m-1,  " columns")
   }
+
 
 
   if(is.vector(beta)) {
@@ -313,7 +408,7 @@ mnl_mixture_coord_exch = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = mnl_create_moment_matrix(q, order = order)
+    W = mnl_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1))
   }
 
   #############################################
@@ -345,7 +440,8 @@ mnl_mixture_coord_exch = function(
         upper = 1,
         tol = tol,
         n_cox_points = n_cox_points,
-        transform_beta = transform_beta
+        transform_beta = transform_beta,
+        n_pv = n_pv
       ), silent = T)
 
     # If there was an error with this design, return whatever
@@ -386,6 +482,8 @@ mnl_mixture_coord_exch = function(
         n_iter = X_result_i$n_iter,
         efficiency_value_per_iteration = X_result_i$efficiency_value_per_iteration,
         opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality"),
+        q = q,
+        n_pv = n_pv,
         seed = seeds_designs[i]
       )
     })
@@ -406,6 +504,8 @@ mnl_mixture_coord_exch = function(
       n_iter = X_result$n_iter,
       efficiency_value_per_iteration = X_result$efficiency_value_per_iteration,
       opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality"),
+      q = q,
+      n_pv = n_pv,
       seed = seeds_designs[best_index]
     )
 
@@ -485,13 +585,14 @@ mnl_plot_result_3d = function(
   }
 
   dim_X = dim(res_alg$X_orig)
-  q = dim_X[1]
+  q = res_alg$q
   S = dim_X[3]
 
   if(q != 4) stop("Design must be of 4 ingredients.")
+  if(res_alg$n_pv > 0) warning("There are process variables that are being ignored for the plots")
 
   # Convert 3 dimensional arrays into matrices by vertically binding them
-  X_mat = t(res_alg[[i]][,,1])
+  X_mat = t(res_alg[[i]][1:q,,1])
   for(s in 2:S){
     X_mat = rbind(X_mat, t(res_alg[[i]][,,s]))
   }
@@ -511,20 +612,21 @@ mnl_plot_result_2d = function(res_alg){
   # It must be a design of 3 ingredients.
 
   dim_X = dim(res_alg$X_orig)
-  q = dim_X[1]
+  q = res_alg$q
   S = dim_X[3]
 
   if(q != 3) stop("Design must be of 3 ingredients.")
+  if(res_alg$n_pv > 0) warning("There are process variables that are being ignored for the plots")
 
   # Convert 3 dimensional arrays into matrices by vertically binding them
-  X_orig_mat = t(res_alg$X_orig[,,1])
+  X_orig_mat = t(res_alg$X_orig[1:q,,1])
   for(s in 2:S){
-    X_orig_mat = rbind(X_orig_mat, t(res_alg$X_orig[,,s]))
+    X_orig_mat = rbind(X_orig_mat, t(res_alg$X_orig[1:q,,s]))
   }
 
-  X_final_mat = t(res_alg$X[,,1])
+  X_final_mat = t(res_alg$X[1:q,,1])
   for(s in 2:S){
-    X_final_mat = rbind(X_final_mat, t(res_alg$X[,,s]))
+    X_final_mat = rbind(X_final_mat, t(res_alg$X[1:q,,s]))
   }
 
   # Plot matrices
@@ -566,7 +668,7 @@ mnl_plot_result_2d = function(res_alg){
 #' @export
 mnl_plot_result = function(res_alg, ...){
   dim_X = dim(res_alg$X_orig)
-  q = dim_X[1]
+  q = res_alg$q
 
   if(!(q == 3 | q == 4)) stop("Design must be of 3 or 4 ingredients.")
 
@@ -819,12 +921,13 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
 #' order
 #' transform_beta
 #' @export
-mnl_get_information_matrix = function(X, beta, order, transform_beta){
+mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
   IM = getInformationMatrixMNL(
     X = X,
     beta = beta,
     order = order,
-    transform_beta = transform_beta)
+    transform_beta = transform_beta,
+    n_pv = n_pv)
 
   return(IM)
 }
@@ -972,7 +1075,7 @@ mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alter
   }
 
   # out = tibble(pred_var = sort(unlist(pred_var))) %>%
-    # mutate(fraction = 1:nrow(.)/nrow(.))
+  # mutate(fraction = 1:nrow(.)/nrow(.))
 
   pred_var = unlist(pred_var)
 

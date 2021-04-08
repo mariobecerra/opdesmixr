@@ -10,7 +10,7 @@ beta: vector
 order
 transform_beta}
 \usage{
-mnl_get_information_matrix(X, beta, order, transform_beta)
+mnl_get_information_matrix(X, beta, order, transform_beta, n_pv = 0)
 }
 \description{
 TODO: write doc

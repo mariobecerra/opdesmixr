@@ -22,7 +22,8 @@ mnl_mixture_coord_exch(
   opt_crit = 0,
   seed = NULL,
   n_cores = 1,
-  save_all_designs = F
+  save_all_designs = F,
+  n_pv = 0
 )
 }
 \arguments{

@@ -4,7 +4,7 @@
 \alias{mnl_create_random_beta}
 \title{Creation of a random parameter vector for MNL model}
 \usage{
-mnl_create_random_beta(q, order = 3, seed = NULL)
+mnl_create_random_beta(q, n_pv = 0, order = 3, seed = NULL)
 }
 \arguments{
 \item{q}{integer specifying the number of ingredients}
