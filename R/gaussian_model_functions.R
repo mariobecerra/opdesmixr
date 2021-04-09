@@ -197,7 +197,7 @@ gaussian_mixture_coord_exch = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = gaussian_create_moment_matrix(q = q, n_pv = n_pv, order = order, pv_bounds = pv_bounds)
+    W = gaussian_create_moment_matrix(q = q, n_pv = n_pv, order = order, pv_bounds = c(-1, 1))
   }
 
   #############################################
