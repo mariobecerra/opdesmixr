@@ -937,8 +937,13 @@ mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
 #' TODO: write doc
 #' Wrapper function for getXsMNL()
 #' @export
-mnl_get_Xs = function(X, s, order){
-  return(getXsMNL(X = X, s = s, order = order))
+mnl_get_Xs = function(X, s, order, n_pv = 0){
+  stopifnot(order %in% 1:4)
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
+  return(getXsMNL(X = X, s = s, order = order, n_pv = n_pv))
 }
 
 
@@ -947,9 +952,14 @@ mnl_get_Xs = function(X, s, order){
 #' TODO: write doc
 #' Wrapper function for getPsMNL()
 #' @export
-mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T){
+mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T, n_pv = 0){
+  stopifnot(order %in% 1:4)
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
   Xs = mnl_get_Xs(X, s, order)
-  return(as.vector(getPsMNL(X = X, beta = beta, s = s, Xs = Xs, transform_beta = transform_beta)))
+  return(as.vector(getPsMNL(X = X, beta = beta, s = s, Xs = Xs, transform_beta = transform_beta, n_pv = n_pv)))
 }
 
 
@@ -1040,9 +1050,11 @@ mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T){
 
 #'
 #' @export
-mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 0){
+mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 0, n_pv = 0){
 
-  q = dim(design_array)[1]
+  if(n_pv > 0) stop("Process variables not supported (yet).")
+
+  q = dim(design_array)[1] - n_pv
   J = dim(design_array)[2]
   S = dim(design_array)[3]
 
