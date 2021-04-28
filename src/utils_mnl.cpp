@@ -129,6 +129,124 @@ arma::mat getXsMNL(arma::cube& X, int s, int order, int n_pv = 0){
 
 
 
+// // [[Rcpp::export]]
+// arma::mat getXsMNL2(arma::cube& X, int s, int order, int n_pv = 0){
+//
+//   // TEst to see if including the q-th component changed the design values compared with JMP. It didn't.
+//
+//   // Function that returns the design matrix of choice set s.
+//   // Final matrix is of dimension (J, m-1) with m = (q^3 + 5*q)/6 (if 3rd ordder Scheffe)
+//   // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
+//   // Input should be
+//   //     X: design cube of dimensions (q, J, S) integer s, corresponding to a choice set in 1 to S.
+//   //     order: order of Scheffe model
+//   int q = X.n_rows - n_pv;
+//   int J = X.n_cols;
+//   int m = 0; // initialize to silence warning
+//
+//
+//   if(order == 1){
+//     m = q;
+//   } else{
+//     if(order == 2){
+//       m = q*(q-1)/2 + q;
+//     } else{
+//       if(order == 3){
+//         m = (q*q*q + 5*q)/6; // = q + q*(q-1)/2 + q*(q-1)*(q-2)/6 = (q^3+ 5*q)/6
+//       } else{
+//         if(order == 4){
+//           m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv;
+//         } else{
+//           // Error. Not necessary to check here because there are input checks in R.
+//           stop("Wrong order.");
+//         }
+//       }
+//     }
+//   }
+//
+//   // Initialize array with zeros
+//   arma::mat Xs(J, m, fill::zeros);
+//
+//   // Column counter. Equation has three terms, so the final matrix is populated in three parts.
+//   int col_counter = 0;
+//
+//   // First part
+//   for(int i = 0; i < q; i++){
+//     for(int j = 0; j < J; j++){
+//       // subtract 1 from s because it is 1-indexed
+//       Xs(j, col_counter) = X(i, j, s-1);
+//     }
+//     col_counter++;
+//   }
+//
+//   if(order >= 2){
+//     // second part
+//     for(int i = 0; i < q; i++){
+//       for(int k = i+1; k < q; k++){
+//         for(int j = 0; j < J; j++){
+//           Xs(j, col_counter) = X(i, j, s-1)*X(k, j, s-1);
+//         }
+//         col_counter++;
+//       }
+//     }
+//   }
+//
+//
+//   if(order == 3){
+//     // third part (no process variables)
+//     for(int i = 0; i < q-1; i++){
+//       for(int k = i+1; k < q-2; k++){
+//         for(int l = k+1; l < q; l++){
+//           for(int j = 0; j < J; j++){
+//             Xs(j, col_counter) = X(i, j, s-1)*X(k, j, s-1)*X(l, j, s-1);
+//           }
+//           col_counter++;
+//         }
+//       }
+//     }
+//   }
+//
+//
+//
+//   if(order == 4){
+//     // Third part of the sum (with process variables)
+//     for(int i = 0; i < n_pv; i++){
+//       for(int k = 0; k < q; k++){
+//
+//         for(int j = 0; j < J; j++){
+//           Xs(j, col_counter) = X(k, j, s-1)*X(i+q, j, s-1); //x_k*z_i
+//         }
+//         col_counter++;
+//       }
+//     }
+//
+//     // Fourth part of the sum (with process variables)
+//     for(int i = 0; i < n_pv-1; i++){
+//       for(int k = i+1; k < n_pv; k++){
+//
+//         for(int j = 0; j < J; j++){
+//           Xs(j, col_counter) = X(i+q, j, s-1)*X(k+q, j, s-1); //z_i*z_k
+//         }
+//         col_counter++;
+//       }
+//     }
+//
+//     // Fifth part of the sum (with process variables)
+//     for(int i = 0; i < n_pv; i++){
+//
+//       for(int j = 0; j < J; j++){
+//         Xs(j, col_counter) = X(i+q, j, s-1)*X(i+q, j, s-1); //z_i^2
+//       }
+//       col_counter++;
+//     }
+//   }
+//
+//   return Xs;
+// }
+
+
+
+
 // [[Rcpp::export]]
 arma::vec getUsMNL(arma::cube& X, arma::vec& beta, int s, arma::mat& Xs, bool transform_beta = true, int n_pv = 0){
   // Function that returns the utility vector of choice set s.
