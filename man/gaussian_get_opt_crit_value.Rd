@@ -2,16 +2,22 @@
 % Please edit documentation in R/gaussian_model_functions.R
 \name{gaussian_get_opt_crit_value}
 \alias{gaussian_get_opt_crit_value}
-\title{TODO: write doc}
+\title{Computes optimality criterion value using the linear classical Gaussian model.}
 \usage{
-gaussian_get_opt_crit_value(
-  X,
-  order = 1,
-  opt_crit = 0,
-  n_pv = 0,
-  pv_bounds = NULL
-)
+gaussian_get_opt_crit_value(X, order = 1, opt_crit = 0, n_pv = 0)
+}
+\arguments{
+\item{X}{Design matrix.}
+
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+
+\item{opt_crit}{optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.}
+
+\item{n_pv}{Number of process variables.}
+}
+\value{
+Returns the value of the optimality criterion for this particular design.
 }
 \description{
-TODO: write doc
+Computes optimality criterion value for a design matrix \code{X}.
 }

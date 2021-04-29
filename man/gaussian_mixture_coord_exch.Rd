@@ -53,20 +53,23 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{seed}{Seed for reproducibility}
 
 \item{n_cores}{Number of cores for parallel processing}
+
+\item{n_pv}{Number of process variables.}
 }
 \value{
-list with 6 elements. See below for details.
-
-Return list has 6 elements:
-\itemize{
-\item X_orig: The original design. Matrix of size (n_runs, q).
-\item X: The optimized design. Matrix of size (n_runs, q).
-\item opt_crit_value_orig: efficiency of the original design.
-\item opt_crit_value: efficiency of the optimized design.
-\item n_iter: Number of iterations performed.
-\item opt_crit: The optimality criterion used.
+List with the following elements: \itemize{
+\item \code{X_orig}: The original design. Matrix of size (n_runs, q).
+\item \code{X}: The optimized design. Matrix of size (n_runs, q).
+\item \code{opt_crit_value_orig}: efficiency of the original design.
+\item \code{opt_crit_value}: efficiency of the optimized design.
+\item \code{n_iter}: Number of iterations performed.
+\item \code{efficiency_value_per_iteration}:
+\item \code{opt_crit}: The optimality criterion used.
+\item \code{q}: Number of mixture ingredients.
+\item \code{n_pv}: Number of process variables.
+\item \code{seed}: seed used to generate the final design. If a design was used as input by the user, this will be NA.
 }
 }
 \description{
-\code{gaussian_mixture_coord_exch} Performs the coordinate exchange algorithm for a Scheffé mixture model. It can have many different random starts, or the coordinate exchange algorithm can be performed in a user-supplied matrix.
+Performs the coordinate exchange algorithm for a Scheffé mixture model. It can have many different random starts, or the coordinate exchange algorithm can be performed in a user-supplied matrix.
 }

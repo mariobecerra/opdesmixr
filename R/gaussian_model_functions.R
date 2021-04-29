@@ -1,15 +1,31 @@
 
-#' TODO: write doc
+#' Creation of a random initial design using the linear classical Gaussian model.
+#'
+#' @param n_runs Number of runs in the design.
+#' @param q Number of mixture ingredients.
+#' @param n_pv Number of process variables.
+#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables.
+#' @param seed integer used for reproducibility
+#'
+#' @return Matrix of size \code{(n_runs, q)}.
+#'
+#' @details
+#' \code{pv_bounds} must be either: \itemize{
+#'     \item NULL (for default values), or
+#'     \item a vector with 2 scalars (the second element must be greater than the first), or
+#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+#' }
+#'
+#' @examples
+#' gaussian_create_random_initial_design(10, 3, 2, seed = 3)
+#'
+#' gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 0, -1, 0), byrow = T, ncol = 2), seed = 3)
+#'
+#' gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 1, 0, 1), byrow = T, ncol = 2), seed = 3)
+#'
 #' @export
 gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds = NULL, seed = NULL){
-  # pv_bounds must be either:
-  #     - NULL (for default values), or
-  #     - a vector with 2 scalars (the second element must be greater than the first), or
-  #     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
 
-  # gaussian_create_random_initial_design(10, 3, 2, seed = 3)
-  # gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 0, -1, 0), byrow = T, ncol = 2), seed = 3)
-  # gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 1, 0, 1), byrow = T, ncol = 2), seed = 3)
 
   if(!is.null(seed)) set.seed(seed)
 
@@ -60,7 +76,7 @@ gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds 
 
 #' Coordinate exchange algorithm for a mixture model assuming Gaussian iid errors.
 #'
-#' \code{gaussian_mixture_coord_exch} Performs the coordinate exchange algorithm for a Scheffé mixture model. It can have many different random starts, or the coordinate exchange algorithm can be performed in a user-supplied matrix.
+#' Performs the coordinate exchange algorithm for a Scheffé mixture model. It can have many different random starts, or the coordinate exchange algorithm can be performed in a user-supplied matrix.
 #' @param n_runs number of runs
 #' @param q number of ingredient proportions
 #' @param n_random_starts number or random starts. Defaults to 100.
@@ -78,17 +94,18 @@ gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds 
 #' @param opt_crit optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1)
 #' @param seed Seed for reproducibility
 #' @param n_cores Number of cores for parallel processing
-#' @return list with 6 elements. See below for details.
-#'
-#'
-#' Return list has 6 elements:
-#' \itemize{
-#'     \item X_orig: The original design. Matrix of size (n_runs, q).
-#'     \item X: The optimized design. Matrix of size (n_runs, q).
-#'     \item opt_crit_value_orig: efficiency of the original design.
-#'     \item opt_crit_value: efficiency of the optimized design.
-#'     \item n_iter: Number of iterations performed.
-#'     \item opt_crit: The optimality criterion used.
+#' @param n_pv Number of process variables.
+#' @return List with the following elements: \itemize{
+#'     \item \code{X_orig}: The original design. Matrix of size (n_runs, q).
+#'     \item \code{X}: The optimized design. Matrix of size (n_runs, q).
+#'     \item \code{opt_crit_value_orig}: efficiency of the original design.
+#'     \item \code{opt_crit_value}: efficiency of the optimized design.
+#'     \item \code{n_iter}: Number of iterations performed.
+#'     \item \code{efficiency_value_per_iteration}:
+#'     \item \code{opt_crit}: The optimality criterion used.
+#'     \item \code{q}: Number of mixture ingredients.
+#'     \item \code{n_pv}: Number of process variables.
+#'     \item \code{seed}: seed used to generate the final design. If a design was used as input by the user, this will be NA.
 #'  }
 #'
 #' @export
@@ -282,10 +299,17 @@ gaussian_mixture_coord_exch = function(
 
 
 
-#' TODO: write doc
+#' Plots the result of the list that results from the \code{gaussian_mixture_coord_exch()} function.
+#'
+#' @param res_alg List resulting from a call to the \code{gaussian_mixture_coord_exch()} function.
+#'
+#' @details
+#' Only works for \code{q = 3}.
+#'
 #' @export
 gaussian_plot_result = function(res_alg){
-  # res_alg: output of a call to gaussian_mixture_coord_exch() function
+
+  stopifnot(res_alg$q == 3)
 
   ggtern::grid.arrange(
     res_alg$X_orig[, 1:res_alg$q] %>%
@@ -323,11 +347,19 @@ gaussian_plot_result = function(res_alg){
 
 
 
-#' TODO: write doc
+#' Computes optimality criterion value using the linear classical Gaussian model.
+#'
+#' Computes optimality criterion value for a design matrix \code{X}.
+#'
+#' @param X Design matrix.
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param opt_crit optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.
+#' @param n_pv Number of process variables.
+#'
+#' @return Returns the value of the optimality criterion for this particular design.
+#'
 #' @export
-gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0, pv_bounds = NULL){
-
-
+gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
 
   #############################################
   ## Check that the order is okay
@@ -362,7 +394,7 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0, pv_
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = gaussian_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = pv_bounds)
+    W = gaussian_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1))
   }
 
   return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W, n_pv = n_pv))
@@ -377,11 +409,20 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0, pv_
 
 
 
-#' TODO: write doc
-#' pv_bounds must be either:
-#'     - NULL (for default values), or
-#'     - a vector with 2 scalars (the second element must be greater than the first), or
-#'     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+#' Computes moment matrix using the linear classical Gaussian model.
+#'
+#' @param q Number of mixture ingredients
+#' @param n_pv Number of process variables
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables. If NULL, it defaults to the \code{[-1, 1]} interval.
+#'
+#' @details
+#' \code{pv_bounds} must be either: \itemize{
+#'     \item NULL (for default values), or
+#'     \item a vector with 2 scalars (the second element must be greater than the first), or
+#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+#' }
+#'
 #' @export
 gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
   # pv_bounds must be either:
@@ -546,8 +587,26 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NUL
 
 
 
-#' TODO: write doc
-#' Function created for testing. There's really no reason to use this function.
+#' Computes an approximation to the moment matrix using the linear classical Gaussian model.
+#'
+#' Uses Monte Carlo simulations using a Dirichlet distribution to sample points from the simplex and approximate the moments matrix.
+#'
+#' @param q Number of mixture ingredients
+#' @param n_pv Number of process variables
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param n_points Number of points to use in the Monte Carlo approximation.
+#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables. If NULL, it defaults to the \code{[-1, 1]} interval.
+#' @param seed integer used for reproducibility
+#'
+#' @details
+#' \code{pv_bounds} must be either: \itemize{
+#'     \item NULL (for default values), or
+#'     \item a vector with 2 scalars (the second element must be greater than the first), or
+#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+#' }
+#'
+#' @details Function created for testing. There's really no reason to use this function.
+#'
 #' @export
 gaussian_create_moment_matrix_numerically = function(q, n_pv = 0, order = 3, n_points = 5000, pv_bounds = c(-1, 1), seed  = NULL){
 

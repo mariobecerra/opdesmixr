@@ -2,8 +2,7 @@
 % Please edit documentation in R/gaussian_model_functions.R
 \name{gaussian_create_moment_matrix_numerically}
 \alias{gaussian_create_moment_matrix_numerically}
-\title{TODO: write doc
-Function created for testing. There's really no reason to use this function.}
+\title{Computes an approximation to the moment matrix using the linear classical Gaussian model.}
 \usage{
 gaussian_create_moment_matrix_numerically(
   q,
@@ -14,7 +13,28 @@ gaussian_create_moment_matrix_numerically(
   seed = NULL
 )
 }
+\arguments{
+\item{q}{Number of mixture ingredients}
+
+\item{n_pv}{Number of process variables}
+
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+
+\item{n_points}{Number of points to use in the Monte Carlo approximation.}
+
+\item{pv_bounds}{Vector or matrix that specifies the bounds of the process variables. If NULL, it defaults to the \code{[-1, 1]} interval.}
+
+\item{seed}{integer used for reproducibility}
+}
 \description{
-TODO: write doc
+Uses Monte Carlo simulations using a Dirichlet distribution to sample points from the simplex and approximate the moments matrix.
+}
+\details{
+\code{pv_bounds} must be either: \itemize{
+\item NULL (for default values), or
+\item a vector with 2 scalars (the second element must be greater than the first), or
+\item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+}
+
 Function created for testing. There's really no reason to use this function.
 }
