@@ -2,7 +2,7 @@
 % Please edit documentation in R/mnl_model_functions.R
 \name{mnl_get_opt_crit_value}
 \alias{mnl_get_opt_crit_value}
-\title{Function that computes optimality criterion value for MNL model}
+\title{Computes optimality criterion value using the MNL model}
 \usage{
 mnl_get_opt_crit_value(
   X,
@@ -14,18 +14,25 @@ mnl_get_opt_crit_value(
 )
 }
 \arguments{
-\item{X}{3 dimensional array with dimensions (q, J, S) where:
-q is the number of ingredient proportions,
-J is the number of alternatives within a choice set,
-S is the number of choice sets.}
+\item{X}{3 dimensional array of size \code{(q, J, S)} where: \itemize{
+\item q is the number of ingredient proportions,
+\item J is the number of alternatives within a choice set,
+\item S is the number of choice sets.
+}}
 
 \item{beta}{numeric vector containing the parameters or numeric matrix containing draws of the prior distribution of the parameters.}
 
-\item{opt_crit}{optimality criterion: 0 or "D" is D-optimality and 1 or "I" is I-optimality}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+
+\item{opt_crit}{optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.}
+
+\item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
+
+\item{n_pv}{Number of process variables.}
 }
 \value{
-Returns the value of the optimality criterion for this particular design and this beta vector
+Returns the value of the optimality criterion for this particular design and this \code{beta} vector
 }
 \description{
-\code{mnl_get_opt_crit_value} computes optimality criterion value for MNL model
+Computes optimality criterion value for a design array \code{X} and \code{beta} parameter.
 }

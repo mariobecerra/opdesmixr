@@ -2,24 +2,24 @@
 % Please edit documentation in R/mnl_model_functions.R
 \name{mnl_design_array_to_dataframe}
 \alias{mnl_design_array_to_dataframe}
-\title{TODO: write doc
-Converts a design in an array to a more readable or plotable data frame.
-des_array must be a 3-dimensional design array of dimension (k, J, S) where k is the number of variables, J the number of alternatives in each choice set and S is the number of choice sets.
-Returns a dataframe  with (k+1) columns where the first q columns are the variables and the (k+1)-th column is the choice set.
-If names is null then the names of the columns are c(paste0("c", 1:k), "choice_set").
-Example:
-des_array = mnl_create_random_initial_design(3, 2, 4)
-design_array_to_dataframe(des_array, names = c("v1", "v2", "v3", "choice_set"))}
+\title{Convert a design array to tibble.}
 \usage{
 mnl_design_array_to_dataframe(des_array, names = NULL)
 }
+\arguments{
+\item{des_array}{must be a 3-dimensional design array of dimension (k, J, S) where k is the number of variables, J the number of alternatives in each choice set and S is the number of choice sets.}
+
+\item{names}{Names of the \code{(k+1)} columns. If NULL, then the names of the columns are \code{c(paste0("c", 1:k), "choice_set")}.}
+}
+\value{
+Returns a tibble with \code{(k+1)} columns where the first \code{k} columns are the variables and the \code{(k+1)}-th column is the choice set.
+}
 \description{
-TODO: write doc
-Converts a design in an array to a more readable or plotable data frame.
-des_array must be a 3-dimensional design array of dimension (k, J, S) where k is the number of variables, J the number of alternatives in each choice set and S is the number of choice sets.
-Returns a dataframe  with (k+1) columns where the first q columns are the variables and the (k+1)-th column is the choice set.
-If names is null then the names of the columns are c(paste0("c", 1:k), "choice_set").
-Example:
-des_array = mnl_create_random_initial_design(3, 2, 4)
-design_array_to_dataframe(des_array, names = c("v1", "v2", "v3", "choice_set"))
+This function allows the user to convert a 3-dimensional design array into a tibble, which helps for readability and to plot.
+}
+\examples{
+design_array_to_dataframe(mnl_create_random_initial_design(q = 3, J = 2, S = 4)
+
+design_array_to_dataframe(mnl_create_random_initial_design(q = 3, J = 2, S = 4), names = c("v1", "v2", "v3", "cs"))
+
 }

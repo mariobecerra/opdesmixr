@@ -2,10 +2,7 @@
 % Please edit documentation in R/mnl_model_functions.R
 \name{mnl_get_fds_simulations}
 \alias{mnl_get_fds_simulations}
-\title{TODO: write doc
-Returns a dataframe with Monte Carlo simulations for Fraction of Design Space plots
-Output dataframe is of size J*n_points_per_alternative where J is the number of alternatives per choice set, i.e., the second element in dim(design_array).
-beta = mnl_create_random_beta(q = 3, order = 3)$beta}
+\title{Perform Monte Carlo simulations for FDS plots.}
 \usage{
 mnl_get_fds_simulations(
   design_array,
@@ -13,14 +10,30 @@ mnl_get_fds_simulations(
   order,
   n_points_per_alternative = 500,
   transform_beta = F,
-  verbose = 0
+  verbose = 0,
+  n_pv = 0
 )
 }
+\arguments{
+\item{design_array}{3-dimensional design array.}
+
+\item{beta}{Matrix with Halton draws of the prior distribution}
+
+\item{order}{integer corresponding to Scheffé model of order 1, 2, or 3.}
+
+\item{n_points_per_alternative}{Number of points to approximate the prediction variance.}
+
+\item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
+
+\item{verbose}{Level of verbosity}
+
+\item{n_pv}{Number of process variables. Defaults to 0. Does not work if there are process variables.}
+}
+\value{
+Tibble of size \code{J*n_points_per_alternative} where J is the number of alternatives per choice set, i.e., the second element in \code{dim(design_array)}.
+}
 \description{
-TODO: write doc
-Returns a dataframe with Monte Carlo simulations for Fraction of Design Space plots
-Output dataframe is of size J*n_points_per_alternative where J is the number of alternatives per choice set, i.e., the second element in dim(design_array).
-beta = mnl_create_random_beta(q = 3, order = 3)$beta
+This function creates a dataframe/tibble with Monte Carlo simulations for Fraction of Design Space plots.
 }
 \examples{
 # Example 1:

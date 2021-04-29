@@ -2,21 +2,28 @@
 % Please edit documentation in R/mnl_model_functions.R
 \name{mnl_create_random_beta}
 \alias{mnl_create_random_beta}
-\title{Creation of a random parameter vector for MNL model}
+\title{Creation of a random parameter vector using the MNL model}
 \usage{
 mnl_create_random_beta(q, n_pv = 0, order = 3, seed = NULL)
 }
 \arguments{
-\item{q}{integer specifying the number of ingredients}
+\item{q}{integer specifying the number of mixture ingredients}
+
+\item{n_pv}{number of process variables}
+
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+
+\item{seed}{integer used for reproducibility}
 }
 \value{
 Returns a list in which the first element of the list is
 a numerical vector with the parameters and the second element is a matrix with
-the indices as in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
+the indices as in \emph{Bayesian D-optimal choice designs for mixtures} by Ruseckaite, Goos & Fok (2017).
 }
 \description{
-\code{mnl_create_random_beta} creates a random parameter vector
+Creates a random parameter vector with the appropriate dimensions as in \emph{Bayesian D-optimal choice designs for mixtures} by Ruseckaite, Goos & Fok (2017).
 }
 \examples{
-mnl_create_random_beta(3)
+mnl_create_random_beta(q = 3, order = 3, seed = 3)
+
 }

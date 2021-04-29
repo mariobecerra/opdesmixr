@@ -2,10 +2,16 @@
 % Please edit documentation in R/mnl_model_functions.R
 \name{mnl_plot_result}
 \alias{mnl_plot_result}
-\title{TODO: write doc}
+\title{Plots the result of the list that results from the \code{mnl_mixture_coord_exch()} function.}
 \usage{
 mnl_plot_result(res_alg, ...)
 }
+\arguments{
+\item{res_alg}{List resulting from a call to the \code{mnl_mixture_coord_exch()} function.}
+}
 \description{
-TODO: write doc
+Plots the result of the list that results from the \code{mnl_mixture_coord_exch()} function.
+}
+\details{
+Only works for \code{q = 3} and \code{q = 4}.
 }

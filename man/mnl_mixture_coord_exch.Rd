@@ -27,7 +27,7 @@ mnl_mixture_coord_exch(
 )
 }
 \arguments{
-\item{q}{number of ingredient proportions.}
+\item{q}{number of mixture ingredient proportions.}
 
 \item{J}{number of alternatives within a choice set.}
 
@@ -35,11 +35,13 @@ mnl_mixture_coord_exch(
 
 \item{n_random_starts}{number or random starts. Defaults to 100.}
 
-\item{X}{If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.}
+\item{X}{If an initial design is to be supplied, then it must be a 3-dimensional array of size \code{(q, J, S)}, with q, J, and S defined above.}
 
 \item{beta}{Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.}
 
-\item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the q-th element?}
+\item{transform_beta}{boolean parameter. Should the \code{beta} vector/matrix be transformed by subtracting the q-th element?}
+
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
 
 \item{opt_method}{Optimization method in each step of the coordinate exchange algorithm.
 It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
@@ -61,10 +63,29 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{n_cores}{Number of cores for parallel processing.}
 
 \item{save_all_designs}{Whether the function should return a list with all the designs created at random or only the best.}
+
+\item{n_pv}{Number of process variables}
 }
 \value{
-list with 7 elements. See below for details.
-
+The function returns a list with 11 elements: \enumerate{
+\item \code{X_orig}: The original design. A 3-dimensional array of size \code{(q, J, S)}.
+\item \code{X}: The optimized design. A 3-dimensional array of size \code{(q, J, S)}.
+\item \code{beta}: The original \code{beta} vector or matrix.
+\item \code{opt_crit_value_orig}: efficiency of the original design.
+\item \code{opt_crit_value}: efficiency of the optimized design.
+\item \code{n_iter}: Number of iterations performed.
+\item \code{efficiency_value_per_iteration}: Efficiency value in each iteration of the algorithm.
+\item \code{opt_crit}: The optimality criterion used.
+\item \code{q}: Number of mixture ingredients.
+\item \code{n_pv}: Number of process variables.
+\item \code{seed}: seed used to generate the final design. If a design was used as input by the user, this will be NA.
+}
+}
+\description{
+Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model as described in
+\emph{Bayesian D-optimal choice designs for mixtures} by Ruseckaite, Goos & Fok (2017).
+}
+\details{
 Verbosity levels: each level prints the previous plus additional things:
 \enumerate{
 \item Print the efficiency value in each iteration and a final summary
@@ -74,18 +95,4 @@ Verbosity levels: each level prints the previous plus additional things:
 \item Print the resulting X and information matrix after each subiteration
 \item Print the resulting X or each point in the Cox direction discretization
 }
-
-Return list has 7 elements:
-\itemize{
-\item X_orig: The original design. Array with dimensions (q, J, S).
-\item X: The optimized design. Array with dimensions (q, J, S).
-\item beta: The original beta vector or matrix.
-\item opt_crit_value_orig: efficiency of the original design.
-\item opt_crit_value: efficiency of the optimized design.
-\item n_iter: Number of iterations performed.
-\item opt_crit: The optimality criterion used.
-}
-}
-\description{
-\code{mnl_mixture_coord_exch} Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
 }

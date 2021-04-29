@@ -1,14 +1,27 @@
 
-#' Creation of a random initial design for MNL model
+#' Creation of a random initial design using the MNL model
 #'
-#' \code{mnl_create_random_initial_design} creates a random initial design for MNL model of the specified dimensions
-#' @param q integer specifying the number of ingredients
+#' Creates a random initial design using the MNL model of the specified dimensions.
+#'
+#' @param q integer specifying the number of mixture ingredients
 #' @param J integer specifying the number of alternatives within each choice set
 #' @param S integer specifying the number of choice sets
+#' @param n_pv Number of process variables
+#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables.
 #' @param seed integer used for reproducibility
-#' @return 3-dimensional array of dimensions (q, J, S)
+#'
+#' @return 3-dimensional array of size \code{(q, J, S)}.
+#'
 #' @examples
-#' mnl_create_random_initial_design(3, 5, 4, seed = 2020)
+#' mnl_create_random_initial_design(q = 3, J = 2, S = 8, seed = 2020)
+#'
+#' @details
+#' \code{pv_bounds} must be either: \itemize{
+#'     \item NULL (for default values), or
+#'     \item a vector with 2 scalars (the second element must be greater than the first), or
+#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+#' }
+#'
 #' @export
 mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL, seed = NULL){
   X = array(rep(NA_real_, (q+n_pv)*J*S), dim = c((q+n_pv), J, S))
@@ -18,7 +31,7 @@ mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL
   for(j in 1:J){
     for(s in 1:S){
       rands = runif(q)
-      # ingredients must sum up to 1
+      # mixture ingredients must sum up to 1
       X[1:q,j, s] = rands/sum(rands)
     }
   }
@@ -55,16 +68,22 @@ mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL
 
 
 
-#' Function that computes optimality criterion value for MNL model
+#' Computes optimality criterion value using the MNL model
 #'
-#' \code{mnl_get_opt_crit_value} computes optimality criterion value for MNL model
-#' @param X 3 dimensional array with dimensions (q, J, S) where:
-#'     q is the number of ingredient proportions,
-#'     J is the number of alternatives within a choice set,
-#'     S is the number of choice sets.
+#' Computes optimality criterion value for a design array \code{X} and \code{beta} parameter.
+#'
+#' @param X 3 dimensional array of size \code{(q, J, S)} where: \itemize{
+#'     \item q is the number of ingredient proportions,
+#'     \item J is the number of alternatives within a choice set,
+#'     \item S is the number of choice sets.
+#' }
 #' @param beta numeric vector containing the parameters or numeric matrix containing draws of the prior distribution of the parameters.
-#' @param opt_crit optimality criterion: 0 or "D" is D-optimality and 1 or "I" is I-optimality
-#' @return Returns the value of the optimality criterion for this particular design and this beta vector
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param opt_crit optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.
+#' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
+#' @param n_pv Number of process variables.
+#'
+#' @return Returns the value of the optimality criterion for this particular design and this \code{beta} vector
 #' @export
 mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta = T, n_pv = 0){
 
@@ -151,15 +170,22 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
 
 
 
-#' Creation of a random parameter vector for MNL model
+#' Creation of a random parameter vector using the MNL model
 #'
-#' \code{mnl_create_random_beta} creates a random parameter vector
-#' @param q integer specifying the number of ingredients
+#' Creates a random parameter vector with the appropriate dimensions as in \emph{Bayesian D-optimal choice designs for mixtures} by Ruseckaite, Goos & Fok (2017).
+#'
+#' @param q integer specifying the number of mixture ingredients
+#' @param n_pv number of process variables
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param seed integer used for reproducibility
+#'
 #' @return Returns a list in which the first element of the list is
 #'     a numerical vector with the parameters and the second element is a matrix with
-#'     the indices as in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
+#'     the indices as in \emph{Bayesian D-optimal choice designs for mixtures} by Ruseckaite, Goos & Fok (2017).
+#'
 #' @examples
-#' mnl_create_random_beta(3)
+#' mnl_create_random_beta(q = 3, order = 3, seed = 3)
+#'
 #' @export
 mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 
@@ -205,14 +231,17 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 
 #' Coordinate exchange algorithm for a Multinomial Logit Scheffé model.
 #'
-#' \code{mnl_mixture_coord_exch} Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model.
-#' @param q number of ingredient proportions.
+#' Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé model as described in
+#' \emph{Bayesian D-optimal choice designs for mixtures} by Ruseckaite, Goos & Fok (2017).
+#'
+#' @param q number of mixture ingredient proportions.
 #' @param J number of alternatives within a choice set.
 #' @param S number of choice sets.
 #' @param n_random_starts number or random starts. Defaults to 100.
-#' @param X If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.
+#' @param X If an initial design is to be supplied, then it must be a 3-dimensional array of size \code{(q, J, S)}, with q, J, and S defined above.
 #' @param beta Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.
-#' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the q-th element?
+#' @param transform_beta boolean parameter. Should the \code{beta} vector/matrix be transformed by subtracting the q-th element?
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
 #' @param opt_method Optimization method in each step of the coordinate exchange algorithm.
 #'      It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)
 #' @param max_it integer for maximum number of iterations that the coordinate exchange algorithm will do
@@ -224,8 +253,23 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #' @param seed Seed for reproducibility.
 #' @param n_cores Number of cores for parallel processing.
 #' @param save_all_designs Whether the function should return a list with all the designs created at random or only the best.
+#' @param n_pv Number of process variables
 #'
-#' @return list with 7 elements. See below for details.
+#' @return The function returns a list with 11 elements: \enumerate{
+#'     \item \code{X_orig}: The original design. A 3-dimensional array of size \code{(q, J, S)}.
+#'     \item \code{X}: The optimized design. A 3-dimensional array of size \code{(q, J, S)}.
+#'     \item \code{beta}: The original \code{beta} vector or matrix.
+#'     \item \code{opt_crit_value_orig}: efficiency of the original design.
+#'     \item \code{opt_crit_value}: efficiency of the optimized design.
+#'     \item \code{n_iter}: Number of iterations performed.
+#'     \item \code{efficiency_value_per_iteration}: Efficiency value in each iteration of the algorithm.
+#'     \item \code{opt_crit}: The optimality criterion used.
+#'     \item \code{q}: Number of mixture ingredients.
+#'     \item \code{n_pv}: Number of process variables.
+#'     \item \code{seed}: seed used to generate the final design. If a design was used as input by the user, this will be NA.
+#'  }
+#'
+#' @details
 #'
 #' Verbosity levels: each level prints the previous plus additional things:
 #' \enumerate{
@@ -237,17 +281,7 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #'     \item Print the resulting X or each point in the Cox direction discretization
 #'  }
 #'
-#' Return list has 7 elements:
-#' \itemize{
-#'     \item X_orig: The original design. Array with dimensions (q, J, S).
-#'     \item X: The optimized design. Array with dimensions (q, J, S).
-#'     \item beta: The original beta vector or matrix.
-#'     \item opt_crit_value_orig: efficiency of the original design.
-#'     \item opt_crit_value: efficiency of the optimized design.
-#'     \item n_iter: Number of iterations performed.
-#'     \item opt_crit: The optimality criterion used.
-#'  }
-#'
+
 #' @export
 mnl_mixture_coord_exch = function(
   q = NULL,
@@ -564,8 +598,8 @@ plot_simplex_4d = function(X, phi = 40, theta = 140, cex_points = 0.8, cex_names
 }
 
 
-#' TODO: write doc
-#' @export
+
+
 mnl_plot_result_3d = function(
   res_alg,
   design = "final",
@@ -605,8 +639,6 @@ mnl_plot_result_3d = function(
 
 
 
-#' TODO: write doc
-#' @export
 mnl_plot_result_2d = function(res_alg){
   # res_alg: output of a call to mnl_mixture_coord_exch() function.
   # It must be a design of 3 ingredients.
@@ -664,7 +696,13 @@ mnl_plot_result_2d = function(res_alg){
 
 
 
-#' TODO: write doc
+#' Plots the result of the list that results from the \code{mnl_mixture_coord_exch()} function.
+#'
+#' @param res_alg List resulting from a call to the \code{mnl_mixture_coord_exch()} function.
+#'
+#' @details
+#' Only works for \code{q = 3} and \code{q = 4}.
+#'
 #' @export
 mnl_plot_result = function(res_alg, ...){
   dim_X = dim(res_alg$X_orig)
@@ -684,11 +722,22 @@ mnl_plot_result = function(res_alg, ...){
 
 
 
-#' TODO: write doc
-#' pv_bounds must be either:
-#'     - NULL (for default values), or
-#'     - a vector with 2 scalars (the second element must be greater than the first), or
-#'     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+#' Computes moment matrix using the MNL model.
+#'
+#' @param q Number of mixture ingredients.
+#' @param n_pv Number of process variables.
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables.
+#'
+#' @details
+#' \code{pv_bounds} must be either: \itemize{
+#'     \item NULL (for default values), or
+#'     \item a vector with 2 scalars (the second element must be greater than the first), or
+#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+#' }
+#'
+#' @return Matrix of size \code{(m, m)}.
+#'
 #' @export
 mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
 
@@ -857,9 +906,17 @@ mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
 
 
 
-#' TODO: write doc
+
 #' Returns a 3 dimensional array to be used in the functions in the package
-#' des_df must be a dataframe  with (k+1) columns where the first k columns are the variables and the (k+1)-th column is the choice set.
+#'
+#' @param des_df Dataframe with \code{(k+1)} columns where the first k columns are the variables and the \code{(k+1)}-th column is the choice set.
+#'
+#' @return 3-dimensional array of size \code{(q, J, S)}, with \itemize{
+#'    \item q number of mixture ingredient proportions.
+#'    \item J number of alternatives within a choice set.
+#'    \item S number of choice sets.
+#' }
+#'
 #' @export
 mnl_design_dataframe_to_array = function(des_df){
   q = ncol(des_df) - 1
@@ -881,14 +938,21 @@ mnl_design_dataframe_to_array = function(des_df){
 
 
 
-#' TODO: write doc
-#' Converts a design in an array to a more readable or plotable data frame.
-#' des_array must be a 3-dimensional design array of dimension (k, J, S) where k is the number of variables, J the number of alternatives in each choice set and S is the number of choice sets.
-#' Returns a dataframe  with (k+1) columns where the first q columns are the variables and the (k+1)-th column is the choice set.
-#' If names is null then the names of the columns are c(paste0("c", 1:k), "choice_set").
-#' Example:
-#'     des_array = mnl_create_random_initial_design(3, 2, 4)
-#'     design_array_to_dataframe(des_array, names = c("v1", "v2", "v3", "choice_set"))
+
+#' Convert a design array to tibble.
+#'
+#' This function allows the user to convert a 3-dimensional design array into a tibble, which helps for readability and to plot.
+#'
+#' @param des_array must be a 3-dimensional design array of dimension (k, J, S) where k is the number of variables, J the number of alternatives in each choice set and S is the number of choice sets.
+#' @param names Names of the \code{(k+1)} columns. If NULL, then the names of the columns are \code{c(paste0("c", 1:k), "choice_set")}.
+#'
+#' @return Returns a tibble with \code{(k+1)} columns where the first \code{k} columns are the variables and the \code{(k+1)}-th column is the choice set.
+#'
+#' @examples
+#' design_array_to_dataframe(mnl_create_random_initial_design(q = 3, J = 2, S = 4)
+#'
+#' design_array_to_dataframe(mnl_create_random_initial_design(q = 3, J = 2, S = 4), names = c("v1", "v2", "v3", "cs"))
+#'
 #' @export
 mnl_design_array_to_dataframe = function(des_array, names = NULL){
   dim_X = dim(des_array)
@@ -913,13 +977,19 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
 
 
 
-#' TODO: write doc
-#' Gets the information matrix of the MNL model.
-#' Parameters:
-#' X: 3-dimensional array
-#' beta: vector
-#' order
-#' transform_beta
+
+#' Get the information matrix using the MNL model.
+#'
+#' Computes the information matrix for a given design \code{X} and parameter vector \code{beta}.
+#'
+#' @param X 3-dimensional design array
+#' @param beta Parameter vector
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
+#' @param n_pv Number of process variables
+#'
+#' @return Information matrix
+#'
 #' @export
 mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
   IM = getInformationMatrixMNL(
@@ -933,9 +1003,17 @@ mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
 }
 
 
-
-#' TODO: write doc
-#' Wrapper function for getXsMNL()
+#' Compute design matrix of a specific choice set using the MNL model.
+#'
+#' Compute the design matrix of choice set \code{s} using the MNL model.
+#'
+#' @param X 3-dimensional design cube/array of size \code{(q, J, S)}.
+#' @param s integer corresponding to a choice set in 1 to S.
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param n_pv number of process variables. Defaults to 0.
+#'
+#' @return Matrix of dimension (J, m-1) that corresponds to the design matrix of choice set s.
+#'
 #' @export
 mnl_get_Xs = function(X, s, order, n_pv = 0){
   stopifnot(order %in% 1:4)
@@ -949,8 +1027,16 @@ mnl_get_Xs = function(X, s, order, n_pv = 0){
 
 
 
-#' TODO: write doc
-#' Wrapper function for getPsMNL()
+#' Compute choice probabilities of a specific choice set using the MNL model.
+#' @param X 3-dimensional design cube/array of size \code{(q, J, S)}.
+#' @param beta Parameter vector
+#' @param s integer corresponding to a choice set in 1 to S.
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
+#' @param n_pv number of process variables.
+#'
+#' @return J-dimensional numerical vector.
+#'
 #' @export
 mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T, n_pv = 0){
   stopifnot(order %in% 1:4)
@@ -971,10 +1057,19 @@ mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T, n_pv = 0){
 
 #### Functions for FDS plots
 
-#' TODO: write doc
-#' Returns a dataframe with Monte Carlo simulations for Fraction of Design Space plots
-#' Output dataframe is of size J*n_points_per_alternative where J is the number of alternatives per choice set, i.e., the second element in dim(design_array).
-#' beta = mnl_create_random_beta(q = 3, order = 3)$beta
+#' Perform Monte Carlo simulations for FDS plots.
+#'
+#' This function creates a dataframe/tibble with Monte Carlo simulations for Fraction of Design Space plots.
+#'
+#' @param design_array 3-dimensional design array.
+#' @param beta Matrix with Halton draws of the prior distribution
+#' @param order integer corresponding to Scheffé model of order 1, 2, or 3.
+#' @param n_points_per_alternative Number of points to approximate the prediction variance.
+#' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
+#' @param verbose Level of verbosity
+#' @param n_pv Number of process variables. Defaults to 0. Does not work if there are process variables.
+#'
+#' @return Tibble of size \code{J*n_points_per_alternative} where J is the number of alternatives per choice set, i.e., the second element in \code{dim(design_array)}.
 #'
 #' @examples
 #' # Example 1:
@@ -1086,9 +1181,6 @@ mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alter
     pred_var[k,] = vars_1
   }
 
-  # out = tibble(pred_var = sort(unlist(pred_var))) %>%
-  # mutate(fraction = 1:nrow(.)/nrow(.))
-
   pred_var = unlist(pred_var)
 
   out = dplyr::tibble(
@@ -1108,10 +1200,18 @@ mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alter
 
 
 
+
+#' Transform variance covariance matrix.
+#'
+#' This function transforms the variance covariance matrix of a multivariate normal vector to the identifiable space for a Scheffé model.
+#'
+#' @param Sigma Original variance covariance matrix of size \code{(m, m)}.
+#' @param q Index of the vector that is subtracted to the first q-1 entries.
+#'
+#' @return Matrix of size \code{(m-1, m-1)}.
+#'
 #' @export
 transform_varcov_matrix = function(Sigma, q){
-  # Transforms the variance covariance matrix of a multivariate normal vector to the identifiable space for a Scheffé model.
-  # Sigma is the original variance covariance matrix, and q is the index of the vector that is subtracted to the first q-1 entries.
   m = nrow(Sigma)
   if(m != ncol(Sigma)) stop("Sigma is not a square matrix")
   if(q > m) stop("q can't be greater than the dimension of Sigma")

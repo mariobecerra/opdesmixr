@@ -2,14 +2,20 @@
 % Please edit documentation in R/mnl_model_functions.R
 \name{mnl_design_dataframe_to_array}
 \alias{mnl_design_dataframe_to_array}
-\title{TODO: write doc
-Returns a 3 dimensional array to be used in the functions in the package
-des_df must be a dataframe  with (k+1) columns where the first k columns are the variables and the (k+1)-th column is the choice set.}
+\title{Returns a 3 dimensional array to be used in the functions in the package}
 \usage{
 mnl_design_dataframe_to_array(des_df)
 }
+\arguments{
+\item{des_df}{Dataframe with \code{(k+1)} columns where the first k columns are the variables and the \code{(k+1)}-th column is the choice set.}
+}
+\value{
+3-dimensional array of size \code{(q, J, S)}, with \itemize{
+\item q number of mixture ingredient proportions.
+\item J number of alternatives within a choice set.
+\item S number of choice sets.
+}
+}
 \description{
-TODO: write doc
 Returns a 3 dimensional array to be used in the functions in the package
-des_df must be a dataframe  with (k+1) columns where the first k columns are the variables and the (k+1)-th column is the choice set.
 }

@@ -2,12 +2,26 @@
 % Please edit documentation in R/mnl_model_functions.R
 \name{mnl_get_Ps}
 \alias{mnl_get_Ps}
-\title{TODO: write doc
-Wrapper function for getPsMNL()}
+\title{Compute choice probabilities of a specific choice set using the MNL model.}
 \usage{
-mnl_get_Ps(X, beta, s, order = 3, transform_beta = T)
+mnl_get_Ps(X, beta, s, order = 3, transform_beta = T, n_pv = 0)
+}
+\arguments{
+\item{X}{3-dimensional design cube/array of size \code{(q, J, S)}.}
+
+\item{beta}{Parameter vector}
+
+\item{s}{integer corresponding to a choice set in 1 to S.}
+
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+
+\item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
+
+\item{n_pv}{number of process variables.}
+}
+\value{
+J-dimensional numerical vector.
 }
 \description{
-TODO: write doc
-Wrapper function for getPsMNL()
+Compute choice probabilities of a specific choice set using the MNL model.
 }
