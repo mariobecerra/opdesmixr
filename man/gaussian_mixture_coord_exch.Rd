@@ -18,8 +18,7 @@ gaussian_mixture_coord_exch(
   verbose = 1,
   opt_crit = 0,
   seed = NULL,
-  n_cores = 1,
-  n_pv = 0
+  n_cores = 1
 )
 }
 \arguments{
@@ -53,8 +52,6 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{seed}{Seed for reproducibility}
 
 \item{n_cores}{Number of cores for parallel processing}
-
-\item{n_pv}{Number of process variables.}
 }
 \value{
 List with the following elements: \itemize{
@@ -66,7 +63,6 @@ List with the following elements: \itemize{
 \item \code{efficiency_value_per_iteration}:
 \item \code{opt_crit}: The optimality criterion used.
 \item \code{q}: Number of mixture ingredients.
-\item \code{n_pv}: Number of process variables.
 \item \code{seed}: seed used to generate the final design. If a design was used as input by the user, this will be NA.
 }
 }

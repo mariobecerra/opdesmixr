@@ -4,22 +4,12 @@
 \alias{gaussian_create_random_initial_design}
 \title{Creation of a random initial design using the linear classical Gaussian model.}
 \usage{
-gaussian_create_random_initial_design(
-  n_runs,
-  q,
-  n_pv = 0,
-  pv_bounds = NULL,
-  seed = NULL
-)
+gaussian_create_random_initial_design(n_runs, q, seed = NULL)
 }
 \arguments{
 \item{n_runs}{Number of runs in the design.}
 
 \item{q}{Number of mixture ingredients.}
-
-\item{n_pv}{Number of process variables.}
-
-\item{pv_bounds}{Vector or matrix that specifies the bounds of the process variables.}
 
 \item{seed}{integer used for reproducibility}
 }
@@ -29,18 +19,8 @@ Matrix of size \code{(n_runs, q)}.
 \description{
 Creation of a random initial design using the linear classical Gaussian model.
 }
-\details{
-\code{pv_bounds} must be either: \itemize{
-\item NULL (for default values), or
-\item a vector with 2 scalars (the second element must be greater than the first), or
-\item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
-}
-}
 \examples{
 gaussian_create_random_initial_design(10, 3, 2, seed = 3)
 
-gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 0, -1, 0), byrow = T, ncol = 2), seed = 3)
-
-gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 1, 0, 1), byrow = T, ncol = 2), seed = 3)
 
 }

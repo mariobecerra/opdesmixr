@@ -3,29 +3,16 @@
 #'
 #' @param n_runs Number of runs in the design.
 #' @param q Number of mixture ingredients.
-#' @param n_pv Number of process variables.
-#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables.
 #' @param seed integer used for reproducibility
 #'
 #' @return Matrix of size \code{(n_runs, q)}.
 #'
-#' @details
-#' \code{pv_bounds} must be either: \itemize{
-#'     \item NULL (for default values), or
-#'     \item a vector with 2 scalars (the second element must be greater than the first), or
-#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
-#' }
-#'
 #' @examples
 #' gaussian_create_random_initial_design(10, 3, 2, seed = 3)
 #'
-#' gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 0, -1, 0), byrow = T, ncol = 2), seed = 3)
-#'
-#' gaussian_create_random_initial_design(10, 3, 2, pv_bounds = matrix(c(-1, 1, 0, 1), byrow = T, ncol = 2), seed = 3)
 #'
 #' @export
-gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds = NULL, seed = NULL){
-
+gaussian_create_random_initial_design = function(n_runs, q, seed = NULL){
 
   if(!is.null(seed)) set.seed(seed)
 
@@ -37,35 +24,6 @@ gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds 
 
     # rows in X sum to 1:
     X[i,] = rands/sum(rands)
-  }
-
-  if(n_pv > 0){
-    if(is.null(pv_bounds)){
-      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
-      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
-    } else{
-
-      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
-        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
-        stopifnot(pv_bounds[2] > pv_bounds[1])
-        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
-      }
-
-      stopifnot(is.matrix(pv_bounds))
-      stopifnot(ncol(pv_bounds) == 2)
-      stopifnot(nrow(pv_bounds) == n_pv)
-      for(i in 1:nrow(pv_bounds)){
-        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
-      }
-    }
-
-    # Create matrix and randomly fill them
-    X_pv = matrix(rep(NA_real_, n_runs*n_pv), ncol = n_pv)
-    for(l in 1:n_pv){
-      X_pv[, l] = runif(n = n_runs, min = pv_bounds[l, 1], max = pv_bounds[l, 2])
-    }
-    X = cbind(X, X_pv)
-
   }
 
   return(X)
@@ -94,7 +52,6 @@ gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds 
 #' @param opt_crit optimality criterion: D-optimality ("D" or 0) or I-optimality ("I" or 1)
 #' @param seed Seed for reproducibility
 #' @param n_cores Number of cores for parallel processing
-#' @param n_pv Number of process variables.
 #' @return List with the following elements: \itemize{
 #'     \item \code{X_orig}: The original design. Matrix of size (n_runs, q).
 #'     \item \code{X}: The optimized design. Matrix of size (n_runs, q).
@@ -104,7 +61,6 @@ gaussian_create_random_initial_design = function(n_runs, q, n_pv = 0, pv_bounds 
 #'     \item \code{efficiency_value_per_iteration}:
 #'     \item \code{opt_crit}: The optimality criterion used.
 #'     \item \code{q}: Number of mixture ingredients.
-#'     \item \code{n_pv}: Number of process variables.
 #'     \item \code{seed}: seed used to generate the final design. If a design was used as input by the user, this will be NA.
 #'  }
 #'
@@ -123,17 +79,15 @@ gaussian_mixture_coord_exch = function(
   verbose = 1,
   opt_crit = 0,
   seed = NULL,
-  n_cores = 1,
-  n_pv = 0
-  ){
-  # Assumes process variables are bwteen -1 and 1
+  n_cores = 1
+){
 
 
   #############################################
   ## Check that the order is okay
   #############################################
-  if(order != 1 & order != 2 & order != 3 & order != 4){
-    stop("Inadmissible value for order. Must be 1, 2, 3 or 4")
+  if(order != 1 & order != 2 & order != 3){
+    stop("Inadmissible value for order. Must be 1, 2, or 3")
   }
 
 
@@ -152,11 +106,6 @@ gaussian_mixture_coord_exch = function(
 
   if(!(opt_method %in% c("B", "D"))){
     stop('Unknown optimization method. Must be either "B" for Brent or "D" for discretization of Cox direction.' )
-  }
-
-
-  if(opt_method == "D" & order == 4){
-    stop("Discretization of Cox direction is not available for models that include process variables.")
   }
 
 
@@ -185,12 +134,12 @@ gaussian_mixture_coord_exch = function(
     seeds_designs = sample.int(1e9, n_random_starts)
 
     designs = lapply(seeds_designs, function(x){
-      des = gaussian_create_random_initial_design(n_runs = n_runs, q = q, seed = x, n_pv = n_pv, pv_bounds = c(-1, 1))
+      des = gaussian_create_random_initial_design(n_runs = n_runs, q = q, seed = x)
       return(des)
     })
   } else{
     n_runs = nrow(X)
-    q = ncol(X) - n_pv
+    q = ncol(X)
 
     # Check that rows in first q columns of X sum to 1
     row_sums = apply(X[, 1:q], 1, sum)
@@ -214,7 +163,7 @@ gaussian_mixture_coord_exch = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = gaussian_create_moment_matrix(q = q, n_pv = n_pv, order = order, pv_bounds = c(-1, 1))
+    W = gaussian_create_moment_matrix(q = q, order = order)
   }
 
   #############################################
@@ -246,8 +195,8 @@ gaussian_mixture_coord_exch = function(
         upper = 1,
         tol = tol,
         n_cox_points = n_cox_points,
-        n_pv = n_pv
-        ),
+        n_pv = 0 # This refers to process variables. They are not used in this version of the package, but the building blocks are already in the C++ code, so they must be declared here in R.
+      ),
       silent = T)
 
 
@@ -284,7 +233,6 @@ gaussian_mixture_coord_exch = function(
     efficiency_value_per_iteration = X_result$efficiency_value_per_iteration,
     opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality"),
     q = q,
-    n_pv = n_pv,
     seed = seeds_designs[which.min(optimality_values)]
   )
 
@@ -352,28 +300,23 @@ gaussian_plot_result = function(res_alg){
 #' Computes optimality criterion value for a design matrix \code{X}.
 #'
 #' @param X Design matrix.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, or 3).
 #' @param opt_crit optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.
-#' @param n_pv Number of process variables.
 #'
 #' @return Returns the value of the optimality criterion for this particular design.
 #'
 #' @export
-gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
+gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0){
 
   #############################################
   ## Check that the order is okay
   #############################################
-  if(order != 1 & order != 2 & order != 3 & order != 4){
-    stop("Inadmissible value for order. Must be 1, 2, 3 or 4")
+  if(order != 1 & order != 2 & order != 3){
+    stop("Inadmissible value for order. Must be 1, 2, or 3")
   }
 
 
-  q = dim(X)[2] - n_pv
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
+  q = dim(X)[2]
 
   #############################################
   ## Check that optimality criterion is okay
@@ -394,10 +337,11 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = gaussian_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1))
+    W = gaussian_create_moment_matrix(q = q, order = order)
   }
 
-  return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W, n_pv = n_pv))
+  # n_pv refers to process variables. They are not used in this version of the package, but the building blocks are already in the C++ code, so they must be declared here in R.
+  return(getOptCritValueGaussian(X = X, order = order, q = q, opt_crit = opt_crit, W = W, n_pv = 0))
 }
 
 
@@ -412,50 +356,12 @@ gaussian_get_opt_crit_value = function(X, order = 1, opt_crit = 0, n_pv = 0){
 #' Computes moment matrix using the linear classical Gaussian model.
 #'
 #' @param q Number of mixture ingredients
-#' @param n_pv Number of process variables
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
-#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables. If NULL, it defaults to the \code{[-1, 1]} interval.
-#'
-#' @details
-#' \code{pv_bounds} must be either: \itemize{
-#'     \item NULL (for default values), or
-#'     \item a vector with 2 scalars (the second element must be greater than the first), or
-#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
-#' }
+#' @param order integer corresponding to a Scheffé model order (1, 2, or 3).
 #'
 #' @export
-gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
-  # pv_bounds must be either:
-  #     - NULL (for default values), or
-  #     - a vector with 2 scalars (the second element must be greater than the first), or
-  #     - a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
+gaussian_create_moment_matrix = function(q, order = 3){
 
-  stopifnot(order %in% 1:4)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
-
-  if(n_pv > 0){
-    if(is.null(pv_bounds)){
-      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
-      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
-    } else{
-
-      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
-        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
-        stopifnot(pv_bounds[2] > pv_bounds[1])
-        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
-      }
-
-      stopifnot(is.matrix(pv_bounds))
-      stopifnot(ncol(pv_bounds) == 2)
-      stopifnot(nrow(pv_bounds) == n_pv)
-      for(i in 1:nrow(pv_bounds)){
-        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
-      }
-    }
-  }
+  stopifnot(order %in% 1:3)
 
 
   if(order == 1){
@@ -467,12 +373,12 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NUL
       if(order == 3){
         m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
       } else{
-        m = q + q*(q-1)/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+        stop()
       }
     }
   }
 
-  f_matrix = matrix(rep(0L, m*(q + n_pv)), ncol = q + n_pv)
+  f_matrix = matrix(rep(0L, m*(q)), ncol = q)
 
   counter = 0
   # Fill indicators of first part of the model expansion
@@ -510,34 +416,6 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NUL
 
 
 
-  # Fill indicators of fourth part of the model expansion when n_pv > 0
-  if(order == 4){
-
-    for(i in 1:n_pv){
-      for(k in 1:q){
-        counter = counter + 1
-        f_matrix[counter, q + i] = 1
-        f_matrix[counter, k] = 1
-      }
-    }
-
-    if(n_pv > 1){
-      for(i in 1:(n_pv-1)){
-        for(j in (i+1):n_pv){
-          counter = counter + 1
-          f_matrix[counter, q + i] = 1
-          f_matrix[counter, q + j] = 1
-        }
-      }
-    }
-
-
-    for(i in 1:n_pv){
-      counter = counter + 1
-      f_matrix[counter, q + i] = 2
-    }
-
-  }
 
 
   W = matrix(rep(NA_real_, m*m), ncol = m)
@@ -550,30 +428,10 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NUL
       denom_ij_1 = factorial(q - 1 + sum(aux_ij_1))
 
 
-      if(n_pv > 0){
-        aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
-        num_ij_2 = 1.0
-        for(l in 1:n_pv){
-          num_ij_2 = num_ij_2 * (pv_bounds[l,2]^(aux_ij_2[l] + 1) - pv_bounds[l,1]^(aux_ij_2[l] + 1))
-        }
+      aux_ij_2 = 0.0
+      num_ij_2 = 1.0
 
-      } else{
-        aux_ij_2 = 0.0
-        num_ij_2 = 1.0
-      }
       denom_ij_2 = prod(1 + aux_ij_2)
-
-      # # Same as:
-      # if(n_pv > 0){
-      #   aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
-      #   num_ij_2 = prod(pv_bounds[,2]^(aux_ij_2 + 1) - pv_bounds[,1]^(aux_ij_2 + 1))
-      # } else{
-      #   aux_ij_2 = 0
-      #   num_ij_2 = 1
-      # }
-      # denom_ij_2 = prod(1 + aux_ij_2)
-      # # This code is faster, but it may be harder to read. In this case we don't care about speed.
-
 
 
       W[i,j] = (num_ij_1 * num_ij_2)/(denom_ij_1 * denom_ij_2)
@@ -585,183 +443,3 @@ gaussian_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NUL
 }
 
 
-
-
-#' Computes an approximation to the moment matrix using the linear classical Gaussian model.
-#'
-#' Uses Monte Carlo simulations using a Dirichlet distribution to sample points from the simplex and approximate the moments matrix.
-#'
-#' @param q Number of mixture ingredients
-#' @param n_pv Number of process variables
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
-#' @param n_points Number of points to use in the Monte Carlo approximation.
-#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables. If NULL, it defaults to the \code{[-1, 1]} interval.
-#' @param seed integer used for reproducibility
-#'
-#' @details
-#' \code{pv_bounds} must be either: \itemize{
-#'     \item NULL (for default values), or
-#'     \item a vector with 2 scalars (the second element must be greater than the first), or
-#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
-#' }
-#'
-#' @details Function created for testing. There's really no reason to use this function.
-#'
-#' @export
-gaussian_create_moment_matrix_numerically = function(q, n_pv = 0, order = 3, n_points = 5000, pv_bounds = c(-1, 1), seed  = NULL){
-
-  if(!is.null(seed)) set.seed(seed)
-
-  stopifnot(order %in% 1:4)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
-
-  if(n_pv > 0){
-    if(is.null(pv_bounds)){
-      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
-      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
-    } else{
-
-      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
-        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
-        stopifnot(pv_bounds[2] > pv_bounds[1])
-        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
-      }
-
-      stopifnot(is.matrix(pv_bounds))
-      stopifnot(ncol(pv_bounds) == 2)
-      stopifnot(nrow(pv_bounds) == n_pv)
-      for(i in 1:nrow(pv_bounds)){
-        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
-      }
-    }
-  }
-
-
-  if(order == 1){
-    m = q
-  } else{
-    if(order == 2){
-      m = q*(q-1)/2 + q
-    } else{
-      if(order == 3){
-        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
-      } else{
-        m = q + q*(q-1)/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
-      }
-    }
-  }
-
-  f_matrix = matrix(rep(0L, m*(q + n_pv)), ncol = q + n_pv)
-
-  counter = 0
-  # Fill indicators of first part of the model expansion
-  for(i in 1:q){
-    counter = counter + 1
-    f_matrix[counter, i] = 1
-  }
-
-
-  # Fill indicators of second part of the model expansion
-  if(order >= 2){
-    for(i in 1:(q-1)){
-      for(j in (i+1):q){
-        counter = counter + 1
-        f_matrix[counter, i] = 1
-        f_matrix[counter, j] = 1
-      }
-    }
-  }
-
-
-  # Fill indicators of third part of the model expansion
-  if(order == 3){
-    for(i in 1:(q-2)){
-      for(j in (i+1):(q-1)){
-        for(k in (j+1):q){
-          counter = counter + 1
-          f_matrix[counter, i] = 1
-          f_matrix[counter, j] = 1
-          f_matrix[counter, k] = 1
-        }
-      }
-    }
-  }
-
-
-
-  # Fill indicators of fourth part of the model expansion when n_pv > 0
-  if(order == 4){
-
-    for(i in 1:n_pv){
-      for(k in 1:q){
-        counter = counter + 1
-        f_matrix[counter, q + i] = 1
-        f_matrix[counter, k] = 1
-      }
-    }
-
-    if(n_pv > 1){
-      for(i in 1:(n_pv-1)){
-        for(j in (i+1):n_pv){
-          counter = counter + 1
-          f_matrix[counter, q + i] = 1
-          f_matrix[counter, q + j] = 1
-        }
-      }
-    }
-
-
-    for(i in 1:n_pv){
-      counter = counter + 1
-      f_matrix[counter, q + i] = 2
-    }
-
-  }
-
-  sample_mat = MCMCpack::rdirichlet(n_points, rep(1, q))
-
-  if(n_pv > 0){
-
-    sample_mat = cbind(sample_mat, matrix(rep(NA_real_, n_pv*n_points), ncol = n_pv))
-    for(l in 1:n_pv){
-      sample_mat[, q+l] = runif(n_points, min = pv_bounds[l, 1], max = pv_bounds[l, 2])
-    }
-
-  }
-
-  W = matrix(rep(NA_real_, m*m), ncol = m)
-
-
-  aux_pv_pdf = 1.0
-  if(n_pv > 0){
-    for(l in 1:n_pv){
-      aux_pv_pdf = aux_pv_pdf * (pv_bounds[l,2] - pv_bounds[l,1])
-    }
-  }
-
-
-  joint_pdf_value = factorial(q-1)/(aux_pv_pdf)
-
-
-  for(i in 1:m){
-    for(j in 1:m){
-
-      aux_ij = f_matrix[i, ] + f_matrix[j, ]
-
-      out_ij = 1.0
-      f = rep(1.0, n_points)
-      for(k in seq_along(aux_ij)){
-        f = f * sample_mat[, k]^aux_ij[k]
-      }
-
-
-      W[i,j] = mean(f)/joint_pdf_value
-
-    }
-  }
-
-  return(W)
-}

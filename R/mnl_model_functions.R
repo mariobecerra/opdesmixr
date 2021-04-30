@@ -6,8 +6,6 @@
 #' @param q integer specifying the number of mixture ingredients
 #' @param J integer specifying the number of alternatives within each choice set
 #' @param S integer specifying the number of choice sets
-#' @param n_pv Number of process variables
-#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables.
 #' @param seed integer used for reproducibility
 #'
 #' @return 3-dimensional array of size \code{(q, J, S)}.
@@ -15,16 +13,10 @@
 #' @examples
 #' mnl_create_random_initial_design(q = 3, J = 2, S = 8, seed = 2020)
 #'
-#' @details
-#' \code{pv_bounds} must be either: \itemize{
-#'     \item NULL (for default values), or
-#'     \item a vector with 2 scalars (the second element must be greater than the first), or
-#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
-#' }
 #'
 #' @export
-mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL, seed = NULL){
-  X = array(rep(NA_real_, (q+n_pv)*J*S), dim = c((q+n_pv), J, S))
+mnl_create_random_initial_design = function(q, J, S, seed = NULL){
+  X = array(rep(NA_real_, (q)*J*S), dim = c((q), J, S))
 
   if(!is.null(seed)) set.seed(seed)
 
@@ -34,33 +26,6 @@ mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL
       # mixture ingredients must sum up to 1
       X[1:q,j, s] = rands/sum(rands)
     }
-  }
-
-  if(n_pv > 0){
-    if(is.null(pv_bounds)){
-      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
-      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
-    } else{
-
-      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
-        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
-        stopifnot(pv_bounds[2] > pv_bounds[1])
-        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
-      }
-
-      stopifnot(is.matrix(pv_bounds))
-      stopifnot(ncol(pv_bounds) == 2)
-      stopifnot(nrow(pv_bounds) == n_pv)
-      for(i in 1:nrow(pv_bounds)){
-        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
-      }
-    }
-
-    # Fill rest of array with process variables
-    for(l in 1:n_pv){
-      X[l + q, , ] = runif(n = J*S, min = pv_bounds[l, 1], max = pv_bounds[l, 2])
-    }
-
   }
 
   return(X)
@@ -78,30 +43,26 @@ mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL
 #'     \item S is the number of choice sets.
 #' }
 #' @param beta numeric vector containing the parameters or numeric matrix containing draws of the prior distribution of the parameters.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3).
 #' @param opt_crit optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
-#' @param n_pv Number of process variables.
 #'
 #' @return Returns the value of the optimality criterion for this particular design and this \code{beta} vector
 #' @export
-mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta = T, n_pv = 0){
+mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta = T){
 
   # Recode opt_crit
   if(opt_crit == "D") opt_crit = 0
   if(opt_crit == "I") opt_crit = 1
 
-  q = dim(X)[1] - n_pv
+  q = dim(X)[1]
 
   #############################################
   ## Check that the order is okay
   #############################################
-  if(order != 1 & order != 2 & order != 3 & order != 4){
-    stop("Inadmissible value for order. Must be 1, 2, 3 or 4")
+  if(order != 1 & order != 2 & order != 3){
+    stop("Inadmissible value for order. Must be 1, 2, or 3")
   }
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
 
 
   #############################################
@@ -119,7 +80,7 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
         m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
       } else{
         if(order == 4){
-          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+          stop()
         } else{
           stop("Wrong order")
           # This condition won't be met because of the checking in the previous lines.
@@ -157,14 +118,14 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = mnl_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1))
+    W = mnl_create_moment_matrix(q = q, order = order)
   }
 
   #############################################
   ## Get optimality criterion value
   #############################################
 
-  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order, transform_beta = transform_beta, n_pv = n_pv))
+  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order, transform_beta = transform_beta))
 
 }
 
@@ -175,8 +136,7 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
 #' Creates a random parameter vector with the appropriate dimensions as in \emph{Bayesian D-optimal choice designs for mixtures} by Ruseckaite, Goos & Fok (2017).
 #'
 #' @param q integer specifying the number of mixture ingredients
-#' @param n_pv number of process variables
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3).
 #' @param seed integer used for reproducibility
 #'
 #' @return Returns a list in which the first element of the list is
@@ -187,17 +147,11 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
 #' mnl_create_random_beta(q = 3, order = 3, seed = 3)
 #'
 #' @export
-mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
+mnl_create_random_beta = function(q, order = 3, seed = NULL){
 
   stopifnot(order %in% 1:4)
   if(!all.equal(q, floor(q))) stop("q does not seem to an integer.")
   stopifnot(q > 0)
-  if(!all.equal(n_pv, floor(n_pv))) stop("n_pv does not seem to an integer.")
-  stopifnot(n_pv >= 0)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
 
   if(order == 1){
     m = q
@@ -209,7 +163,7 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
         m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
       } else{
         if(order == 4){
-          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+          stop()
         } else{
           stop("Wrong order")
           # This condition won't be met because of the checking in the previous lines.
@@ -241,7 +195,7 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #' @param X If an initial design is to be supplied, then it must be a 3-dimensional array of size \code{(q, J, S)}, with q, J, and S defined above.
 #' @param beta Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.
 #' @param transform_beta boolean parameter. Should the \code{beta} vector/matrix be transformed by subtracting the q-th element?
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3).
 #' @param opt_method Optimization method in each step of the coordinate exchange algorithm.
 #'      It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)
 #' @param max_it integer for maximum number of iterations that the coordinate exchange algorithm will do
@@ -253,7 +207,6 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #' @param seed Seed for reproducibility.
 #' @param n_cores Number of cores for parallel processing.
 #' @param save_all_designs Whether the function should return a list with all the designs created at random or only the best.
-#' @param n_pv Number of process variables
 #'
 #' @return The function returns a list with 11 elements: \enumerate{
 #'     \item \code{X_orig}: The original design. A 3-dimensional array of size \code{(q, J, S)}.
@@ -265,7 +218,6 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #'     \item \code{efficiency_value_per_iteration}: Efficiency value in each iteration of the algorithm.
 #'     \item \code{opt_crit}: The optimality criterion used.
 #'     \item \code{q}: Number of mixture ingredients.
-#'     \item \code{n_pv}: Number of process variables.
 #'     \item \code{seed}: seed used to generate the final design. If a design was used as input by the user, this will be NA.
 #'  }
 #'
@@ -301,10 +253,8 @@ mnl_mixture_coord_exch = function(
   opt_crit = 0,
   seed = NULL,
   n_cores = 1,
-  save_all_designs = F,
-  n_pv = 0
+  save_all_designs = F
 ){
-  # Assumes process variables are bwteen -1 and 1
 
   t1 = Sys.time()
   if(verbose >= 1) cat("Starts at", substr(as.character(t1), 12, 19), "\n")
@@ -357,7 +307,7 @@ mnl_mixture_coord_exch = function(
     seeds_designs = sample.int(1e9, n_random_starts)
 
     designs = lapply(seeds_designs, function(x){
-      des = mnl_create_random_initial_design(q, J, S, seed = x, n_pv = n_pv, pv_bounds = c(-1, 1))
+      des = mnl_create_random_initial_design(q, J, S, seed = x)
       return(des)
     })
 
@@ -370,7 +320,7 @@ mnl_mixture_coord_exch = function(
 
     seeds_designs = NA
 
-    q = dim_X[1] - n_pv
+    q = dim_X[1]
 
     designs = list(X)
 
@@ -379,14 +329,9 @@ mnl_mixture_coord_exch = function(
 
 
 
-  stopifnot(order %in% 1:4)
+  stopifnot(order %in% 1:3)
   if(!all.equal(q, floor(q))) stop("q does not seem to an integer.")
   stopifnot(q > 0)
-  if(!all.equal(n_pv, floor(n_pv))) stop("n_pv does not seem to an integer.")
-  stopifnot(n_pv >= 0)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
 
 
   if(order == 1){
@@ -399,7 +344,7 @@ mnl_mixture_coord_exch = function(
         m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
       } else{
         if(order == 4){
-          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+          stop()
         } else{
           stop("Wrong order")
           # This condition won't be met because of the checking in the previous lines.
@@ -442,7 +387,7 @@ mnl_mixture_coord_exch = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = mnl_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1))
+    W = mnl_create_moment_matrix(q = q, order = order)
   }
 
   #############################################
@@ -475,7 +420,7 @@ mnl_mixture_coord_exch = function(
         tol = tol,
         n_cox_points = n_cox_points,
         transform_beta = transform_beta,
-        n_pv = n_pv
+        n_pv = 0 # This refers to process variables. They are not used in this version of the package, but the building blocks are already in the C++ code, so they must be declared here in R.
       ), silent = T)
 
     # If there was an error with this design, return whatever
@@ -517,7 +462,6 @@ mnl_mixture_coord_exch = function(
         efficiency_value_per_iteration = X_result_i$efficiency_value_per_iteration,
         opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality"),
         q = q,
-        n_pv = n_pv,
         seed = seeds_designs[i]
       )
     })
@@ -539,7 +483,6 @@ mnl_mixture_coord_exch = function(
       efficiency_value_per_iteration = X_result$efficiency_value_per_iteration,
       opt_crit = ifelse(opt_crit == 0, "D-optimality", "I-optimality"),
       q = q,
-      n_pv = n_pv,
       seed = seeds_designs[best_index]
     )
 
@@ -623,7 +566,6 @@ mnl_plot_result_3d = function(
   S = dim_X[3]
 
   if(q != 4) stop("Design must be of 4 ingredients.")
-  if(res_alg$n_pv > 0) warning("There are process variables that are being ignored for the plots")
 
   # Convert 3 dimensional arrays into matrices by vertically binding them
   X_mat = t(res_alg[[i]][1:q,,1])
@@ -648,7 +590,6 @@ mnl_plot_result_2d = function(res_alg){
   S = dim_X[3]
 
   if(q != 3) stop("Design must be of 3 ingredients.")
-  if(res_alg$n_pv > 0) warning("There are process variables that are being ignored for the plots")
 
   # Convert 3 dimensional arrays into matrices by vertically binding them
   X_orig_mat = t(res_alg$X_orig[1:q,,1])
@@ -725,50 +666,14 @@ mnl_plot_result = function(res_alg, ...){
 #' Computes moment matrix using the MNL model.
 #'
 #' @param q Number of mixture ingredients.
-#' @param n_pv Number of process variables.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
-#' @param pv_bounds Vector or matrix that specifies the bounds of the process variables.
-#'
-#' @details
-#' \code{pv_bounds} must be either: \itemize{
-#'     \item NULL (for default values), or
-#'     \item a vector with 2 scalars (the second element must be greater than the first), or
-#'     \item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
-#' }
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3).
 #'
 #' @return Matrix of size \code{(m, m)}.
 #'
 #' @export
-mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
+mnl_create_moment_matrix = function(q, order = 3){
 
-  stopifnot(order %in% 1:4)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
-
-  if(n_pv > 0){
-    # Input checks for process variables
-    if(is.null(pv_bounds)){
-      warning("Number of process variables (n_pv = ", n_pv, ") provided but no information about the bounds. Using interval [-1, 1] for all process variables.")
-      pv_bounds = t(sapply(1:n_pv, function(.) return(c(-1, 1))))
-    } else{
-
-      if(is.vector(pv_bounds) & !is.list(pv_bounds) & !is.matrix(pv_bounds)){ # If only one interval is given
-        stopifnot(length(pv_bounds) == 2) # Make sure it's an interval of the form [a, b]
-        stopifnot(pv_bounds[2] > pv_bounds[1])
-        pv_bounds = t(sapply(1:n_pv, function(.) return(pv_bounds)))
-      }
-
-      stopifnot(is.matrix(pv_bounds))
-      stopifnot(ncol(pv_bounds) == 2)
-      stopifnot(nrow(pv_bounds) == n_pv)
-      for(i in 1:nrow(pv_bounds)){
-        stopifnot(pv_bounds[i, 2] > pv_bounds[i, 1])
-      }
-    }
-  }
-
+  stopifnot(order %in% 1:3)
 
 
   if(order == 1){
@@ -780,12 +685,12 @@ mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
       if(order == 3){
         m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
       } else{
-        m = q + q*(q-1)/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+        stop()
       }
     }
   }
 
-  f_matrix = matrix(rep(0L, (m-1)*(q + n_pv)), ncol = q + n_pv)
+  f_matrix = matrix(rep(0L, (m-1)*(q)), ncol = q)
 
   counter = 0
   # Fill indicators of first part of the model expansion
@@ -820,36 +725,6 @@ mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
     }
   }
 
-  # Fill indicators of fourth part of the model expansion when n_pv > 0
-  if(order == 4){
-
-    for(i in 1:n_pv){
-      for(k in 1:q){
-        counter = counter + 1
-        f_matrix[counter, q + i] = 1
-        f_matrix[counter, k] = 1
-      }
-    }
-
-    if(n_pv > 1){
-      for(i in 1:(n_pv-1)){
-        for(j in (i+1):n_pv){
-          counter = counter + 1
-          f_matrix[counter, q + i] = 1
-          f_matrix[counter, q + j] = 1
-        }
-      }
-    }
-
-
-    for(i in 1:n_pv){
-      counter = counter + 1
-      f_matrix[counter, q + i] = 2
-    }
-
-  }
-
-
   W = matrix(rep(NA_real_, (m-1)^2), ncol = m-1)
 
   for(i in 1:(m-1)){
@@ -862,31 +737,11 @@ mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
       denom_ij_1 = factorial(q - 1 + sum(aux_ij_1))
 
 
-      if(n_pv > 0){
-        aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
-        num_ij_2 = 1.0
-        for(l in 1:n_pv){
-          num_ij_2 = num_ij_2 * (pv_bounds[l,2]^(aux_ij_2[l] + 1) - pv_bounds[l,1]^(aux_ij_2[l] + 1))
-        }
 
-      } else{
-        aux_ij_2 = 0.0
-        num_ij_2 = 1.0
-      }
+      aux_ij_2 = 0.0
+      num_ij_2 = 1.0
+
       denom_ij_2 = prod(1 + aux_ij_2)
-
-      # # Same as:
-      # if(n_pv > 0){
-      #   aux_ij_2 = f_matrix[i, (q+1):(q+n_pv)] + f_matrix[j, (q+1):(q+n_pv)]
-      #   num_ij_2 = prod(pv_bounds[,2]^(aux_ij_2 + 1) - pv_bounds[,1]^(aux_ij_2 + 1))
-      # } else{
-      #   aux_ij_2 = 0
-      #   num_ij_2 = 1
-      # }
-      # denom_ij_2 = prod(1 + aux_ij_2)
-      # # This code is faster, but it may be harder to read. In this case we don't care about speed.
-
-
 
       W[i,j] = (num_ij_1 * num_ij_2)/(denom_ij_1 * denom_ij_2)
 
@@ -984,20 +839,19 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
 #'
 #' @param X 3-dimensional design array
 #' @param beta Parameter vector
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3).
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
-#' @param n_pv Number of process variables
 #'
 #' @return Information matrix
 #'
 #' @export
-mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
+mnl_get_information_matrix = function(X, beta, order, transform_beta){
   IM = getInformationMatrixMNL(
     X = X,
     beta = beta,
     order = order,
     transform_beta = transform_beta,
-    n_pv = n_pv)
+    n_pv = 0) # This refers to process variables. They are not used in this version of the package, but the building blocks are already in the C++ code, so they must be declared here in R.
 
   return(IM)
 }
@@ -1009,19 +863,17 @@ mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
 #'
 #' @param X 3-dimensional design cube/array of size \code{(q, J, S)}.
 #' @param s integer corresponding to a choice set in 1 to S.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
-#' @param n_pv number of process variables. Defaults to 0.
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3).
 #'
 #' @return Matrix of dimension (J, m-1) that corresponds to the design matrix of choice set s.
 #'
 #' @export
-mnl_get_Xs = function(X, s, order, n_pv = 0){
-  stopifnot(order %in% 1:4)
+mnl_get_Xs = function(X, s, order){
+  stopifnot(order %in% 1:3)
 
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
 
-  return(getXsMNL(X = X, s = s, order = order, n_pv = n_pv))
+  # n_pv refers to process variables. They are not used in this version of the package, but the building blocks are already in the C++ code, so they must be declared here in R.
+  return(getXsMNL(X = X, s = s, order = order, n_pv = 0))
 }
 
 
@@ -1031,21 +883,19 @@ mnl_get_Xs = function(X, s, order, n_pv = 0){
 #' @param X 3-dimensional design cube/array of size \code{(q, J, S)}.
 #' @param beta Parameter vector
 #' @param s integer corresponding to a choice set in 1 to S.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3).
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
-#' @param n_pv number of process variables.
 #'
 #' @return J-dimensional numerical vector.
 #'
 #' @export
-mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T, n_pv = 0){
-  stopifnot(order %in% 1:4)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T){
+  stopifnot(order %in% 1:3)
 
   Xs = mnl_get_Xs(X, s, order)
-  return(as.vector(getPsMNL(X = X, beta = beta, s = s, Xs = Xs, transform_beta = transform_beta, n_pv = n_pv)))
+
+  # n_pv refers to process variables. They are not used in this version of the package, but the building blocks are already in the C++ code, so they must be declared here in R.
+  return(as.vector(getPsMNL(X = X, beta = beta, s = s, Xs = Xs, transform_beta = transform_beta, n_pv = 0)))
 }
 
 
@@ -1067,89 +917,13 @@ mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T, n_pv = 0){
 #' @param n_points_per_alternative Number of points to approximate the prediction variance.
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
 #' @param verbose Level of verbosity
-#' @param n_pv Number of process variables. Defaults to 0. Does not work if there are process variables.
 #'
 #' @return Tibble of size \code{J*n_points_per_alternative} where J is the number of alternatives per choice set, i.e., the second element in \code{dim(design_array)}.
 #'
-#' @examples
-#' # Example 1:
-#' beta = mnl_create_random_beta(q = 3, order = 3)$beta
-#' mnl_design = mnl_mixture_coord_exch(q = 3, J = 2, S = 10, n_random_starts = 1, beta = get_halton_draws(beta, sd = 1, ndraws = 128))
-#' fds_sims = mnl_get_fds_simulations(mnl_design$X, mnl_design$beta, order = 3, n_points_per_alternative = 500, transform_beta = T, verbose = 1)
-#' # Plot:
-#' fds_sims %>%
-#'   ggplot() +
-#'   geom_line(aes(fraction, pred_var), size = 0.8)
-#'
-#'
-#'
-#'
-#' # Example 2:
-#'
-#' library(opdesmixr)
-#' library(dplyr)
-#'
-#' beta = mnl_create_random_beta(q = 3, order = 3)$beta
-#' beta_draws = get_halton_draws(beta, sd = 1, ndraws = 128)
-#'
-#' mnl_I_opt_design = mnl_mixture_coord_exch(
-#'   q = 3, J = 2, S = 10,
-#'   n_random_starts = 1,
-#'   beta = beta_draws,
-#'   max_it = 5,
-#'   opt_crit = "I")
-#'
-#' mnl_D_opt_design = mnl_mixture_coord_exch(
-#'   q = 3, J = 2, S = 10,
-#'   n_random_starts = 1,
-#'   beta = beta_draws,
-#'   max_it = 5,
-#'   opt_crit = "D")
-#'
-#'
-#' fds_sims =  mnl_get_fds_simulations(
-#'   design_array = mnl_I_opt_design$X,
-#'   beta = mnl_I_opt_design$beta,
-#'   order = 3,
-#'   n_points_per_alternative = 500,
-#'   transform_beta = T,
-#'   verbose = 1) %>%
-#'   mutate(Design = "I-optimal") %>%
-#'   bind_rows(
-#'     mnl_get_fds_simulations(
-#'       design_array = mnl_D_opt_design$X,
-#'       beta = mnl_D_opt_design$beta,
-#'       order = 3,
-#'       n_points_per_alternative = 500,
-#'       transform_beta = T,
-#'       verbose = 1) %>%
-#'       mutate(Design = "D-optimal")
-#'   )
-#'
-#'
-#' fds_sims %>%
-#'   ggplot() +
-#'   geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
-#'   geom_hline(yintercept = fds_sims %>%
-#'                group_by(Design) %>%
-#'                summarize(
-#'                  med = median(pred_var),
-#'                  mean = mean(pred_var)) %>%
-#'                pull(med),
-#'              linetype = "dashed", size = 0.2) +
-#'   geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
-#'   xlab("Fraction of design space") +
-#'   ylab("Prediction variance") +
-#'   ggtitle("I-optimal vs D-optimal design") +
-#'   theme_bw()
-
-#'
 #' @export
-mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 0, n_pv = 0){
+mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 0){
 
-  if(n_pv > 0) stop("Process variables not supported (yet).")
-
-  q = dim(design_array)[1] - n_pv
+  q = dim(design_array)[1]
   J = dim(design_array)[2]
   S = dim(design_array)[3]
 
@@ -1235,47 +1009,4 @@ transform_varcov_matrix = function(Sigma, q){
 
 
 
-
-# mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alternative = 500, transform_beta = F, verbose = 1){
-#
-#   q = dim(design_array)[1]
-#   J = dim(design_array)[2]
-#   S = dim(design_array)[3]
-#
-#   pred_var = suppressWarnings(as.data.frame(matrix(rep(NA_real_, J*n_points_per_alternative), ncol = J))) %>%
-#     set_names(paste0("V", 1:J))
-#   progress_old = -1
-#   for(k in 1:n_points_per_alternative){
-#
-#     if(verbose > 0){
-#       progress = round(100*(k-1)/n_points_per_alternative, 0)
-#       if(progress - progress_old >= 1){
-#         cat('\r', "Progress: ", progress, "%", sep = "")
-#         flush.console()
-#       }
-#       progress_old = progress
-#     }
-#
-#     des_k = mnl_create_random_initial_design(q, J, S, seed = k)
-#     vars_1 = rep(NA_real_, J)
-#     for(j in 1:J){
-#       f_x = mnl_get_Xs(des_k, 1, order = order)[j,]
-#       acc = 0
-#       for(i in 1:nrow(beta)){
-#         inf_mat = mnl_get_information_matrix(design_array, beta = beta[i,], order = order, transform_beta = transform_beta)
-#         acc = acc + t(f_x) %*% solve(inf_mat, f_x)
-#       }
-#       vars_1[j] = acc/nrow(beta)
-#     }
-#
-#     pred_var[k,] = vars_1
-#   }
-#
-#   out = tibble(pred_var = sort(apply(pred_var, 1, sum))) %>%
-#     mutate(fraction = 1:nrow(.)/nrow(.))
-#
-#   if(verbose > 0) cat("\nFinished\n\n")
-#
-#   return(out)
-# }
 

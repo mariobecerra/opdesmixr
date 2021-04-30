@@ -4,14 +4,7 @@
 \alias{mnl_create_random_initial_design}
 \title{Creation of a random initial design using the MNL model}
 \usage{
-mnl_create_random_initial_design(
-  q,
-  J,
-  S,
-  n_pv = 0,
-  pv_bounds = NULL,
-  seed = NULL
-)
+mnl_create_random_initial_design(q, J, S, seed = NULL)
 }
 \arguments{
 \item{q}{integer specifying the number of mixture ingredients}
@@ -19,10 +12,6 @@ mnl_create_random_initial_design(
 \item{J}{integer specifying the number of alternatives within each choice set}
 
 \item{S}{integer specifying the number of choice sets}
-
-\item{n_pv}{Number of process variables}
-
-\item{pv_bounds}{Vector or matrix that specifies the bounds of the process variables.}
 
 \item{seed}{integer used for reproducibility}
 }
@@ -32,14 +21,8 @@ mnl_create_random_initial_design(
 \description{
 Creates a random initial design using the MNL model of the specified dimensions.
 }
-\details{
-\code{pv_bounds} must be either: \itemize{
-\item NULL (for default values), or
-\item a vector with 2 scalars (the second element must be greater than the first), or
-\item a matrix with n_pv rows and 2 columns, i.e., each row represents a bound for each process variable.
-}
-}
 \examples{
 mnl_create_random_initial_design(q = 3, J = 2, S = 8, seed = 2020)
+
 
 }

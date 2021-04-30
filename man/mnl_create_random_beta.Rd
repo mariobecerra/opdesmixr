@@ -4,14 +4,12 @@
 \alias{mnl_create_random_beta}
 \title{Creation of a random parameter vector using the MNL model}
 \usage{
-mnl_create_random_beta(q, n_pv = 0, order = 3, seed = NULL)
+mnl_create_random_beta(q, order = 3, seed = NULL)
 }
 \arguments{
 \item{q}{integer specifying the number of mixture ingredients}
 
-\item{n_pv}{number of process variables}
-
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3).}
 
 \item{seed}{integer used for reproducibility}
 }

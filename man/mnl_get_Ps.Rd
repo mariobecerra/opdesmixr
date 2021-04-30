@@ -4,7 +4,7 @@
 \alias{mnl_get_Ps}
 \title{Compute choice probabilities of a specific choice set using the MNL model.}
 \usage{
-mnl_get_Ps(X, beta, s, order = 3, transform_beta = T, n_pv = 0)
+mnl_get_Ps(X, beta, s, order = 3, transform_beta = T)
 }
 \arguments{
 \item{X}{3-dimensional design cube/array of size \code{(q, J, S)}.}
@@ -13,11 +13,9 @@ mnl_get_Ps(X, beta, s, order = 3, transform_beta = T, n_pv = 0)
 
 \item{s}{integer corresponding to a choice set in 1 to S.}
 
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3).}
 
 \item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
-
-\item{n_pv}{number of process variables.}
 }
 \value{
 J-dimensional numerical vector.

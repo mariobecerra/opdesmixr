@@ -1,13 +1,11 @@
 Package: opdesmixr
 Type: Package
 Title: Optimal experimental designs for mixture models
-Version: 0.0.0.9000
+Version: 0.1
 Author: Mario H. Becerra
 Maintainer: Mario H. Becerra <becerra.mario.h@gmail.com>
-Description: An implementatio of algorithms to find optimal experimental designs for mixtures using
-    Scheffé models. A mixture experiment is one in which there is an equality constraint.
-    This is usually that the ingredients must sum up to 1 because they represent proportions of 
-    ingredients. It supports Gaussian and Multinomial Logit (MNL) models.
+Description: An implementation of algorithms to find D- and I-optimal experimental designs for mixtures using Scheffé models. 
+    It supports Gaussian and Multinomial Logit (MNL) models.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true

@@ -22,8 +22,7 @@ mnl_mixture_coord_exch(
   opt_crit = 0,
   seed = NULL,
   n_cores = 1,
-  save_all_designs = F,
-  n_pv = 0
+  save_all_designs = F
 )
 }
 \arguments{
@@ -41,7 +40,7 @@ mnl_mixture_coord_exch(
 
 \item{transform_beta}{boolean parameter. Should the \code{beta} vector/matrix be transformed by subtracting the q-th element?}
 
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3).}
 
 \item{opt_method}{Optimization method in each step of the coordinate exchange algorithm.
 It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
@@ -63,8 +62,6 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{n_cores}{Number of cores for parallel processing.}
 
 \item{save_all_designs}{Whether the function should return a list with all the designs created at random or only the best.}
-
-\item{n_pv}{Number of process variables}
 }
 \value{
 The function returns a list with 11 elements: \enumerate{
@@ -77,7 +74,6 @@ The function returns a list with 11 elements: \enumerate{
 \item \code{efficiency_value_per_iteration}: Efficiency value in each iteration of the algorithm.
 \item \code{opt_crit}: The optimality criterion used.
 \item \code{q}: Number of mixture ingredients.
-\item \code{n_pv}: Number of process variables.
 \item \code{seed}: seed used to generate the final design. If a design was used as input by the user, this will be NA.
 }
 }
