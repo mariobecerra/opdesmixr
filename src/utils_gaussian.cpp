@@ -406,7 +406,7 @@ double efficiencyPVScheffeGaussian(double theta, arma::mat& X, int i, int j, int
                                    int opt_crit, arma::mat& W, int n_pv){
   // Computes efficiency criterion of a design matrix X but where the j-th PV in the
   // i-th observation is changed to theta.
-  // Note: i should be shifted by the q proportion variables. That is, this function changes the i-th element
+  // Note: it should be shifted by the q proportion variables. That is, this function changes the i-th element
   //       without checking whether it is a process variable or an ingredient proportion. This is done in the main algorithm.
   // Indices j and i are 0-indexed.
   // We want to minimize this.
@@ -475,20 +475,10 @@ void findBestPVGaussianBrent( // void but modifies X
 Rcpp::List mixtureCoordinateExchangeGaussian(
     const arma::mat X_orig, int order, int max_it, int verbose, int opt_crit,
     arma::mat W, int opt_method, double lower, double upper, double tol, int n_cox_points, int n_pv){
-  // Performs the coordinate exchange algorithm for a Scheffé model with Gaussian errors.
-
-  // n_runs: number of runs
-  // q: number of ingredient proportions
-  // n_random_starts: number or random starts. Defaults to 100.
-  // X: User supplied design matrix.
-  // order: Order of the Scheffé model (1, 2, or 3).
-  // opt_method: Optimization method in each step of the coordinate exchange algorithm.
-  //    0 for Brent, 1 for Cox's direction discretization.
-  // max_it: integer for maximum number of iterations that the coordinate exchange algorithm will do
-  // tol: A positive error tolerance in Brent's method.
-  // n_cox_points: number of points to use in the discretization of Cox direction
-  // verbose level of verbosity.
-  // opt_crit optimality criterion: D-optimality (0) or I-optimality (1)
+  // Performs the coordinate exchange algorithm for Scheffé models with Gaussian errors.
+  // See gaussian_mixture_coord_exch() in R for details.
+  // lower: lower bound in Brent's optimization method
+  // upper: upper bound in Brent's optimization method
   // W: moment matrix
 
 

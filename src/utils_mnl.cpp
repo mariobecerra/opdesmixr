@@ -17,11 +17,7 @@ using namespace std;
 // [[Rcpp::export]]
 arma::mat getXsMNL(arma::cube& X, int s, int order, int n_pv = 0){
   // Function that returns the design matrix of choice set s.
-  // Final matrix is of dimension (J, m-1) with m = (q^3 + 5*q)/6 (if 3rd ordder Scheffe)
-  // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
-  // Input should be
-  //     X: design cube of dimensions (q, J, S) integer s, corresponding to a choice set in 1 to S.
-  //     order: order of Scheffe model
+  // For more information about this function, see R's wrapper function mnl_get_Xs()
   int q = X.n_rows - n_pv;
   int J = X.n_cols;
   int m = 0; // initialize to silence warning
@@ -294,12 +290,6 @@ arma::vec getUsMNL(arma::cube& X, arma::vec& beta, int s, arma::mat& Xs, bool tr
 arma::vec getPsMNL(arma::cube& X, arma::vec& beta, int s, arma::mat& Xs, bool transform_beta = true, int n_pv = 0){
   // Function that returns the probability vector of choice set s, based on the softmax function.
   // Final vector is of length J.
-  // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
-  // Input:
-  //     X: design cube of dimensions (q, J, S)
-  //     beta: parameter vector. Must be of length m or m-1, depending on transform_beta.
-  //     s: integer s, corresponding to a choice set in 1 to S.
-  //     Xs: design matrix of choice set s. Must be of dimension (J, m-1).
 
   int J = X.n_cols;
 
@@ -330,12 +320,7 @@ arma::vec getPsMNL(arma::cube& X, arma::vec& beta, int s, arma::mat& Xs, bool tr
 arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order, bool transform_beta = true, int n_pv = 0){
   // Function that returns the information matrix for design cube X and parameter vector beta.
   // It is the sum of the information matrices of the S choice sets.
-  // Final matrix is of dimension (m-1, m-1), with m = (q^3 + 5*q)/6
-  // Based on a special cubic Scheffé model as described in Ruseckaite, et al - Bayesian D-optimal choice designs for mixtures (2017)
-  // Input:
-  //     X: design cube of dimensions (q, J, S)
-  //     beta: parameter vector. Must be of length m, with m = (q^3 + 5*q)/6 (if 3rd order Scheffe)
-  //     order: order of Scheffe model
+  // For more information about this function, see R's wrapper function mnl_get_information_matrix().
 
   int J = X.n_cols;
   int S = X.n_elem/(X.n_cols*X.n_rows);
@@ -365,8 +350,8 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order, boo
 
 
 arma::mat getInformationMatrixMNL(arma::cube& X, arma::cube& Xs_cube, arma::vec& beta, int order, bool transform_beta = true, int n_pv = 0){
-  // Redefinition of getInformationMatrixMNL() ve that it has an extra parameter, Xs_cube. This extra parameter is an Armadillo cube that
-  // has the Xs marices precomputed for each choice set s. It is useful to save time in the Bayesian case so that the matrix Xs is not
+  // Redefinition of getInformationMatrixMNL() so that it has an extra parameter, Xs_cube. This extra parameter is an Armadillo cube that
+  // has the Xs matrices precomputed for each choice set s. It is useful to save time in the Bayesian case so that the matrix Xs is not
   // recomputed with each draw from the prior distribution.
 
   int J = X.n_cols;
@@ -401,8 +386,8 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::cube& Xs_cube, arma::vec&
 
 // [[Rcpp::export]]
 double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0){
-  //  opt_crit: optimality criterion: 0 (D-optimality) or 1 (I-optimality)
-
+  // Computes optimality value.
+  // For more information see R's wrapper function mnl_get_opt_crit_value().
 
   int m;
   if(transform_beta) m = beta_mat.n_cols;
@@ -659,9 +644,9 @@ double efficiencyCoxScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
 double efficiencyPVScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
                               int i, int j, int s,
                               int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0){
-  // Computes efficiency criterion of a design cube X but where the i-th PV in the j-th
+  // Computes efficiency criterion of a design cube X but where the i-th process variable in the j-th
   // alternative in the s-th choice set is changed to theta.
-  // Note: i should be shifted by the q proportion variables. That is, this function changes the i-th element
+  // Note: it should be shifted by the q proportion variables. That is, this function changes the i-th element
   //       without checking whether it is a process variable or an ingredient proportion. This is done in the main algorithm.
   // Here theta is NOT an ingredient proportion.
   // Indices i, j, and k are 0-indexed.
@@ -715,7 +700,6 @@ void findBestPVMNLBrent( // void but modifies X
       theta_star = upper;
     }
   }
-
 
   // If Brent's method didn't do any improvement, leave the original design as it is.
   // If it did, replace the design with theta star
@@ -792,21 +776,9 @@ Rcpp::List mixtureCoordinateExchangeMNL(
     arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W,
     int opt_method, double lower, double upper, double tol, int n_cox_points, bool transform_beta = true, int n_pv = 0){
   // See mnl_mixture_coord_exch() in R for details.
-  // X_orig: If an initial design is to be supplied, thenit must be a 3 dimensional array with dimensions (q, J, S), with q, J, and S are defined above.
-  // beta_mat: Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design,
-  //           it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws,
-  //           i.e., there is a prior draw per row.
-  // order: order of Scheffe's model. Must be 1, 2, or 3.
-  // max_it: integer for maximum number of iterations that the coordinate exchange algorithm will do
-  // verbose: level of verbosity.
-  // opt_crit: optimality criterion: D-optimality (0) or I-optimality (1).
-  // W: moments matrix
-  // opt_method: Optimization method in each step of the coordinate exchange algorithm.
-  //             0 for Brent, 1 for Cox's direction discretization.
   // lower: lower bound in Brent's optimization method
   // upper: upper bound in Brent's optimization method
-  // tol: A positive error tolerance in Brent's method.
-  // n_cox_points: number of points to use in the discretization of Cox direction. Ignored if opt_method is Brent.
+  // W: moment matrix
 
 
   // Does not do input checks because the R wrapper function does them.
