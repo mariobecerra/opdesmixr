@@ -10,7 +10,8 @@ mnl_get_fds_simulations(
   order,
   n_points_per_alternative = 500,
   transform_beta = F,
-  verbose = 0
+  verbose = 0,
+  n_pv = 0
 )
 }
 \arguments{
@@ -25,10 +26,85 @@ mnl_get_fds_simulations(
 \item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
 
 \item{verbose}{Level of verbosity}
+
+\item{n_pv}{Number of process variables. Defaults to 0. Does not work if there are process variables.}
 }
 \value{
 Tibble of size \code{J*n_points_per_alternative} where J is the number of alternatives per choice set, i.e., the second element in \code{dim(design_array)}.
 }
 \description{
 This function creates a dataframe/tibble with Monte Carlo simulations for Fraction of Design Space plots.
+}
+\examples{
+# Example 1:
+beta = mnl_create_random_beta(q = 3, order = 3)$beta
+mnl_design = mnl_mixture_coord_exch(q = 3, J = 2, S = 10, n_random_starts = 1, beta = get_halton_draws(beta, sd = 1, ndraws = 128))
+fds_sims = mnl_get_fds_simulations(mnl_design$X, mnl_design$beta, order = 3, n_points_per_alternative = 500, transform_beta = T, verbose = 1)
+# Plot:
+fds_sims \%>\%
+  ggplot() +
+  geom_line(aes(fraction, pred_var), size = 0.8)
+
+
+
+
+# Example 2:
+
+library(opdesmixr)
+library(dplyr)
+
+beta = mnl_create_random_beta(q = 3, order = 3)$beta
+beta_draws = get_halton_draws(beta, sd = 1, ndraws = 128)
+
+mnl_I_opt_design = mnl_mixture_coord_exch(
+  q = 3, J = 2, S = 10,
+  n_random_starts = 1,
+  beta = beta_draws,
+  max_it = 5,
+  opt_crit = "I")
+
+mnl_D_opt_design = mnl_mixture_coord_exch(
+  q = 3, J = 2, S = 10,
+  n_random_starts = 1,
+  beta = beta_draws,
+  max_it = 5,
+  opt_crit = "D")
+
+
+fds_sims =  mnl_get_fds_simulations(
+  design_array = mnl_I_opt_design$X,
+  beta = mnl_I_opt_design$beta,
+  order = 3,
+  n_points_per_alternative = 500,
+  transform_beta = T,
+  verbose = 1) \%>\%
+  mutate(Design = "I-optimal") \%>\%
+  bind_rows(
+    mnl_get_fds_simulations(
+      design_array = mnl_D_opt_design$X,
+      beta = mnl_D_opt_design$beta,
+      order = 3,
+      n_points_per_alternative = 500,
+      transform_beta = T,
+      verbose = 1) \%>\%
+      mutate(Design = "D-optimal")
+  )
+
+
+fds_sims \%>\%
+  ggplot() +
+  geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
+  geom_hline(yintercept = fds_sims \%>\%
+               group_by(Design) \%>\%
+               summarize(
+                 med = median(pred_var),
+                 mean = mean(pred_var)) \%>\%
+               pull(med),
+             linetype = "dashed", size = 0.2) +
+  geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
+  xlab("Fraction of design space") +
+  ylab("Prediction variance") +
+  ggtitle("I-optimal vs D-optimal design") +
+  theme_bw()
+
 }

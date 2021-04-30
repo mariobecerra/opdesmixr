@@ -4,7 +4,14 @@
 \alias{mnl_get_opt_crit_value}
 \title{Computes optimality criterion value using the MNL model}
 \usage{
-mnl_get_opt_crit_value(X, beta, order, opt_crit = "D", transform_beta = T)
+mnl_get_opt_crit_value(
+  X,
+  beta,
+  order,
+  opt_crit = "D",
+  transform_beta = T,
+  n_pv = 0
+)
 }
 \arguments{
 \item{X}{3 dimensional array of size \code{(q, J, S)} where: \itemize{
@@ -15,11 +22,13 @@ mnl_get_opt_crit_value(X, beta, order, opt_crit = "D", transform_beta = T)
 
 \item{beta}{numeric vector containing the parameters or numeric matrix containing draws of the prior distribution of the parameters.}
 
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
 
 \item{opt_crit}{optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.}
 
 \item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
+
+\item{n_pv}{Number of process variables.}
 }
 \value{
 Returns the value of the optimality criterion for this particular design and this \code{beta} vector

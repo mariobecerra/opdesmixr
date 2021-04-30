@@ -1,0 +1,272 @@
+---
+title: "Normal mixture models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{vignette_01_normal_mixture_models}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  cache = T, 
+  fig.width = 8
+)
+```
+
+
+```{r setup}
+library(opdesmixr)
+```
+
+The package can create D-optimal and I-optimal designs for normal Scheffé models of order one, second-order, and special-cubic. These models are defined as follows:
+
+First order:
+
+$$
+    y = \sum_{i = 1}^q \beta_i x_i + \varepsilon
+$$
+
+
+Second order:
+
+$$
+    y = 
+      \sum_{i = 1}^q \beta_i x_i + 
+      \sum_{i = 1}^{q-1} \sum_{j = i+1}^q \beta_{ij} x_i x_j + 
+      \varepsilon
+$$
+
+Special cubic model:
+
+$$
+    y = 
+      \sum_{i = 1}^q \beta_i x_i + 
+      \sum_{i = 1}^{q-1} \sum_{j = i+1}^q \beta_{ij} x_i x_j + 
+      \sum_{i = 1}^{q-2} \sum_{j = i+1}^{q-1} \sum_{k = j+1}^{q} \beta_{ijk} x_i x_j x_k + 
+      \varepsilon
+$$
+
+
+This vignette is to show that the algorithm implemented here matches the theoretical results.
+
+Detect number of cores.
+
+```{r}
+n_cores = parallel::detectCores()
+```
+
+
+## Create D-optimal designs for the three types of model
+
+Create a D-optimal design for a Scheffé model with 30 runs and 3 ingredients using 100 initial random designs. On the left side we see the initial random design and on the right the optimal one.
+
+```{r}
+(t1 = Sys.time())
+gaussian_mixture_coord_exch(
+  n_runs = 30, 
+  q = 3, 
+  n_random_starts = 100,
+  order = 1, 
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0,
+  n_cores = n_cores)
+(t2 = Sys.time())
+t2 - t1
+```
+
+Order 2:
+
+```{r}
+(t1 = Sys.time())
+gaussian_mixture_coord_exch(
+  n_runs = 30, 
+  q = 3, 
+  n_random_starts = 100,
+  order = 2, 
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0,
+  n_cores = n_cores)
+(t2 = Sys.time())
+t2 - t1
+```
+
+
+Order 3:
+
+```{r}
+(t1 = Sys.time())
+gaussian_mixture_coord_exch(
+  n_runs = 30, 
+  q = 3, 
+  n_random_starts = 100,
+  order = 3, 
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0,
+  n_cores = n_cores)
+(t2 = Sys.time())
+t2 - t1
+```
+
+## Use our own initial design.
+
+We can feed it an initial design. Here we create one:
+
+```{r}
+X_1 = gaussian_create_random_initial_design(n_runs = 30, q = 3, seed = 10)
+```
+
+Find D-optimal design for each degree.
+
+```{r}
+
+res_alg_order_1_1_D = gaussian_mixture_coord_exch(
+  X = X_1,
+  order = 1,
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0)
+
+res_alg_order_1_2_D = gaussian_mixture_coord_exch(
+  X = X_1,
+  order = 2,
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0)
+
+res_alg_order_1_3_D = gaussian_mixture_coord_exch(
+  X = X_1,
+  order = 3,
+  opt_crit = "D",
+  plot_designs = T,
+  verbose = 0)
+
+```
+
+## I-optimality
+
+Also works for I-optimality, but only for Scheffé models of order 3.
+
+
+```{r}
+
+res_alg_order_1_3_I = gaussian_mixture_coord_exch(
+  X = X_1,
+  order = 3,
+  opt_crit = "I",
+  plot_designs = T,
+  verbose = 0)
+
+
+```
+
+## Brent's method
+
+Compare Brent's method with a discretization of Cox direction. Brent's method is much faster.
+
+
+Discretization of Cox direction using 100 points:
+
+```{r}
+des_disc_D = gaussian_mixture_coord_exch(
+  n_runs = 30,
+  q = 3,
+  n_random_starts = 50,
+  X = NULL,
+  order = 3,
+  opt_method = "D",
+  max_it = 10,
+  n_cox_points = 100,
+  plot_designs = T,
+  verbose = 0,
+  opt_crit = "D",
+  seed = 10,
+  n_cores = n_cores)
+
+
+
+```
+
+Brent's method:
+
+```{r}
+des_brent_D = gaussian_mixture_coord_exch(
+  n_runs = 30,
+  q = 3,
+  n_random_starts = 50,
+  X = NULL,
+  order = 3,
+  opt_method = "B",
+  max_it = 10,
+  n_cox_points = NULL,
+  plot_designs = T,
+  verbose = 0,
+  opt_crit = "D",
+  seed = 10,
+  n_cores = n_cores)
+```
+
+
+Using microbenchmark. This result shows that Brent's method is around 8 times faster for this type and size of problems. (Not run for this vignette.)
+
+```{r, eval = F}
+microbenchmark::microbenchmark(
+
+  gaussian_mixture_coord_exch(
+    n_runs = 30,
+    q = 3,
+    n_random_starts = 50,
+    X = NULL,
+    order = 3,
+    opt_method = "B",
+    max_it = 5,
+    tol = 0.0001,
+    n_cox_points = NULL,
+    plot_designs = F,
+    verbose = 0,
+    opt_crit = "D",
+    seed = 10,
+    n_cores = 8)
+
+  ,
+
+
+
+  gaussian_mixture_coord_exch(
+    n_runs = 30,
+    q = 3,
+    n_random_starts = 50,
+    X = NULL,
+    order = 3,
+    opt_method = "D",
+    max_it = 5,
+    tol = 0.0001,
+    n_cox_points = 100,
+    plot_designs = F,
+    verbose = 0,
+    opt_crit = "D",
+    seed = 10,
+    n_cores = 8),
+
+  times = 30
+
+)
+```
+
+
+
+
+
+
+
+
+
+

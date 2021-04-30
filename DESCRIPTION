@@ -1,7 +1,7 @@
 Package: opdesmixr
 Type: Package
 Title: Optimal experimental designs for mixture models
-Version: 0.1
+Version: 0.1.1
 Author: Mario H. Becerra
 Maintainer: Mario H. Becerra <becerra.mario.h@gmail.com>
 Description: An implementation of algorithms to find D- and I-optimal experimental designs for mixtures using Scheffé models. 
