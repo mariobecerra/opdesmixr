@@ -992,6 +992,12 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
 #'
 #' @export
 mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
+
+  stopifnot(order %in% 1:4)
+
+  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
+  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+
   IM = getInformationMatrixMNL(
     X = X,
     beta = beta,
