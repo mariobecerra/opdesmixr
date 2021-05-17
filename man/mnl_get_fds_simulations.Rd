@@ -17,29 +17,36 @@ mnl_get_fds_simulations(
 \arguments{
 \item{design_array}{3-dimensional design array.}
 
-\item{beta}{Matrix with Halton draws of the prior distribution}
+\item{beta}{Either a vector with the value of the parameter, or a matrix with Halton draws of the prior distribution.}
 
-\item{order}{integer corresponding to Scheffé model of order 1, 2, or 3.}
+\item{order}{integer corresponding to Scheffé model of order 1, 2, 3, or 4.}
 
-\item{n_points_per_alternative}{Number of points to approximate the prediction variance.}
+\item{n_points_per_alternative}{Number of points to use to approximate the prediction variance in each alternative \code{j}, with \code{j} taking values from 1 to \code{J}; and \code{J} is the number of alternatives in each choice set.}
 
 \item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
 
-\item{verbose}{Level of verbosity}
+\item{verbose}{Level of verbosity. 0 for no printing, anything bigger than 0 for printing the progress of the progress.}
 
-\item{n_pv}{Number of process variables. Defaults to 0. Does not work if there are process variables.}
+\item{n_pv}{Number of process variables. Defaults to 0.}
 }
 \value{
-Tibble of size \code{J*n_points_per_alternative} where J is the number of alternatives per choice set, i.e., the second element in \code{dim(design_array)}.
+Tibble of size \code{J*n_points_per_alternative} where \code{J} is the number of alternatives per choice set, i.e., the second element in \code{dim(design_array)}.
 }
 \description{
 This function creates a dataframe/tibble with Monte Carlo simulations for Fraction of Design Space plots.
 }
 \examples{
+
 # Example 1:
-beta = mnl_create_random_beta(q = 3, order = 3)$beta
-mnl_design = mnl_mixture_coord_exch(q = 3, J = 2, S = 10, n_random_starts = 1, beta = get_halton_draws(beta, sd = 1, ndraws = 128))
-fds_sims = mnl_get_fds_simulations(mnl_design$X, mnl_design$beta, order = 3, n_points_per_alternative = 500, transform_beta = T, verbose = 1)
+
+beta = mnl_create_random_beta(q = 3, order = 3, seed = 2)$beta # Create random beta
+
+# Find D-optimal design
+mnl_design = mnl_mixture_coord_exch(q = 3, J = 2, S = 10, n_random_starts = 1, beta = get_halton_draws(beta, sd = 1, ndraws = 128), max_it = 5)
+
+# Get FDS simulations
+fds_sims = mnl_get_fds_simulations(mnl_design$X, mnl_design$beta, order = 3, n_points_per_alternative = 100, transform_beta = T, verbose = 1)
+
 # Plot:
 fds_sims \%>\%
   ggplot() +
@@ -48,13 +55,17 @@ fds_sims \%>\%
 
 
 
+
+
+
+
 # Example 2:
 
-library(opdesmixr)
 library(dplyr)
+library(ggplot2)
 
-beta = mnl_create_random_beta(q = 3, order = 3)$beta
-beta_draws = get_halton_draws(beta, sd = 1, ndraws = 128)
+beta = mnl_create_random_beta(q = 3, order = 3, seed = 4)$beta
+beta_draws = get_halton_draws(beta, sd = 1, ndraws = 64)
 
 mnl_I_opt_design = mnl_mixture_coord_exch(
   q = 3, J = 2, S = 10,
@@ -75,7 +86,7 @@ fds_sims =  mnl_get_fds_simulations(
   design_array = mnl_I_opt_design$X,
   beta = mnl_I_opt_design$beta,
   order = 3,
-  n_points_per_alternative = 500,
+  n_points_per_alternative = 200,
   transform_beta = T,
   verbose = 1) \%>\%
   mutate(Design = "I-optimal") \%>\%
@@ -84,13 +95,14 @@ fds_sims =  mnl_get_fds_simulations(
       design_array = mnl_D_opt_design$X,
       beta = mnl_D_opt_design$beta,
       order = 3,
-      n_points_per_alternative = 500,
+      n_points_per_alternative = 200,
       transform_beta = T,
       verbose = 1) \%>\%
       mutate(Design = "D-optimal")
   )
 
 
+# Plot designs
 fds_sims \%>\%
   ggplot() +
   geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
@@ -99,7 +111,66 @@ fds_sims \%>\%
                summarize(
                  med = median(pred_var),
                  mean = mean(pred_var)) \%>\%
-               pull(med),
+               dplyr::pull(med),
+             linetype = "dashed", size = 0.2) +
+  geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
+  xlab("Fraction of design space") +
+  ylab("Prediction variance") +
+  ggtitle("I-optimal vs D-optimal design") +
+  theme_bw()
+
+
+
+
+
+
+
+
+Example 3 (with process variables)
+
+
+library(dplyr)
+library(ggplot2)
+
+# A D-optimal utility neutral design with 3 mixture ingredients and 3 process variables
+d_opt_des = mnl_mixture_coord_exch(q = 3, J = 2, S = 28, n_pv = 3, order = 4, beta = rep(0, 20), transform_beta = F, n_random_starts = 4, max_it = 5, n_cores = 1, opt_crit = "D")
+
+# An I-optimal utility neutral design with 3 mixture ingredients and 3 process variables
+i_opt_des = mnl_mixture_coord_exch(q = 3, J = 2, S = 28, n_pv = 3, order = 4, beta = rep(0, 20), transform_beta = F, n_random_starts = 4, max_it = 5, n_cores = 1, opt_crit = "I")
+
+
+fds_sims =  mnl_get_fds_simulations(
+  design_array = i_opt_des$X,
+  beta = i_opt_des$beta,
+  order = 4,
+  n_pv = 3,
+  n_points_per_alternative = 500,
+  transform_beta = F,
+  verbose = 1) \%>\%
+  mutate(Design = "I-optimal") \%>\%
+  bind_rows(
+    mnl_get_fds_simulations(
+      design_array = d_opt_des$X,
+      beta = d_opt_des$beta,
+      order = 4,
+      n_pv = 3,
+      n_points_per_alternative = 500,
+      transform_beta = F,
+      verbose = 1) \%>\%
+      mutate(Design = "D-optimal")
+  )
+
+
+# Plot designs
+fds_sims \%>\%
+  ggplot() +
+  geom_vline(xintercept = 0.5, linetype = "dashed", size = 0.2) +
+  geom_hline(yintercept = fds_sims \%>\%
+               group_by(Design) \%>\%
+               summarize(
+                 med = median(pred_var),
+                 mean = mean(pred_var)) \%>\%
+               dplyr::pull(med),
              linetype = "dashed", size = 0.2) +
   geom_line(aes(fraction, pred_var, linetype = Design), size = 0.8) +
   xlab("Fraction of design space") +
