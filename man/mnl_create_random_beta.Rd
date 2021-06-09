@@ -11,7 +11,7 @@ mnl_create_random_beta(q, n_pv = 0, order = 3, seed = NULL)
 
 \item{n_pv}{number of process variables}
 
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).}
 
 \item{seed}{integer used for reproducibility}
 }

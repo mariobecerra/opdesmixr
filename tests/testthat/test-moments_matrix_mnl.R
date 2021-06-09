@@ -32,7 +32,7 @@ test_that("mnl_moments_matrix_with_pv_pvboundsminus1to1",{
         "mnl_moments_matrix_q", q, "_npv", n_pv, "_order4", "_pvboundsminus1to1"
       )
 
-      mm = mnl_create_moment_matrix(q = q, n_pv = n_pv, order = 4, pv_bounds = c(-1, 1))
+      mm = mnl_create_moment_matrix(q = q, n_pv = n_pv, order = 2, pv_bounds = c(-1, 1))
 
       expect_equal_to_reference(
         object = mm,
@@ -52,7 +52,7 @@ test_that("mnl_moments_matrix_with_pv_pvbounds0to1",{
         "mnl_moments_matrix_q", q, "_npv", n_pv, "_order4", "_pvbounds0to1"
       )
 
-      mm = mnl_create_moment_matrix(q = q, n_pv = n_pv, order = 4, pv_bounds = c(0, 1))
+      mm = mnl_create_moment_matrix(q = q, n_pv = n_pv, order = 2, pv_bounds = c(0, 1))
 
       expect_equal_to_reference(
         object = mm,

@@ -19,7 +19,7 @@ mnl_get_fds_simulations(
 
 \item{beta}{Either a vector with the value of the parameter, or a matrix with Halton draws of the prior distribution.}
 
-\item{order}{integer corresponding to Scheffé model of order 1, 2, 3, or 4.}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used). This version of the package does not support process variables yet.}
 
 \item{n_points_per_alternative}{Number of points to use to approximate the prediction variance in each alternative \code{j}, with \code{j} taking values from 1 to \code{J}; and \code{J} is the number of alternatives in each choice set.}
 

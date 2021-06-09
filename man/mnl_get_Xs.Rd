@@ -11,7 +11,7 @@ mnl_get_Xs(X, s, order, n_pv = 0)
 
 \item{s}{integer corresponding to a choice set in 1 to S.}
 
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).}
 
 \item{n_pv}{number of process variables. Defaults to 0.}
 }

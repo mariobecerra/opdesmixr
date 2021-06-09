@@ -11,7 +11,7 @@ mnl_get_information_matrix(X, beta, order, transform_beta, n_pv = 0)
 
 \item{beta}{Parameter vector}
 
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).}
 
 \item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
 

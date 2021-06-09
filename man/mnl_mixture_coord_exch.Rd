@@ -41,7 +41,7 @@ mnl_mixture_coord_exch(
 
 \item{transform_beta}{boolean parameter. Should the \code{beta} vector/matrix be transformed by subtracting the q-th element?}
 
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).}
 
 \item{opt_method}{Optimization method in each step of the coordinate exchange algorithm.
 It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}

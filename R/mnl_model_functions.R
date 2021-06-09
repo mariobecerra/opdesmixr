@@ -1,3 +1,51 @@
+mnl_check_order = function(order, n_pv){
+  # Checks whether the order is 1, 2, or 3. And that order is 2 in case n_pv > 0.
+  if(!(order %in% 1:3)){
+    stop("Inadmissible value for 'order' parameter. Must be 1, 2, or 3")
+  }
+
+  if(n_pv > 0 & order != 2) stop("If n_pv > 0, then 'order' must be 2.")
+}
+
+
+
+
+
+#' Get number of parameters.
+#'
+#' Returns an integer with the number of parameters depending on \code{q}, \code{n_pv}, and \code{order}.
+#'
+#' @param q integer specifying the number of mixture ingredients
+#' @param n_pv Number of process variables
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
+#'
+#' @export
+mnl_get_number_of_parameters = function(q, n_pv, order){
+
+  # Check order
+  mnl_check_order(order = order, n_pv = n_pv)
+
+  if(order == 1){
+    m = q
+  } else{
+    if(order == 2){
+      m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
+    } else{
+      if(order == 3){
+        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
+      }  else{
+        stop("Wrong order")
+        # This condition won't be met because of the checking in the previous lines.
+        # I leave it just for better legibility
+      }
+    }
+  }
+
+  return(m)
+}
+
+
+
 
 #' Creation of a random initial design using the MNL model
 #'
@@ -78,7 +126,7 @@ mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL
 #'     \item S is the number of choice sets.
 #' }
 #' @param beta numeric vector containing the parameters or numeric matrix containing draws of the prior distribution of the parameters.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param opt_crit optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
 #' @param n_pv Number of process variables.
@@ -93,42 +141,8 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
 
   q = dim(X)[1] - n_pv
 
-  #############################################
-  ## Check that the order is okay
-  #############################################
-  if(order != 1 & order != 2 & order != 3 & order != 4){
-    stop("Inadmissible value for order. Must be 1, 2, 3 or 4")
-  }
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
-
-  #############################################
-  ## Get m
-  #############################################
-
-  # m = (q*q*q + 5*q)/6
-  if(order == 1){
-    m = q
-  } else{
-    if(order == 2){
-      m = q*(q-1)/2 + q # = q*(q+1)/2
-    } else{
-      if(order == 3){
-        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
-      } else{
-        if(order == 4){
-          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
-        } else{
-          stop("Wrong order")
-          # This condition won't be met because of the checking in the previous lines.
-          # I leave it just for better legibility
-        }
-      }
-
-    }
-  }
+  ## Get m (No need to check order because this function checks it).
+  m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
 
   #############################################
   ## Check beta dimensions and transform if necessary
@@ -176,7 +190,7 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
 #'
 #' @param q integer specifying the number of mixture ingredients
 #' @param n_pv number of process variables
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param seed integer used for reproducibility
 #'
 #' @return Returns a list in which the first element of the list is
@@ -189,36 +203,13 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
 #' @export
 mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 
-  stopifnot(order %in% 1:4)
   if(!all.equal(q, floor(q))) stop("q does not seem to an integer.")
   stopifnot(q > 0)
   if(!all.equal(n_pv, floor(n_pv))) stop("n_pv does not seem to an integer.")
   stopifnot(n_pv >= 0)
 
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
-
-  if(order == 1){
-    m = q
-  } else{
-    if(order == 2){
-      m = q*(q-1)/2 + q # = q*(q+1)/2
-    } else{
-      if(order == 3){
-        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
-      } else{
-        if(order == 4){
-          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
-        } else{
-          stop("Wrong order")
-          # This condition won't be met because of the checking in the previous lines.
-          # I leave it just for better legibility
-        }
-      }
-
-    }
-  }
+  ## Get m (No need to check order because this function checks it).
+  m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
 
   if(!is.null(seed)) set.seed(seed)
 
@@ -241,7 +232,7 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #' @param X If an initial design is to be supplied, then it must be a 3-dimensional array of size \code{(q, J, S)}, with q, J, and S defined above.
 #' @param beta Prior parameters. For a locally optimal design, it should be a numeric vector of length m = (q^3 + 5*q)/6. For a pseudo-Bayesian design, it must be a matrix with prior simulations of size (nxm) where m is previously defined and m is the number of prior draws, i.e., there is a prior draw per row.
 #' @param transform_beta boolean parameter. Should the \code{beta} vector/matrix be transformed by subtracting the q-th element?
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param opt_method Optimization method in each step of the coordinate exchange algorithm.
 #'      It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)
 #' @param max_it integer for maximum number of iterations that the coordinate exchange algorithm will do
@@ -379,36 +370,13 @@ mnl_mixture_coord_exch = function(
 
 
 
-  stopifnot(order %in% 1:4)
   if(!all.equal(q, floor(q))) stop("q does not seem to an integer.")
   stopifnot(q > 0)
   if(!all.equal(n_pv, floor(n_pv))) stop("n_pv does not seem to an integer.")
   stopifnot(n_pv >= 0)
 
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
-
-  if(order == 1){
-    m = q
-  } else{
-    if(order == 2){
-      m = q*(q-1)/2 + q # = q*(q+1)/2
-    } else{
-      if(order == 3){
-        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
-      } else{
-        if(order == 4){
-          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
-        } else{
-          stop("Wrong order")
-          # This condition won't be met because of the checking in the previous lines.
-          # I leave it just for better legibility
-        }
-      }
-
-    }
-  }
+  ## Get m (No need to check order because this function checks it).
+  m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
 
 
   if(is.vector(beta)) {
@@ -726,7 +694,7 @@ mnl_plot_result = function(res_alg, ...){
 #'
 #' @param q Number of mixture ingredients.
 #' @param n_pv Number of process variables.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param pv_bounds Vector or matrix that specifies the bounds of the process variables.
 #'
 #' @details
@@ -741,11 +709,8 @@ mnl_plot_result = function(res_alg, ...){
 #' @export
 mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
 
-  stopifnot(order %in% 1:4)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
+  ## Get m (No need to check order because this function checks it).
+  m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
 
   if(n_pv > 0){
     # Input checks for process variables
@@ -769,21 +734,6 @@ mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
     }
   }
 
-
-
-  if(order == 1){
-    m = q
-  } else{
-    if(order == 2){
-      m = q*(q-1)/2 + q
-    } else{
-      if(order == 3){
-        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
-      } else{
-        m = q + q*(q-1)/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
-      }
-    }
-  }
 
   f_matrix = matrix(rep(0L, (m-1)*(q + n_pv)), ncol = q + n_pv)
 
@@ -821,7 +771,7 @@ mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
   }
 
   # Fill indicators of fourth part of the model expansion when n_pv > 0
-  if(order == 4){
+  if(n_pv > 0){
 
     for(i in 1:n_pv){
       for(k in 1:q){
@@ -984,7 +934,7 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
 #'
 #' @param X 3-dimensional design array
 #' @param beta Parameter vector
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
 #' @param n_pv Number of process variables
 #'
@@ -993,10 +943,7 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
 #' @export
 mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
 
-  stopifnot(order %in% 1:4)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+  mnl_check_order(order = order, n_pv = n_pv)
 
   IM = getInformationMatrixMNL(
     X = X,
@@ -1015,17 +962,14 @@ mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
 #'
 #' @param X 3-dimensional design cube/array of size \code{(q, J, S)}.
 #' @param s integer corresponding to a choice set in 1 to S.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param n_pv number of process variables. Defaults to 0.
 #'
 #' @return Matrix of dimension (J, m-1) that corresponds to the design matrix of choice set s.
 #'
 #' @export
 mnl_get_Xs = function(X, s, order, n_pv = 0){
-  stopifnot(order %in% 1:4)
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+  mnl_check_order(order = order, n_pv = n_pv)
 
   return(getXsMNL(X = X, s = s, order = order, n_pv = n_pv))
 }
@@ -1037,7 +981,7 @@ mnl_get_Xs = function(X, s, order, n_pv = 0){
 #' @param X 3-dimensional design cube/array of size \code{(q, J, S)}.
 #' @param beta Parameter vector
 #' @param s integer corresponding to a choice set in 1 to S.
-#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
 #' @param n_pv number of process variables.
 #'
@@ -1045,10 +989,8 @@ mnl_get_Xs = function(X, s, order, n_pv = 0){
 #'
 #' @export
 mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T, n_pv = 0){
-  stopifnot(order %in% 1:4)
 
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
+  mnl_check_order(order = order, n_pv = n_pv)
 
   Xs = mnl_get_Xs(X, s, order)
   return(as.vector(getPsMNL(X = X, beta = beta, s = s, Xs = Xs, transform_beta = transform_beta, n_pv = n_pv)))
@@ -1069,7 +1011,7 @@ mnl_get_Ps = function(X, beta, s, order = 3, transform_beta = T, n_pv = 0){
 #'
 #' @param design_array 3-dimensional design array.
 #' @param beta Either a vector with the value of the parameter, or a matrix with Halton draws of the prior distribution.
-#' @param order integer corresponding to Scheffé model of order 1, 2, 3, or 4.
+#' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used). This version of the package does not support process variables yet.
 #' @param n_points_per_alternative Number of points to use to approximate the prediction variance in each alternative \code{j}, with \code{j} taking values from 1 to \code{J}; and \code{J} is the number of alternatives in each choice set.
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
 #' @param verbose Level of verbosity. 0 for no printing, anything bigger than 0 for printing the progress of the progress.
@@ -1230,42 +1172,8 @@ mnl_get_fds_simulations = function(design_array, beta, order, n_points_per_alter
   J = dim(design_array)[2]
   S = dim(design_array)[3]
 
-  #############################################
-  ## Check that the order is okay
-  #############################################
-  if(order != 1 & order != 2 & order != 3 & order != 4){
-    stop("Inadmissible value for order. Must be 1, 2, 3 or 4")
-  }
-
-  if(order == 4 & n_pv == 0) stop("If order == 4 then n_pv must be greater than 0")
-  if(order %in% 1:3 & n_pv > 0) stop("If order is 1, 2, or 3 then n_pv must be 0")
-
-
-  #############################################
-  ## Get m
-  #############################################
-
-  # m = (q*q*q + 5*q)/6
-  if(order == 1){
-    m = q
-  } else{
-    if(order == 2){
-      m = q*(q-1)/2 + q # = q*(q+1)/2
-    } else{
-      if(order == 3){
-        m = (q^3+ 5*q)/6 # = q + q*(q-1)/2 + q*(q-1)*(q-2)/6
-      } else{
-        if(order == 4){
-          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv
-        } else{
-          stop("Wrong order")
-          # This condition won't be met because of the checking in the previous lines.
-          # I leave it just for better legibility
-        }
-      }
-
-    }
-  }
+  ## Get m (No need to check order because this function checks it).
+  m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
 
   #############################################
   ## Check beta dimensions and transform if necessary

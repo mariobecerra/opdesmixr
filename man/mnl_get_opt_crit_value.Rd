@@ -22,7 +22,7 @@ mnl_get_opt_crit_value(
 
 \item{beta}{numeric vector containing the parameters or numeric matrix containing draws of the prior distribution of the parameters.}
 
-\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 4 if process variables are used).}
+\item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).}
 
 \item{opt_crit}{optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.}
 
