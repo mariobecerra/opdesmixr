@@ -428,11 +428,13 @@ mnl_mixture_coord_exch = function(
 
     if(verbose > 0) cat("\nDesign", i, "\n")
 
+    order_cpp = ifelse(n_pv > 0, 4, order)
+
     out = try(
       mixtureCoordinateExchangeMNL(
         X_orig = X,
         beta = beta_mat,
-        order = order,
+        order = order_cpp,
         max_it = max_it,
         verbose = verbose,
         opt_crit = opt_crit,
