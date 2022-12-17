@@ -144,6 +144,8 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
   ## Get m (No need to check order because this function checks it).
   m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
 
+  order_cpp = ifelse(n_pv > 0, 4, order)
+
   #############################################
   ## Check beta dimensions and transform if necessary
   #############################################
@@ -178,7 +180,7 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
   ## Get optimality criterion value
   #############################################
 
-  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order, transform_beta = transform_beta, n_pv = n_pv))
+  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order_cpp, transform_beta = transform_beta, n_pv = n_pv))
 
 }
 
@@ -947,10 +949,12 @@ mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
 
   mnl_check_order(order = order, n_pv = n_pv)
 
+  order_cpp = ifelse(n_pv > 0, 4, order)
+
   IM = getInformationMatrixMNL(
     X = X,
     beta = beta,
-    order = order,
+    order = order_cpp,
     transform_beta = transform_beta,
     n_pv = n_pv)
 
@@ -973,7 +977,9 @@ mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
 mnl_get_Xs = function(X, s, order, n_pv = 0){
   mnl_check_order(order = order, n_pv = n_pv)
 
-  return(getXsMNL(X = X, s = s, order = order, n_pv = n_pv))
+  order_cpp = ifelse(n_pv > 0, 4, order)
+
+  return(getXsMNL(X = X, s = s, order = order_cpp, n_pv = n_pv))
 }
 
 
