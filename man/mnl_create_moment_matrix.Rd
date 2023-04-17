@@ -4,7 +4,14 @@
 \alias{mnl_create_moment_matrix}
 \title{Computes moment matrix using the MNL model.}
 \usage{
-mnl_create_moment_matrix(q, n_pv = 0, order = 3, pv_bounds = NULL)
+mnl_create_moment_matrix(
+  q,
+  n_pv = 0,
+  order = 3,
+  pv_bounds = NULL,
+  J = NULL,
+  no_choice = F
+)
 }
 \arguments{
 \item{q}{Number of mixture ingredients.}
@@ -14,6 +21,10 @@ mnl_create_moment_matrix(q, n_pv = 0, order = 3, pv_bounds = NULL)
 \item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).}
 
 \item{pv_bounds}{Vector or matrix that specifies the bounds of the process variables.}
+
+\item{J}{Number of alternatives in each choice set. Only used if no_choice = T}
+
+\item{no_choice}{Add no_choice (i.e., opt-out) alternative?}
 }
 \value{
 Matrix of size \code{(m, m)}.

@@ -4,18 +4,27 @@
 \alias{mnl_get_information_matrix}
 \title{Get the information matrix using the MNL model.}
 \usage{
-mnl_get_information_matrix(X, beta, order, transform_beta, n_pv = 0)
+mnl_get_information_matrix(
+  X,
+  beta,
+  order,
+  transform_beta,
+  n_pv = 0,
+  no_choice = F
+)
 }
 \arguments{
 \item{X}{3-dimensional design array}
 
-\item{beta}{Parameter vector}
+\item{beta}{Parameter vector or matrix. If matrix, each row is a draw from the beta parameter vector.}
 
 \item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).}
 
 \item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
 
 \item{n_pv}{Number of process variables}
+
+\item{no_choice}{Add no_choice (i.e., opt-out) alternative?}
 }
 \value{
 Information matrix

@@ -10,7 +10,8 @@ mnl_get_opt_crit_value(
   order,
   opt_crit = "D",
   transform_beta = T,
-  n_pv = 0
+  n_pv = 0,
+  no_choice = F
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ mnl_get_opt_crit_value(
 \item{transform_beta}{boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?}
 
 \item{n_pv}{Number of process variables.}
+
+\item{no_choice}{Add no_choice (i.e., opt-out) alternative?}
 }
 \value{
 Returns the value of the optimality criterion for this particular design and this \code{beta} vector

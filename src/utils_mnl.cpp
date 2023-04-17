@@ -15,7 +15,7 @@ using namespace std;
 
 
 // [[Rcpp::export]]
-arma::mat getXsMNL(arma::cube& X, int s, int order, int n_pv = 0){
+arma::mat getXsMNL(arma::cube& X, int s, int order, int n_pv = 0, bool no_choice = false){
   // Function that returns the design matrix of choice set s.
   // For more information about this function, see R's wrapper function mnl_get_Xs()
   int q = X.n_rows - n_pv;
@@ -42,8 +42,17 @@ arma::mat getXsMNL(arma::cube& X, int s, int order, int n_pv = 0){
     }
   }
 
+  int nrow_Xs, ncol_Xs;
+  if(!no_choice){
+    nrow_Xs = J;
+    ncol_Xs = m-1;
+  } else{
+    nrow_Xs = J+1;
+    ncol_Xs = m;
+  }
+
   // Initialize array with zeros
-  arma::mat Xs(J, m-1, fill::zeros);
+  arma::mat Xs(nrow_Xs, ncol_Xs, fill::zeros);
 
   // Column counter. Equation has three terms, so the final matrix is populated in three parts.
   int col_counter = 0;
@@ -118,6 +127,12 @@ arma::mat getXsMNL(arma::cube& X, int s, int order, int n_pv = 0){
       col_counter++;
     }
   }
+
+
+  // Fill the 1 for the no choice option
+  if(no_choice) Xs(J, m-1) = 1;
+
+
 
   return Xs;
 }
@@ -317,20 +332,56 @@ arma::vec getPsMNL(arma::cube& X, arma::vec& beta, int s, arma::mat& Xs, bool tr
 
 
 // [[Rcpp::export]]
-arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order, bool transform_beta = true, int n_pv = 0){
+arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
   // Function that returns the information matrix for design cube X and parameter vector beta.
   // It is the sum of the information matrices of the S choice sets.
   // For more information about this function, see R's wrapper function mnl_get_information_matrix().
 
   int J = X.n_cols;
   int S = X.n_elem/(X.n_cols*X.n_rows);
+
+  // Get m
+  // Should probably write this in a function
+  int q = X.n_rows - n_pv;
   int m;
+  if(order == 1){
+    m = q;
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q;
+    } else{
+      if(order == 3){
+        m = (q*q*q + 5*q)/6; // = q + q*(q-1)/2 + q*(q-1)*(q-2)/6 = (q^3+ 5*q)/6
+      } else{
+        if(order == 4){
+          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv;
+        } else{
+          // Error. Not necessary to check here because there are input checks in R.
+          stop("Wrong order.");
+        }
+      }
+    }
+  }
 
-  if(transform_beta) m = beta.n_elem;
-  else m = beta.n_elem + 1;
+  // if(!transform_beta) m = m-1;
 
-  arma::mat Xs(J, m-1);
-  arma::mat I(m-1, m-1, fill::zeros);
+  // int m;
+  // if(transform_beta) m = beta.n_elem;
+  // else m = beta.n_elem + 1;
+
+
+  int nrow_Xs, ncol_Xs;
+  if(!no_choice){
+    nrow_Xs = J;
+    ncol_Xs = m-1;
+  } else{
+    nrow_Xs = J+1;
+    ncol_Xs = m;
+  }
+
+  arma::mat Xs(nrow_Xs, ncol_Xs);
+
+  arma::mat I(ncol_Xs, ncol_Xs, fill::zeros);
   // arma::mat identity(J, J, fill::eye);
   arma::mat ps_ps_t(J, J);
   arma::mat middle(J, J);
@@ -338,8 +389,8 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order, boo
 
   // Compute information matrix for each choice set s, and sum.
   for(int s = 1; s <= S; s++){
-    Xs = getXsMNL(X, s, order, n_pv);
-    ps = getPsMNL(X, beta, s, Xs, transform_beta, n_pv);;
+    Xs = getXsMNL(X, s, order, n_pv, no_choice);
+    ps = getPsMNL(X, beta, s, Xs, transform_beta, n_pv);
     ps_ps_t = ps*ps.t();
     middle = ps_ps_t;
     middle.diag() = ps_ps_t.diag() - ps;
@@ -349,20 +400,56 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::vec& beta, int order, boo
 }
 
 
-arma::mat getInformationMatrixMNL(arma::cube& X, arma::cube& Xs_cube, arma::vec& beta, int order, bool transform_beta = true, int n_pv = 0){
+arma::mat getInformationMatrixMNL(arma::cube& X, arma::cube& Xs_cube, arma::vec& beta, int order, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
   // Redefinition of getInformationMatrixMNL() so that it has an extra parameter, Xs_cube. This extra parameter is an Armadillo cube that
   // has the Xs matrices precomputed for each choice set s. It is useful to save time in the Bayesian case so that the matrix Xs is not
   // recomputed with each draw from the prior distribution.
 
   int J = X.n_cols;
   int S = X.n_elem/(X.n_cols*X.n_rows);
+
+  // Get m
+  // Should probably write this in a function
+  int q = X.n_rows - n_pv;
   int m;
+  if(order == 1){
+    m = q;
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q;
+    } else{
+      if(order == 3){
+        m = (q*q*q + 5*q)/6; // = q + q*(q-1)/2 + q*(q-1)*(q-2)/6 = (q^3+ 5*q)/6
+      } else{
+        if(order == 4){
+          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv;
+        } else{
+          // Error. Not necessary to check here because there are input checks in R.
+          stop("Wrong order.");
+        }
+      }
+    }
+  }
 
-  if(transform_beta) m = beta.n_elem;
-  else m = beta.n_elem + 1;
+  // if(!transform_beta) m = m-1;
 
-  arma::mat Xs(J, m-1);
-  arma::mat I(m-1, m-1, fill::zeros);
+  // int m;
+  // if(transform_beta) m = beta.n_elem;
+  // else m = beta.n_elem + 1;
+
+
+  int nrow_Xs, ncol_Xs;
+  if(!no_choice){
+    nrow_Xs = J;
+    ncol_Xs = m-1;
+  } else{
+    nrow_Xs = J+1;
+    ncol_Xs = m;
+  }
+
+  arma::mat Xs(nrow_Xs, ncol_Xs);
+
+  arma::mat I(ncol_Xs, ncol_Xs, fill::zeros);
   // arma::mat identity(J, J, fill::eye);
   arma::mat ps_ps_t(J, J);
   arma::mat middle(J, J);
@@ -384,42 +471,79 @@ arma::mat getInformationMatrixMNL(arma::cube& X, arma::cube& Xs_cube, arma::vec&
 
 
 
+
 // [[Rcpp::export]]
-double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0){
+arma::mat getBayesianInformationMatrixMNL(arma::cube& X, arma::mat& beta_mat, int order, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
   // Computes optimality value.
   // For more information see R's wrapper function mnl_get_opt_crit_value().
 
-  int m;
-  if(transform_beta) m = beta_mat.n_cols;
-  else m = beta_mat.n_cols + 1;
-
-  int n_sims = beta_mat.n_rows;
-
-
-  // Initialize information matrix with zeros
-  arma::mat I(m-1, m-1, fill::zeros);
-
-  // Final efficiency criterion value. We want to minimize this.
-  double eff_crit_val = 0.0;
-
-  // Accumulator
-  double acc = 0.0;
-
-  vec beta = zeros(m-1);
-
-  bool opt_success; // flag for success of the decomposition
 
   int J = X.n_cols;
   int S = X.n_elem/(X.n_cols*X.n_rows);
 
+  // Get m
+  // Should probably write this in a function
+  int q = X.n_rows - n_pv;
+  int m;
+  if(order == 1){
+    m = q;
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q;
+    } else{
+      if(order == 3){
+        m = (q*q*q + 5*q)/6; // = q + q*(q-1)/2 + q*(q-1)*(q-2)/6 = (q^3+ 5*q)/6
+      } else{
+        if(order == 4){
+          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv;
+        } else{
+          // Error. Not necessary to check here because there are input checks in R.
+          stop("Wrong order.");
+        }
+      }
+    }
+  }
+
+  // if(!transform_beta) m = m-1;
+
+  // int m;
+  // if(transform_beta) m = beta.n_elem;
+  // else m = beta.n_elem + 1;
+
+
+  int nrow_Xs, ncol_Xs;
+  if(!no_choice){
+    nrow_Xs = J;
+    ncol_Xs = m-1;
+  } else{
+    nrow_Xs = J+1;
+    ncol_Xs = m;
+  }
+
+  arma::mat Xs(nrow_Xs, ncol_Xs);
+
+  arma::mat I(ncol_Xs, ncol_Xs, fill::zeros);
+
+
+  // int m;
+  // if(transform_beta) m = beta_mat.n_cols;
+  // else m = beta_mat.n_cols + 1;
+  //
+  // // Initialize information matrix with zeros
+  // arma::mat I(m-1, m-1, fill::zeros);
+  // vec beta = zeros(m-1);
+
+  vec beta = zeros(ncol_Xs);
+  int n_sims = beta_mat.n_rows;
+
   // Create the cube Xs_cube with the Xs matrix for each choice set s.
-  arma::mat Xs(J, m-1);
-  arma::cube Xs_cube(S, J, m-1);
+  // arma::mat Xs(J, ncol_Xs);
+  arma::cube Xs_cube(S, nrow_Xs, ncol_Xs);
   for(int s = 1; s <= S; s++){
-    Xs = getXsMNL(X, s, order, n_pv);
+    Xs = getXsMNL(X, s, order, n_pv, no_choice);
     // Copy the information from Xs to the cube. Still can't find a way to copy a matrix to a subcube in Armadillo.
-    for(int ix1 = 0; ix1 < J; ix1++){
-      for(int ix2 = 0; ix2 < m-1; ix2++){
+    for(int ix1 = 0; ix1 < nrow_Xs; ix1++){
+      for(int ix2 = 0; ix2 < ncol_Xs; ix2++){
         Xs_cube(s-1, ix1, ix2) = Xs(ix1, ix2);
       }
     }
@@ -428,7 +552,110 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
   // Iterate over all prior draws
   for(int i = 0; i < n_sims; i++){
     beta = conv_to<vec>::from(beta_mat.row(i));
-    I = getInformationMatrixMNL(X, Xs_cube, beta, order, transform_beta, n_pv);
+    I += getInformationMatrixMNL(X, Xs_cube, beta, order, transform_beta, n_pv, no_choice);
+
+  } // end for
+
+
+  return I/n_sims;
+}
+
+
+
+
+// [[Rcpp::export]]
+double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
+  // Computes optimality value.
+  // For more information see R's wrapper function mnl_get_opt_crit_value().
+
+
+  int J = X.n_cols;
+  int S = X.n_elem/(X.n_cols*X.n_rows);
+
+  // Get m
+  // Should probably write this in a function
+  int q = X.n_rows - n_pv;
+  int m;
+  if(order == 1){
+    m = q;
+  } else{
+    if(order == 2){
+      m = q*(q-1)/2 + q;
+    } else{
+      if(order == 3){
+        m = (q*q*q + 5*q)/6; // = q + q*(q-1)/2 + q*(q-1)*(q-2)/6 = (q^3+ 5*q)/6
+      } else{
+        if(order == 4){
+          m = q + (q-1)*q/2 + q*n_pv + n_pv*(n_pv-1)/2 + n_pv;
+        } else{
+          // Error. Not necessary to check here because there are input checks in R.
+          stop("Wrong order.");
+        }
+      }
+    }
+  }
+
+  // if(!transform_beta) m = m-1;
+
+  // int m;
+  // if(transform_beta) m = beta.n_elem;
+  // else m = beta.n_elem + 1;
+
+
+  int nrow_Xs, ncol_Xs;
+  if(!no_choice){
+    nrow_Xs = J;
+    ncol_Xs = m-1;
+  } else{
+    nrow_Xs = J+1;
+    ncol_Xs = m;
+  }
+
+  arma::mat Xs(nrow_Xs, ncol_Xs);
+
+  arma::mat I(ncol_Xs, ncol_Xs, fill::zeros);
+
+
+  // int m;
+  // if(transform_beta) m = beta_mat.n_cols;
+  // else m = beta_mat.n_cols + 1;
+  //
+  // // Initialize information matrix with zeros
+  // arma::mat I(m-1, m-1, fill::zeros);
+  // vec beta = zeros(m-1);
+
+  vec beta = zeros(ncol_Xs);
+  int n_sims = beta_mat.n_rows;
+
+  // Final efficiency criterion value. We want to minimize this.
+  double eff_crit_val = 0.0;
+
+  // Accumulator
+  double acc = 0.0;
+
+
+
+  bool opt_success; // flag for success of the decomposition
+
+
+
+  // Create the cube Xs_cube with the Xs matrix for each choice set s.
+  // arma::mat Xs(J, ncol_Xs);
+  arma::cube Xs_cube(S, nrow_Xs, ncol_Xs);
+  for(int s = 1; s <= S; s++){
+    Xs = getXsMNL(X, s, order, n_pv, no_choice);
+    // Copy the information from Xs to the cube. Still can't find a way to copy a matrix to a subcube in Armadillo.
+    for(int ix1 = 0; ix1 < nrow_Xs; ix1++){
+      for(int ix2 = 0; ix2 < ncol_Xs; ix2++){
+        Xs_cube(s-1, ix1, ix2) = Xs(ix1, ix2);
+      }
+    }
+  }
+
+  // Iterate over all prior draws
+  for(int i = 0; i < n_sims; i++){
+    beta = conv_to<vec>::from(beta_mat.row(i));
+    I = getInformationMatrixMNL(X, Xs_cube, beta, order, transform_beta, n_pv, no_choice);
     if(verbose >= 5) Rcout << "Information matrix. I = \n" << I << std::endl;
 
     if(opt_crit == 0){
@@ -609,7 +836,7 @@ void changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, int s,
 // [[Rcpp::export]]
 double efficiencyCoxScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
                                int i, int j, int s,
-                               int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0){
+                               int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
   // Computes efficiency criterion of a design cube X but where the i-th ingredient in the j-th
   // alternative in s-th choice set is changed to theta.
   // Since theta is an ingredient proportion, it must be between 0 and 1.
@@ -627,7 +854,7 @@ double efficiencyCoxScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
   changeIngredientDesignMNL(theta, X, i, j,s, n_pv);
 
   // Utility function value. We want to minimize this.
-  double utility_funct_value = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv);
+  double utility_funct_value = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
   // return X to its original value
   for(int l = 0; l < q; l++){
@@ -643,7 +870,7 @@ double efficiencyCoxScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
 
 double efficiencyPVScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
                               int i, int j, int s,
-                              int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0){
+                              int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
   // Computes efficiency criterion of a design cube X but where the i-th process variable in the j-th
   // alternative in the s-th choice set is changed to theta.
   // Note: it should be shifted by the q proportion variables. That is, this function changes the i-th element
@@ -658,7 +885,7 @@ double efficiencyPVScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
   X(i, j, s) = theta;
 
   // Utility function value. We want to minimize this.
-  double utility_funct_value = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv);
+  double utility_funct_value = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
   // return X to its original value
   X(i, j, s) = original;
@@ -671,23 +898,23 @@ double efficiencyPVScheffeMNL(double theta, arma::cube& X, arma::mat& beta_mat,
 
 void findBestPVMNLBrent( // void but modifies X
     arma::cube& X, arma::mat& beta_mat, int i, int j, int s, int opt_crit, int order, arma::mat& W,
-    double lower = 0, double upper = 1, double tol = 0.0001, int verbose = 0, bool transform_beta = true, int n_pv = 0) {
+    double lower = 0, double upper = 1, double tol = 0.0001, int verbose = 0, bool transform_beta = true, int n_pv = 0, bool no_choice = false) {
   // Must change upper and lower values
 
   // The optimality criterion value in the design that is being used as input
-  double f_original = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv);
+  double f_original = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
   // Helper function that depends only on theta (the ingredient proportion that is being changed now)
-  auto f = [&X, &beta_mat, i, j, s, opt_crit, &W, order, transform_beta, n_pv](double theta){
-    return efficiencyPVScheffeMNL(theta, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv);
+  auto f = [&X, &beta_mat, i, j, s, opt_crit, &W, order, transform_beta, n_pv, no_choice](double theta){
+    return efficiencyPVScheffeMNL(theta, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv, no_choice);
   };
 
   double theta_brent, theta_star, f_star;
   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
 
   // Check end points
-  double f_lower = efficiencyPVScheffeMNL(lower, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv);
-  double f_upper = efficiencyPVScheffeMNL(upper, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv);
+  double f_lower = efficiencyPVScheffeMNL(lower, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv, no_choice);
+  double f_upper = efficiencyPVScheffeMNL(upper, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
   f_star = std::min({f_lower, f_upper, f_brent});
 
@@ -714,17 +941,17 @@ void findBestPVMNLBrent( // void but modifies X
 // [[Rcpp::export]]
 void findBestCoxDirMNLBrent( // void but modifies X
     arma::cube& X, arma::mat& beta_mat, int i, int j, int s, int opt_crit, int order, arma::mat& W,
-    double lower = -1, double upper = 1, double tol = 0.0001, int verbose = 0, bool transform_beta = true, int n_pv = 0) {
+    double lower = -1, double upper = 1, double tol = 0.0001, int verbose = 0, bool transform_beta = true, int n_pv = 0, bool no_choice = false) {
   // Finds the best point in the Cox direction using Brent's optimization method
 
 
   // The optimality criterion value in the design that is being used as input
-  double f_original = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv);
+  double f_original = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
 
   // Helper function that depends only on theta (the ingredient proportion that is being changed now)
-  auto f = [&X, &beta_mat, i, j, s, opt_crit, &W, order, transform_beta, n_pv](double theta){
-    return efficiencyCoxScheffeMNL(theta, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv);
+  auto f = [&X, &beta_mat, i, j, s, opt_crit, &W, order, transform_beta, n_pv, no_choice](double theta){
+    return efficiencyCoxScheffeMNL(theta, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv, no_choice);
   };
 
   // theta_brent: the "optimal" theta that is going to be returned by Brent's method
@@ -734,8 +961,8 @@ void findBestCoxDirMNLBrent( // void but modifies X
   double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
 
   // Check end points:
-  double f_lower = efficiencyCoxScheffeMNL(lower, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv);
-  double f_upper = efficiencyCoxScheffeMNL(upper, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv);
+  double f_lower = efficiencyCoxScheffeMNL(lower, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv, no_choice);
+  double f_upper = efficiencyCoxScheffeMNL(upper, X, beta_mat, i, j, s, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
   f_star = std::min({f_lower, f_upper, f_brent});
 
@@ -774,7 +1001,7 @@ void findBestCoxDirMNLBrent( // void but modifies X
 // [[Rcpp::export]]
 Rcpp::List mixtureCoordinateExchangeMNL(
     arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W,
-    int opt_method, double lower, double upper, double tol, int n_cox_points, bool transform_beta = true, int n_pv = 0){
+    int opt_method, double lower, double upper, double tol, int n_cox_points, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
   // See mnl_mixture_coord_exch() in R for details.
   // lower: lower bound in Brent's optimization method
   // upper: upper bound in Brent's optimization method
@@ -803,7 +1030,7 @@ Rcpp::List mixtureCoordinateExchangeMNL(
   // Vector of ingredient proportions
   arma::vec x(q);
 
-  double opt_crit_value_orig = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv);
+  double opt_crit_value_orig = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv, no_choice);
   double opt_crit_value_best = opt_crit_value_orig;
   double opt_crit_value_aux = 1e308; // +Inf
 
@@ -845,13 +1072,14 @@ Rcpp::List mixtureCoordinateExchangeMNL(
           }
 
           if(opt_method == 0){
-            findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv);
+            findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv, no_choice);
           } else{
+            if(no_choice) stop("Cannot use discretization when no_choice = T");
             cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
             findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order, transform_beta);
           }
 
-          opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv);
+          opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
           if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
 
@@ -871,9 +1099,9 @@ Rcpp::List mixtureCoordinateExchangeMNL(
 
             // findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv);
             // (X, run-1, pv, order, opt_crit, W, lower, upper, tol, n_pv);
-            findBestPVMNLBrent(X, beta_mat, pv, k-1, s-1, opt_crit, order, W, -1, 1, tol, verbose, transform_beta, n_pv);
+            findBestPVMNLBrent(X, beta_mat, pv, k-1, s-1, opt_crit, order, W, -1, 1, tol, verbose, transform_beta, n_pv, no_choice);
 
-            opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv);
+            opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
             if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
 
@@ -920,15 +1148,6 @@ Rcpp::List mixtureCoordinateExchangeMNL(
   );
 
 } // end function
-
-
-
-
-
-
-
-
-
 
 
 

@@ -2,18 +2,29 @@
 % Please edit documentation in R/general_functions.R
 \name{get_halton_draws}
 \alias{get_halton_draws}
-\title{TODO: write doc
-Returns a matrix of dimension m x ndraws where m is the length of the beta vector.
-Example on how to use:
-beta_means = mnl_create_random_beta(q)
-beta_prior_draws = get_halton_draws(beta_means$beta)}
+\title{Get uncorrelated Halton draws from a Normal distribution}
 \usage{
-get_halton_draws(beta, sd = 1, ndraws = 120)
+get_halton_draws(beta, sd = 1, n_draws = 120, ndraws = NULL)
+}
+\arguments{
+\item{beta}{Mean vector (or single value) of the mean of the draws}
+
+\item{sd}{Scalar of vector of standard deviation(s) of draws}
+
+\item{n_draws}{Number of draws}
+
+\item{ndraws}{deprecated: Number of draws. Overrides "n_draws"
+
+#' @return Returns a matrix with Halton draws of dimension \code{n_draws} by \code{m}, where \code{m} is the length of the beta vector.}
 }
 \description{
-TODO: write doc
-Returns a matrix of dimension m x ndraws where m is the length of the beta vector.
-Example on how to use:
-beta_means = mnl_create_random_beta(q)
-beta_prior_draws = get_halton_draws(beta_means$beta)
+Get uncorrelated Halton draws from a Normal distribution
+}
+\examples{
+get_halton_draws(1:3, sd = 1, n_draws = 120)
+
+get_halton_draws(1:3, sd = 1:3, n_draws = 120)
+
+get_halton_draws(1:3, sd = 1, ndraws = 120)
+
 }

@@ -130,16 +130,18 @@ mnl_create_random_initial_design = function(q, J, S, n_pv = 0,  pv_bounds = NULL
 #' @param opt_crit optimality criterion: 0 or "D" is D-optimality; while 1 or "I" is I-optimality.
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
 #' @param n_pv Number of process variables.
+#' @param no_choice Add no_choice (i.e., opt-out) alternative?
 #'
 #' @return Returns the value of the optimality criterion for this particular design and this \code{beta} vector
 #' @export
-mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta = T, n_pv = 0){
+mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta = T, n_pv = 0, no_choice = F){
 
   # Recode opt_crit
   if(opt_crit == "D") opt_crit = 0
   if(opt_crit == "I") opt_crit = 1
 
   q = dim(X)[1] - n_pv
+  J = dim(X)[2]
 
   ## Get m (No need to check order because this function checks it).
   m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
@@ -151,13 +153,25 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
   #############################################
 
   if(is.vector(beta)) {
-    if(m != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
-    if(m-1 != length(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m-1)
+    if(no_choice){
+      if(m+1 != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m+1)
+      if(m != length(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
+    } else{
+      if(m != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
+      if(m-1 != length(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m-1)
+    }
+
   }
 
   if(is.matrix(beta)) {
-    if(m != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
-    if(m-1 != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m-1,  " columns")
+    if(no_choice){
+      if(m+1 != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m+1,  " columns")
+      if(m != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
+    } else{
+      if(m != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
+      if(m-1 != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m-1,  " columns")
+    }
+
   }
 
 
@@ -173,14 +187,14 @@ mnl_get_opt_crit_value = function(X, beta, order, opt_crit = "D", transform_beta
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = mnl_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1))
+    W = mnl_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1), no_choice = no_choice, J = J)
   }
 
   #############################################
   ## Get optimality criterion value
   #############################################
 
-  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order_cpp, transform_beta = transform_beta, n_pv = n_pv))
+  return(getOptCritValueMNL(X = X, beta = beta_mat, opt_crit = opt_crit, verbose = 0, W = W, order = order_cpp, transform_beta = transform_beta, n_pv = n_pv, no_choice = no_choice))
 
 }
 
@@ -247,6 +261,7 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #' @param n_cores Number of cores for parallel processing.
 #' @param save_all_designs Whether the function should return a list with all the designs created at random or only the best.
 #' @param n_pv Number of process variables
+#' @param no_choice Add no_choice (i.e., opt-out) alternative?
 #'
 #' @return The function returns a list with 11 elements: \enumerate{
 #'     \item \code{X_orig}: The original design. A 3-dimensional array of size \code{(q, J, S)}.
@@ -295,7 +310,8 @@ mnl_mixture_coord_exch = function(
   seed = NULL,
   n_cores = 1,
   save_all_designs = F,
-  n_pv = 0
+  n_pv = 0,
+  no_choice = F
 ){
   # Assumes process variables are bwteen -1 and 1
 
@@ -381,14 +397,27 @@ mnl_mixture_coord_exch = function(
   m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
 
 
+
   if(is.vector(beta)) {
-    if(m != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
-    if(m-1 != length(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m-1)
+    if(no_choice){
+      if(m+1 != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m+1)
+      if(m != length(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
+    } else{
+      if(m != length(beta) & transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m)
+      if(m-1 != length(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must be of length ", m-1)
+    }
+
   }
 
   if(is.matrix(beta)) {
-    if(m != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
-    if(m-1 != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m-1,  " columns")
+    if(no_choice){
+      if(m+1 != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m+1,  " columns")
+      if(m != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
+    } else{
+      if(m != ncol(beta) & transform_beta) stop("Incompatible size in beta and q: beta must have ", m,  " columns")
+      if(m-1 != ncol(beta) & !transform_beta) stop("Incompatible size in beta and q: beta must have ", m-1,  " columns")
+    }
+
   }
 
 
@@ -412,7 +441,7 @@ mnl_mixture_coord_exch = function(
     W = matrix(0.0, nrow = 1)
   } else{
     # "I-optimality")
-    W = mnl_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1))
+    W = mnl_create_moment_matrix(q = q, order = order, n_pv = n_pv, pv_bounds = c(-1, 1), no_choice = no_choice, J = J)
   }
 
   #############################################
@@ -447,7 +476,8 @@ mnl_mixture_coord_exch = function(
         tol = tol,
         n_cox_points = n_cox_points,
         transform_beta = transform_beta,
-        n_pv = n_pv
+        n_pv = n_pv,
+        no_choice = no_choice
       ), silent = T)
 
     # If there was an error with this design, return whatever
@@ -700,6 +730,8 @@ mnl_plot_result = function(res_alg, ...){
 #' @param n_pv Number of process variables.
 #' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param pv_bounds Vector or matrix that specifies the bounds of the process variables.
+#' @param J Number of alternatives in each choice set. Only used if no_choice = T
+#' @param no_choice Add no_choice (i.e., opt-out) alternative?
 #'
 #' @details
 #' \code{pv_bounds} must be either: \itemize{
@@ -711,7 +743,7 @@ mnl_plot_result = function(res_alg, ...){
 #' @return Matrix of size \code{(m, m)}.
 #'
 #' @export
-mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
+mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL, J = NULL, no_choice = F){
 
   ## Get m (No need to check order because this function checks it).
   m = mnl_get_number_of_parameters(q = q, order = order, n_pv = n_pv)
@@ -847,6 +879,19 @@ mnl_create_moment_matrix = function(q, n_pv = 0, order = 3, pv_bounds = NULL){
     }
   }
 
+  if(no_choice){
+    if(is.null(J)) stop("J must be provided if no_choice = T")
+    dim_W = nrow(W)
+    # Could get rid of the (J+1) everywhere, it's just a scaling factor
+    W = cbind(J*W/(J+1), rep(0, dim_W))
+    # W = rbind(W, c(rep(0, dim_W), 1/(factorial(q-1)*(J+1))))
+    if(n_pv == 0){
+      W = rbind(W, c(rep(0, dim_W), 1/(factorial(q-1)*(J+1))))
+    } else{
+      W = rbind(W, c(rep(0, dim_W), num_ij_2/(factorial(q-1)*(J+1))))
+    }
+  }
+
   return(W)
 
 }
@@ -937,26 +982,42 @@ mnl_design_array_to_dataframe = function(des_array, names = NULL){
 #' Computes the information matrix for a given design \code{X} and parameter vector \code{beta}.
 #'
 #' @param X 3-dimensional design array
-#' @param beta Parameter vector
+#' @param beta Parameter vector or matrix. If matrix, each row is a draw from the beta parameter vector.
 #' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param transform_beta boolean parameter. Should the beta vector/matrix be transformed by subtracting the \code{q}-th element?
 #' @param n_pv Number of process variables
+#' @param no_choice Add no_choice (i.e., opt-out) alternative?
 #'
 #' @return Information matrix
 #'
 #' @export
-mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
+mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0, no_choice = F){
 
   mnl_check_order(order = order, n_pv = n_pv)
 
   order_cpp = ifelse(n_pv > 0, 4, order)
 
-  IM = getInformationMatrixMNL(
-    X = X,
-    beta = beta,
-    order = order_cpp,
-    transform_beta = transform_beta,
-    n_pv = n_pv)
+
+  if(is.vector(beta)) {
+    IM = getInformationMatrixMNL(
+      X = X,
+      beta = beta,
+      order = order_cpp,
+      transform_beta = transform_beta,
+      n_pv = n_pv,
+      no_choice = no_choice)
+  }
+
+  if(is.matrix(beta)) {
+    IM = getBayesianInformationMatrixMNL(
+      X = X,
+      beta = beta,
+      order = order_cpp,
+      transform_beta = transform_beta,
+      n_pv = n_pv,
+      no_choice = no_choice)
+  }
+
 
   return(IM)
 }
@@ -970,11 +1031,12 @@ mnl_get_information_matrix = function(X, beta, order, transform_beta, n_pv = 0){
 #' @param s integer corresponding to a choice set in 1 to S.
 #' @param order integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).
 #' @param n_pv number of process variables. Defaults to 0.
+#' @param no_choice Add no_choice (i.e., opt-out) alternative?
 #'
 #' @return Matrix of dimension (J, m-1) that corresponds to the design matrix of choice set s.
 #'
 #' @export
-mnl_get_Xs = function(X, s, order, n_pv = 0){
+mnl_get_Xs = function(X, s, order, n_pv = 0, no_choice = F){
   mnl_check_order(order = order, n_pv = n_pv)
 
   order_cpp = ifelse(n_pv > 0, 4, order)

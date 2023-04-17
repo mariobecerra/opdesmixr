@@ -4,7 +4,7 @@
 \alias{mnl_get_Xs}
 \title{Compute design matrix of a specific choice set using the MNL model.}
 \usage{
-mnl_get_Xs(X, s, order, n_pv = 0)
+mnl_get_Xs(X, s, order, n_pv = 0, no_choice = F)
 }
 \arguments{
 \item{X}{3-dimensional design cube/array of size \code{(q, J, S)}.}
@@ -14,6 +14,8 @@ mnl_get_Xs(X, s, order, n_pv = 0)
 \item{order}{integer corresponding to a Scheffé model order (1, 2, 3 if no process variables are used; 2 if process variables are used).}
 
 \item{n_pv}{number of process variables. Defaults to 0.}
+
+\item{no_choice}{Add no_choice (i.e., opt-out) alternative?}
 }
 \value{
 Matrix of dimension (J, m-1) that corresponds to the design matrix of choice set s.

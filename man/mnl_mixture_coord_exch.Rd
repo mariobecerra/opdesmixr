@@ -23,7 +23,8 @@ mnl_mixture_coord_exch(
   seed = NULL,
   n_cores = 1,
   save_all_designs = F,
-  n_pv = 0
+  n_pv = 0,
+  no_choice = F
 )
 }
 \arguments{
@@ -65,6 +66,8 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{save_all_designs}{Whether the function should return a list with all the designs created at random or only the best.}
 
 \item{n_pv}{Number of process variables}
+
+\item{no_choice}{Add no_choice (i.e., opt-out) alternative?}
 }
 \value{
 The function returns a list with 11 elements: \enumerate{

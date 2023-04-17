@@ -2,22 +2,35 @@
 % Please edit documentation in R/general_functions.R
 \name{get_correlated_halton_draws}
 \alias{get_correlated_halton_draws}
-\title{TODO: write doc
-Returns a matrix of dimension m x ndraws where m is the length of the beta vector and sigma is the correlation matrix between the parameters.
-Matrix sigma must be if size mxm.
-Example on how to use:
-beta = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)}
+\title{Get correlated Halton draws from a Normal distribution}
 \usage{
 get_correlated_halton_draws(beta, sigma, n_draws = 128)
 }
+\arguments{
+\item{beta}{Mean vector (or single value) of the mean of the draws}
+
+\item{sigma}{Variance-covariance matrix between the parameters}
+
+\item{n_draws}{Number of draws
+
+#' @return Returns a matrix with correlated Halton draws of dimension \code{n_draws} by \code{m}, where \code{m} is the length of the beta vector.}
+}
 \description{
+Get correlated Halton draws from a Normal distribution
+}
+\examples{
+#' beta = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)
+
 sigma = matrix(
-c(6.14, 5.00, 2.74, -0.43, -2.81, -3.33,
-5.00, 6.76, 4.47, -1.79, -6.13, -3.51,
-2.74, 4.47, 3.45, -1.38, -4.71, -2.17,
--0.43, -1.79, -1.38, 1.18, 2.39, 0.71,
--2.81, -6.13, -4.71, 2.39, 7.43, 2.71,
--3.33, -3.51, -2.17, 0.71, 2.71, 2.49),
-ncol = 6,
-byrow = T)
+  c(6.14, 5.00, 2.74, -0.43, -2.81, -3.33,
+    5.00, 6.76, 4.47, -1.79, -6.13, -3.51,
+    2.74, 4.47, 3.45, -1.38, -4.71, -2.17,
+    -0.43, -1.79, -1.38, 1.18, 2.39, 0.71,
+    -2.81, -6.13, -4.71, 2.39, 7.43, 2.71,
+    -3.33, -3.51, -2.17, 0.71, 2.71, 2.49),
+  ncol = 6,
+  byrow = T)
+
+get_correlated_halton_draws = function(beta, sigma, n_draws = 120)
+
 }

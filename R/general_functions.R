@@ -160,18 +160,56 @@ mixture_coord_ex = function(
 
 
 
-#' TODO: write doc
-#' Returns a matrix of dimension m x ndraws where m is the length of the beta vector.
-#' Example on how to use:
-#'     beta_means = mnl_create_random_beta(q)
-#'     beta_prior_draws = get_halton_draws(beta_means$beta)
-#' @export
-get_halton_draws = function(beta, sd = 1, ndraws = 120){
-  draws_unif_beta = randtoolbox::halton(ndraws, dim = length(beta))
 
-  beta_prior_draws = matrix(rep(NA_real_, length(draws_unif_beta)), ncol = ncol(draws_unif_beta))
-  for(i in 1:ncol(beta_prior_draws)){
-    beta_prior_draws[, i] = qnorm(draws_unif_beta[, i], mean = beta[i], sd = sd)
+#' Get uncorrelated Halton draws from a Normal distribution
+#'
+#' @param beta Mean vector (or single value) of the mean of the draws
+#' @param sd Scalar of vector of standard deviation(s) of draws
+#' @param n_draws Number of draws
+#' @param ndraws deprecated: Number of draws. Overrides "n_draws"
+#'
+#' #' @return Returns a matrix with Halton draws of dimension \code{n_draws} by \code{m}, where \code{m} is the length of the beta vector.
+#'
+#' @examples
+#' get_halton_draws(1:3, sd = 1, n_draws = 120)
+#'
+#' get_halton_draws(1:3, sd = 1:3, n_draws = 120)
+#'
+#' get_halton_draws(1:3, sd = 1, ndraws = 120)
+#'
+#' @export
+get_halton_draws = function(beta, sd = 1, n_draws = 120, ndraws = NULL){
+
+  # I had an inconsistency with the naming, so this line prevents an error if a line uses ndraws instead of n_draws
+  if(!is.null(ndraws)) n_draws = ndraws
+
+  length_beta = length(beta)
+
+  stopifnot(length_beta > 0)
+
+  if(length(sd) == 1){
+    sd = rep(sd, length_beta)
+  } else{
+    stopifnot(length(sd) == length_beta)
+  }
+
+
+  if(length_beta == 1){
+    # If beta is a scalar
+
+    draws_unif_beta = randtoolbox::halton(n_draws, dim = length_beta)
+    beta_prior_draws = matrix(qnorm(draws_unif_beta, mean = beta, sd = sd), nrow = n_draws)
+
+  } else{
+    # If beta is a vector
+
+    draws_unif_beta = randtoolbox::halton(n_draws, dim = length_beta)
+
+    beta_prior_draws = matrix(rep(NA_real_, length(draws_unif_beta)), ncol = length_beta)
+    for(i in 1:length_beta){
+      beta_prior_draws[, i] = qnorm(draws_unif_beta[, i], mean = beta[i], sd = sd[i])
+    }
+
   }
 
   return(beta_prior_draws)
@@ -187,12 +225,16 @@ get_halton_draws = function(beta, sd = 1, ndraws = 120){
 
 
 
-
-#' TODO: write doc
-#' Returns a matrix of dimension m x ndraws where m is the length of the beta vector and sigma is the correlation matrix between the parameters.
-#' Matrix sigma must be if size mxm.
-#' Example on how to use:
-#' beta = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)
+#' Get correlated Halton draws from a Normal distribution
+#'
+#' @param beta Mean vector (or single value) of the mean of the draws
+#' @param sigma Variance-covariance matrix between the parameters
+#' @param n_draws Number of draws
+#'
+#' #' @return Returns a matrix with correlated Halton draws of dimension \code{n_draws} by \code{m}, where \code{m} is the length of the beta vector.
+#'
+#' @examples
+#' #' beta = c(1.36, 1.57, 2.47, -0.43, 0.50, 1.09)
 #'
 #' sigma = matrix(
 #'   c(6.14, 5.00, 2.74, -0.43, -2.81, -3.33,
@@ -203,6 +245,9 @@ get_halton_draws = function(beta, sd = 1, ndraws = 120){
 #'     -3.33, -3.51, -2.17, 0.71, 2.71, 2.49),
 #'   ncol = 6,
 #'   byrow = T)
+#'
+#' get_correlated_halton_draws = function(beta, sigma, n_draws = 120)
+#'
 #' @export
 get_correlated_halton_draws = function(beta, sigma, n_draws = 128){
 
