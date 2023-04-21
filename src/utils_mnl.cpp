@@ -818,7 +818,7 @@ void changeIngredientDesignMNL(double theta, arma::cube& X, int i, int j, int s,
   if(abs(sum(x) - 1) > 1e-13){
     // Do not change design
     warning("Mixture ingredients do not sum up to numerical 1. Not changing this run of the design.");
-    Rcout << x << std::endl;
+    // Rcout << x << std::endl;
   } else{
     // Replace the design X with the recomputed proportions according to Cox direction
     for(int l = 0; l < q; l++){

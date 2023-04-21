@@ -448,13 +448,20 @@ mnl_mixture_coord_exch = function(
   ## Check operating system for parallel processing
   #############################################
 
-  if(.Platform$OS.type != "unix") n_cores = 1
+  if(.Platform$OS.type == "windows" & n_cores > 1) {
+    verbose = 0
+    future::plan(future::multisession, workers = n_cores)
+    apply_parallel = function(...) return(furrr::future_map(...))
+  }
+  else{
+    apply_parallel = function(...) return(parallel::mclapply(..., mc.cores = n_cores))
+  }
 
   #############################################
   ## Apply the coordinate exchange algorithm to all the created designs
   #############################################
 
-  results = parallel::mclapply(seq_along(designs), function(i){
+  results = apply_parallel(seq_along(designs), function(i){
     X = designs[[i]]
 
     if(verbose > 0) cat("\nDesign", i, "\n")
@@ -497,7 +504,7 @@ mnl_mixture_coord_exch = function(
     }
 
     return(out)
-  }, mc.cores = n_cores)
+  })
 
   # Get optimality values for all designs
   optimality_values = unlist(lapply(results, function(x) x$opt_crit_value))
