@@ -1154,3 +1154,393 @@ Rcpp::List mixtureCoordinateExchangeMNL(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// [[Rcpp::export]]
+void changeIngredientDesignMNL2(double theta, arma::cube& X, int i, arma::vec j_vec, arma::vec s_vec, int n_pv){ // Void but modifies X
+  // Modifies cube X changing the i-th ingredient in alternatives j_vec and choice sets s_vec to theta.
+  // Since theta is an ingredient proportion, it must be between 0 and 1.
+  // Indices i, j_vec and s_vec are 0-indexed.
+
+  int j_len = j_vec.n_elem;
+  int s_len = s_vec.n_elem;
+
+  if(j_len != s_len) stop("j_len and s_len should have same length");
+
+  int j;
+  int s;
+
+
+  // Number of ingredients
+  int q = X.n_rows - n_pv;
+
+  // Create a vector with the ingredients of the j-th alternative of the s-th choice set.
+  arma::vec x = X(arma::span(0, q-1), arma::span(j_vec(0)), arma::span(s_vec(0)));
+
+  double delta = theta - x(i);
+
+  // recompute proportions:
+  vec setDiff_aux = linspace<vec>(0, q-1, q);
+  vec setDiff = removeElement(setDiff_aux, i);
+  int k;
+
+  for(int k_aux = 0; k_aux < setDiff.n_elem; k_aux++){
+    k = setDiff(k_aux);
+
+    if(abs(1 - x(i)) < 1e-13) { // In case x(i) is numerically 1
+      // Two cases:
+      // 1) If delta is numerically -1, it means that the change is from 1 to 0. Then, the rest of the ingredients must be 1/(q-1)
+      // 2) If delta is not -1 and x(i) is numerically 1, then it means that the rest of the ingredients were 0, so they were in equal
+      //    proportions and should remain that way.
+      x(k) = (1.0 - theta)/((double)q - 1.0); // Same as x(k) = (-delta)/(q - 1.0); and x(k) = (1-delta-x(i))/(q - 1.0);
+    } else{ // In case x(i) is not numerically 1
+      // Other case
+      x(k) = x(k) - delta*x(k)/(1 - x(i));
+    }
+  }
+
+
+  x(i) = theta;
+
+  if(abs(sum(x) - 1) > 1e-13){
+    // Do not change design
+    warning("Mixture ingredients do not sum up to numerical 1. Not changing this run of the design.");
+    Rcout << x << std::endl;
+  } else{
+    // Replace the design X with the recomputed proportions according to Cox direction
+    for(int l = 0; l < q; l++){
+      for(int i1 = 0; i1 < j_len; i1++){
+        j = j_vec(i1);
+        s = s_vec(i1);
+        X(l, j, s) = x(l);
+      }
+
+    }
+  }
+}
+
+
+
+
+// [[Rcpp::export]]
+double efficiencyCoxScheffeMNL2(double theta, arma::cube& X, arma::mat& beta_mat,
+                                int i, arma::vec j_vec, arma::vec s_vec,
+                                int opt_crit, arma::mat& W, int order, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
+  // Computes efficiency criterion of a design cube X but where the i-th ingredient in the j-th
+  // alternative in s-th choice set is changed to theta.
+  // Since theta is an ingredient proportion, it must be between 0 and 1.
+  // Index vectors j_vec and s_vec, as well as integer i, are 0-indexed.
+  // We want to minimize this.
+
+
+  int j_len = j_vec.n_elem;
+  int s_len = s_vec.n_elem;
+
+  if(j_len != s_len) stop("j_len and s_len should have same length");
+
+  int j;
+  int s;
+
+
+  int q = X.n_rows - n_pv;
+
+  // Temporarily store the corresponding row in a vector
+  arma::vec x_row(q);
+  for(int l = 0; l < q; l++){
+    x_row(l) = X(l, j_vec(0), s_vec(0));
+  }
+
+  changeIngredientDesignMNL2(theta, X, i, j_vec, s_vec, n_pv);
+
+  // Utility function value. We want to minimize this.
+  double utility_funct_value = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv, no_choice);
+
+  // return X to its original value
+  for(int l = 0; l < q; l++){
+    for(int i1 = 0; i1 < j_len; i1++){
+      j = j_vec(i1);
+      s = s_vec(i1);
+      X(l, j, s) = x_row(l);
+    }
+  }
+
+  return(utility_funct_value);
+
+}
+
+
+
+
+
+
+
+
+void findBestCoxDirMNLBrent2( // void but modifies X
+    arma::cube& X, arma::mat& beta_mat, int i, arma::vec j_vec, arma::vec s_vec, int opt_crit, int order, arma::mat& W,
+    double lower = -1, double upper = 1, double tol = 0.0001, int verbose = 0, bool transform_beta = true, int n_pv = 0, bool no_choice = false) {
+  // Finds the best point in the Cox direction using Brent's optimization method
+
+
+  // The optimality criterion value in the design that is being used as input
+  double f_original = getOptCritValueMNL(X, beta_mat, 0, opt_crit, W, order, transform_beta, n_pv, no_choice);
+
+
+  // Helper function that depends only on theta (the ingredient proportion that is being changed now)
+  auto f = [&X, &beta_mat, i, j_vec, s_vec, opt_crit, &W, order, transform_beta, n_pv, no_choice](double theta){
+    return efficiencyCoxScheffeMNL2(theta, X, beta_mat, i, j_vec, s_vec, opt_crit, W, order, transform_beta, n_pv, no_choice);
+  };
+
+  // theta_brent: the "optimal" theta that is going to be returned by Brent's method
+  // theta_star: the actual optimal theta
+  // f_star: the value of the objective function evaluated in the optimal theta
+  double theta_brent, theta_star, f_star;
+  double f_brent = brent::local_min_mb(lower, upper, tol, f, theta_brent);
+
+  // Check end points:
+  double f_lower = efficiencyCoxScheffeMNL2(lower, X, beta_mat, i, j_vec, s_vec, opt_crit, W, order, transform_beta, n_pv, no_choice);
+  double f_upper = efficiencyCoxScheffeMNL2(upper, X, beta_mat, i, j_vec, s_vec, opt_crit, W, order, transform_beta, n_pv, no_choice);
+
+  f_star = std::min({f_lower, f_upper, f_brent});
+
+  if(f_star == f_brent){
+    theta_star = theta_brent;
+  } else{
+    if(f_star == f_lower){
+      theta_star = lower;
+    } else{
+      theta_star = upper;
+    }
+  }
+
+  if(verbose >= 5){
+    Rcout << "\ttheta_star: " << theta_star << "\tf_star: " << f_star << std::endl;
+  }
+
+  // If Brent's method didn't do any improvement, leave the original design as it is.
+  // If it did, replace the design with theta star
+  if(f_original > f_star){
+    changeIngredientDesignMNL2(theta_star, X, i, j_vec, s_vec, n_pv);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// Needs to be updated to use no_choice
+// [[Rcpp::export]]
+Rcpp::List mixtureCoordinateExchangeMNL2(
+    arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W,
+    int opt_method, double lower, double upper, double tol, int n_cox_points, bool transform_beta, int n_pv, bool no_choice,
+    arma::mat mapping_matrix){
+  // j_vec and s_vec are 1-indexed
+
+  bool do_clustering = mapping_matrix.n_elem > 1;
+
+  arma::vec s_vec_all;
+  arma::vec j_vec_all;
+  arma::vec point_id_vec;
+  arma::vec s_vec;
+  arma::vec j_vec;
+  arma::vec s_vec_one_element(1);
+  arma::vec j_vec_one_element(1);
+  if(do_clustering){
+    s_vec_all = mapping_matrix(span::all, 0);
+    j_vec_all = mapping_matrix(span::all, 1);
+    point_id_vec = mapping_matrix(span::all, 2);
+  }
+
+
+  // See mnl_mixture_coord_exch() in R for details.
+  // lower: lower bound in Brent's optimization method
+  // upper: upper bound in Brent's optimization method
+  // W: moment matrix
+
+
+  // Does not do input checks because the R wrapper function does them.
+  // (Except for opt method. Have to remove later and put it in R.)
+  if(opt_method == 1 & n_pv > 0) {
+    stop("Discretization of Cox direction is not available for models that include process variables.");
+  }
+
+  // Create a vector to store the values of the efficiency metric in each iteration.
+  arma::vec efficiency_value_per_iteration(max_it + 1, fill::zeros);
+
+  // Create new cube, otherwise it is modified in R too
+  arma::cube X = X_orig;
+
+  int J = X.n_cols;
+  int q = X.n_rows - n_pv;
+  int S = X.n_elem/(X.n_cols*X.n_rows);
+
+  // Create matrix with appropriate dimensions for Cox direction in each iteration
+  arma::mat cox_dir(n_cox_points, q);
+
+  // Vector of ingredient proportions
+  arma::vec x(q);
+
+  double opt_crit_value_orig = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv, no_choice);
+  double opt_crit_value_best = opt_crit_value_orig;
+  double opt_crit_value_aux = 1e308; // +Inf
+
+  // Original efficiency criterion value
+  efficiency_value_per_iteration(0) = opt_crit_value_best;
+
+  // Coordinate exchanges
+  int it = 0;
+  while(it < max_it){
+
+    // Checking interruption every 2 iterations
+    // As in https://teuder.github.io/rcpp4everyone_en/270_miscellaneous.html
+    if (it % 2 == 0){
+      Rcpp::checkUserInterrupt();
+    }
+
+    if(verbose >= 1) Rcout << "Iter " << it << ". Optimality criterion value: " << opt_crit_value_best << std::endl;
+
+    // If there was no improvement in this iteration
+    if(abs(opt_crit_value_aux - opt_crit_value_best) < 1e-16) break;
+
+    it = it + 1;
+
+    opt_crit_value_aux = opt_crit_value_best;
+
+    int row_counter = 0;
+
+    for(int j = 1; j <= J; j++){
+
+      for(int s = 1; s <= S; s++){
+
+        if(do_clustering){
+          int point_id = mapping_matrix(row_counter, 2);
+          uvec point_id_ix = find(point_id_vec == point_id);
+          s_vec = s_vec_all(point_id_ix) - 1;
+          j_vec = j_vec_all(point_id_ix) - 1;
+        } else{
+          s_vec_one_element(0) = s - 1;
+          j_vec_one_element(0) = j - 1;
+
+        }
+
+
+        // Rcout << "row_counter: " << row_counter << std::endl;
+        // Rcout << s_vec << std::endl;
+        // Rcout << j_vec << std::endl;
+
+        for(int i = 0; i < q; i++){
+          // if(verbose >= 2) Rcout << "\t\ti = " << i << std::endl;
+          if(verbose >= 2) Rcout << "\nIter: " << it <<  ", j = " << j << ", s = " << s << ", i = " << i << std::endl;
+
+          // populate x vector with corresponding ingredient proportions
+          for(int l = 0; l < q; l++){
+            x(l) = X(l, j-1, s-1);
+          }
+
+          if(opt_method == 0){
+            if(do_clustering){
+              findBestCoxDirMNLBrent2(X, beta_mat, i, j_vec, s_vec, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv, no_choice);
+            } else{
+              findBestCoxDirMNLBrent2(X, beta_mat, i, j_vec_one_element, s_vec_one_element, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv, no_choice);
+            }
+          } else{
+            cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
+            findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, j, s, opt_crit_value_best, verbose, opt_crit, W, order, transform_beta);
+          }
+
+          opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv, no_choice);
+
+          if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
+
+          if(verbose >= 5){
+            Rcout << "X =\n" << X << std::endl;
+          }
+
+        } // end for i
+
+
+
+        // Process variables
+        if(n_pv > 0){
+          for(int pv = q; pv < n_pv + q; pv++){
+
+            if(verbose >= 2) Rcout << "\nIter: " << it <<  ", j = " << j << ", s = " << s << ", pv = " << pv << std::endl;
+
+            // findBestCoxDirMNLBrent(X, beta_mat, i, j-1, s-1, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv);
+            // (X, run-1, pv, order, opt_crit, W, lower, upper, tol, n_pv);
+            findBestPVMNLBrent(X, beta_mat, pv, j-1, s-1, opt_crit, order, W, -1, 1, tol, verbose, transform_beta, n_pv, no_choice);
+
+            opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv, no_choice);
+
+            if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
+
+            if(verbose >= 5){
+              Rcout << "X =\n" << X << std::endl;
+            }
+
+          }
+        }
+
+        row_counter++;
+
+      } // end for s
+
+    } // end for j
+
+
+    if(verbose >= 3) Rcout << "X =\n" << X << std::endl;
+
+    if(verbose >= 2) Rcout << std::endl << std::endl;
+
+    efficiency_value_per_iteration(it) = opt_crit_value_best;
+
+  } // end while
+
+
+  if(verbose >= 1){
+    Rcout << std::endl;
+    Rcout << "Original Optimality criterion value: " << opt_crit_value_orig;
+    Rcout << std::endl;
+    Rcout << "Final Optimality criterion value: " << opt_crit_value_best;
+    Rcout << std::endl;
+    Rcout << "Number of iterations: " << it;
+    Rcout << std::endl;
+  }
+
+  // return object
+  return Rcpp::List::create(
+    _["X_orig"] = X_orig,
+    _["X"] = X,
+    _["opt_crit_value_orig"] = opt_crit_value_orig,
+    _["opt_crit_value"] = opt_crit_value_best,
+    _["n_iter"] = it,
+    _["efficiency_value_per_iteration"] = efficiency_value_per_iteration.head(it + 1)
+  );
+
+} // end function
+
+
+
+
+
+
+

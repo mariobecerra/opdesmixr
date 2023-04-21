@@ -69,3 +69,15 @@ mixtureCoordinateExchangeMNL <- function(X_orig, beta_mat, order, max_it, verbos
     .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta, n_pv, no_choice)
 }
 
+changeIngredientDesignMNL2 <- function(theta, X, i, j_vec, s_vec, n_pv) {
+    invisible(.Call(`_opdesmixr_changeIngredientDesignMNL2`, theta, X, i, j_vec, s_vec, n_pv))
+}
+
+efficiencyCoxScheffeMNL2 <- function(theta, X, beta_mat, i, j_vec, s_vec, opt_crit, W, order, transform_beta = TRUE, n_pv = 0L, no_choice = FALSE) {
+    .Call(`_opdesmixr_efficiencyCoxScheffeMNL2`, theta, X, beta_mat, i, j_vec, s_vec, opt_crit, W, order, transform_beta, n_pv, no_choice)
+}
+
+mixtureCoordinateExchangeMNL2 <- function(X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta, n_pv, no_choice, mapping_matrix) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeMNL2`, X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta, n_pv, no_choice, mapping_matrix)
+}
+
