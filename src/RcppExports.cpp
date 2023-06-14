@@ -288,8 +288,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // mixtureCoordinateExchangeMNL
-Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W, int opt_method, double lower, double upper, double tol, int n_cox_points, bool transform_beta, int n_pv, bool no_choice);
-RcppExport SEXP _opdesmixr_mixtureCoordinateExchangeMNL(SEXP X_origSEXP, SEXP beta_matSEXP, SEXP orderSEXP, SEXP max_itSEXP, SEXP verboseSEXP, SEXP opt_critSEXP, SEXP WSEXP, SEXP opt_methodSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP, SEXP n_cox_pointsSEXP, SEXP transform_betaSEXP, SEXP n_pvSEXP, SEXP no_choiceSEXP) {
+Rcpp::List mixtureCoordinateExchangeMNL(arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W, int opt_method, double lower, double upper, double tol, int n_cox_points, bool transform_beta, int n_pv, bool no_choice, int n_fixed_alternatives, int n_fixed_choice_sets);
+RcppExport SEXP _opdesmixr_mixtureCoordinateExchangeMNL(SEXP X_origSEXP, SEXP beta_matSEXP, SEXP orderSEXP, SEXP max_itSEXP, SEXP verboseSEXP, SEXP opt_critSEXP, SEXP WSEXP, SEXP opt_methodSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP, SEXP n_cox_pointsSEXP, SEXP transform_betaSEXP, SEXP n_pvSEXP, SEXP no_choiceSEXP, SEXP n_fixed_alternativesSEXP, SEXP n_fixed_choice_setsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -308,7 +308,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type transform_beta(transform_betaSEXP);
     Rcpp::traits::input_parameter< int >::type n_pv(n_pvSEXP);
     Rcpp::traits::input_parameter< bool >::type no_choice(no_choiceSEXP);
-    rcpp_result_gen = Rcpp::wrap(mixtureCoordinateExchangeMNL(X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta, n_pv, no_choice));
+    Rcpp::traits::input_parameter< int >::type n_fixed_alternatives(n_fixed_alternativesSEXP);
+    Rcpp::traits::input_parameter< int >::type n_fixed_choice_sets(n_fixed_choice_setsSEXP);
+    rcpp_result_gen = Rcpp::wrap(mixtureCoordinateExchangeMNL(X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta, n_pv, no_choice, n_fixed_alternatives, n_fixed_choice_sets));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -393,7 +395,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_opdesmixr_changeIngredientDesignMNL", (DL_FUNC) &_opdesmixr_changeIngredientDesignMNL, 6},
     {"_opdesmixr_efficiencyCoxScheffeMNL", (DL_FUNC) &_opdesmixr_efficiencyCoxScheffeMNL, 12},
     {"_opdesmixr_findBestCoxDirMNLBrent", (DL_FUNC) &_opdesmixr_findBestCoxDirMNLBrent, 15},
-    {"_opdesmixr_mixtureCoordinateExchangeMNL", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL, 15},
+    {"_opdesmixr_mixtureCoordinateExchangeMNL", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL, 17},
     {"_opdesmixr_changeIngredientDesignMNL2", (DL_FUNC) &_opdesmixr_changeIngredientDesignMNL2, 6},
     {"_opdesmixr_efficiencyCoxScheffeMNL2", (DL_FUNC) &_opdesmixr_efficiencyCoxScheffeMNL2, 12},
     {"_opdesmixr_mixtureCoordinateExchangeMNL2", (DL_FUNC) &_opdesmixr_mixtureCoordinateExchangeMNL2, 16},

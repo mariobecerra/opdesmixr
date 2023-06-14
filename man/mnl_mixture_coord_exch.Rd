@@ -24,7 +24,10 @@ mnl_mixture_coord_exch(
   n_cores = 1,
   save_all_designs = F,
   n_pv = 0,
-  no_choice = F
+  no_choice = F,
+  fixed_choice_sets = NULL,
+  fixed_alternatives = NULL,
+  randomize_final_designs = F
 )
 }
 \arguments{
@@ -68,11 +71,17 @@ It can be "B" (Brent's algorithm) or "D" (discretization of Cox direction)}
 \item{n_pv}{Number of process variables}
 
 \item{no_choice}{Add no_choice (i.e., opt-out) alternative?}
+
+\item{fixed_choice_sets}{If it is desired, a number of fixed choice sets can be added to the design. These should come in a 3-dimensional array of size \code{(q+n_pv, J, n_fixed_choice_sets)}. The final design (unless randomized) will have these fixed choice sets as the first \code{n_fixed_choice_sets} choice sets. Note that the parameter \code{S} in the function already includes these fixed choice sets. If n_fixed_choice_sets is bigger than S, then an exception will be returned. Also, there is no sanity check for these choice sets, so they should be checked first by the user to make sure that the mixtures sum up to 1 and that the process variables are within the acceptable ranges.}
+
+\item{fixed_alternatives}{If it is desired, a number of fixed alternatives can be added. At the moment it is only possible to add one fixed alternative per choice set. These fixed alternatives should come in a matrix with \code{q+n_pv} columns and \code{n_fixed_alternatives} rows. If there are no fixed choice sets in the design, the final design (unless randomized) will have the choice sets with the fixed alternatives as the first \code{n_fixed_alternatives} choice sets. If there are fixed choice sets in the design, the final design (unless randomized) will have the choice sets with the fixed alternatives as the first \code{n_fixed_alternatives} choice sets, then the \code{n_fixed_alternatives} choice sets. There is no sanity check here either, so the alternatives should be checked first by the user to make sure that the mixtures sum up to 1 and that the process variables are within the acceptable ranges.}
+
+\item{randomize_final_designs}{Should the final designs should be randomized? This orders the choice sets randomly as well as the alternatives.}
 }
 \value{
 The function returns a list with 11 elements: \enumerate{
-\item \code{X_orig}: The original design. A 3-dimensional array of size \code{(q, J, S)}.
-\item \code{X}: The optimized design. A 3-dimensional array of size \code{(q, J, S)}.
+\item \code{X_orig}: The original design. A 3-dimensional array of size \code{(q + n_pv, J, S)}.
+\item \code{X}: The optimized design. A 3-dimensional array of size \code{(q + n_pv, J, S)}.
 \item \code{beta}: The original \code{beta} vector or matrix.
 \item \code{opt_crit_value_orig}: efficiency of the original design.
 \item \code{opt_crit_value}: efficiency of the optimized design.
@@ -92,10 +101,7 @@ Performs the coordinate exchange algorithm for a Multinomial Logit Scheffé mode
 Verbosity levels: each level prints the previous plus additional things:
 \enumerate{
 \item Print the efficiency value in each iteration and a final summary
-\item Print the values of k, s, i, and efficiency value in each subiteration
-\item Print the resulting X after each iteration, i.e., after each complete pass on the data
-\item Print efficiency value for each point in the Cox direction discretization
-\item Print the resulting X and information matrix after each subiteration
-\item Print the resulting X or each point in the Cox direction discretization
+\item Print the values of j, s, i, and efficiency value in each subiteration
+\item TO-DO: Write the rest
 }
 }

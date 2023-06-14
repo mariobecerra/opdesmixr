@@ -1001,7 +1001,8 @@ void findBestCoxDirMNLBrent( // void but modifies X
 // [[Rcpp::export]]
 Rcpp::List mixtureCoordinateExchangeMNL(
     arma::cube X_orig, arma::mat beta_mat, int order, int max_it, int verbose, int opt_crit, arma::mat W,
-    int opt_method, double lower, double upper, double tol, int n_cox_points, bool transform_beta = true, int n_pv = 0, bool no_choice = false){
+    int opt_method, double lower, double upper, double tol, int n_cox_points, bool transform_beta = true,
+    int n_pv = 0, bool no_choice = false, int n_fixed_alternatives = 0, int n_fixed_choice_sets = 0){
   // See mnl_mixture_coord_exch() in R for details.
   // lower: lower bound in Brent's optimization method
   // upper: upper bound in Brent's optimization method
@@ -1056,32 +1057,38 @@ Rcpp::List mixtureCoordinateExchangeMNL(
 
     opt_crit_value_aux = opt_crit_value_best;
 
-    for(int k = 1; k <= J; k++){
-      // if(verbose >= 2) Rcout << "k = " << k << std::endl;
+    for(int j = 1; j <= J; j++){
+      if(verbose >= 4) Rcout << std::endl << "\tj = " << j;
 
       for(int s = 1; s <= S; s++){
-        // if(verbose >= 2) Rcout << "\ts = " << s << std::endl;
+        if(verbose >= 4) Rcout << std::endl << "\ts = " << s;
+
+        if(s <= n_fixed_choice_sets) continue;
+
+
+        if(j == 1 & s <= n_fixed_alternatives + n_fixed_choice_sets) continue;
+
 
         for(int i = 0; i < q; i++){
-          // if(verbose >= 2) Rcout << "\t\ti = " << i << std::endl;
-          if(verbose >= 2) Rcout << "\nIter: " << it <<  ", k = " << k << ", s = " << s << ", i = " << i << std::endl;
+          if(verbose >= 4) Rcout << std::endl << "\ti = " << i << std::endl;
+          if(verbose >= 3) Rcout << "\n\tIter: " << it <<  ", j = " << j << ", s = " << s << ", i = " << i << std::endl;
 
           // populate x vector with corresponding ingredient proportions
           for(int l = 0; l < q; l++){
-            x(l) = X(l, k-1, s-1);
+            x(l) = X(l, j-1, s-1);
           }
 
           if(opt_method == 0){
-            findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv, no_choice);
+            findBestCoxDirMNLBrent(X, beta_mat, i, j-1, s-1, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv, no_choice);
           } else{
             if(no_choice) stop("Cannot use discretization when no_choice = T");
             cox_dir = computeCoxDirection(x, i+1, n_cox_points, verbose);
-            findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, k, s, opt_crit_value_best, verbose, opt_crit, W, order, transform_beta);
+            findBestCoxDirMNLDiscrete(cox_dir, X, beta_mat, j, s, opt_crit_value_best, verbose, opt_crit, W, order, transform_beta);
           }
 
           opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
-          if(verbose >= 2) Rcout << "Opt-crit-value: " << opt_crit_value_best << std::endl;
+          if(verbose >= 2) Rcout << "\tOpt-crit value: " << opt_crit_value_best << std::endl;
 
           if(verbose >= 5){
             Rcout << "X =\n" << X << std::endl;
@@ -1095,11 +1102,11 @@ Rcpp::List mixtureCoordinateExchangeMNL(
         if(n_pv > 0){
           for(int pv = q; pv < n_pv + q; pv++){
 
-            if(verbose >= 2) Rcout << "\nIter: " << it <<  ", k = " << k << ", s = " << s << ", pv = " << pv << std::endl;
+            if(verbose >= 2) Rcout << "\n\tIter: " << it <<  ", j = " << j << ", s = " << s << ", pv = " << pv << std::endl;
 
-            // findBestCoxDirMNLBrent(X, beta_mat, i, k-1, s-1, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv);
+            // findBestCoxDirMNLBrent(X, beta_mat, i, j-1, s-1, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv);
             // (X, run-1, pv, order, opt_crit, W, lower, upper, tol, n_pv);
-            findBestPVMNLBrent(X, beta_mat, pv, k-1, s-1, opt_crit, order, W, -1, 1, tol, verbose, transform_beta, n_pv, no_choice);
+            findBestPVMNLBrent(X, beta_mat, pv, j-1, s-1, opt_crit, order, W, -1, 1, tol, verbose, transform_beta, n_pv, no_choice);
 
             opt_crit_value_best = getOptCritValueMNL(X, beta_mat, verbose, opt_crit, W, order, transform_beta, n_pv, no_choice);
 
@@ -1116,9 +1123,9 @@ Rcpp::List mixtureCoordinateExchangeMNL(
 
       } // end for s
 
-    } // end for k
+    } // end for j
 
-    if(verbose >= 3) Rcout << "X =\n" << X << std::endl;
+    if(verbose >= 6) Rcout << "X =\n" << X << std::endl;
 
     if(verbose >= 2) Rcout << std::endl << std::endl;
 

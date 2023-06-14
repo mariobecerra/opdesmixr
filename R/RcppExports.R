@@ -65,8 +65,8 @@ findBestCoxDirMNLBrent <- function(X, beta_mat, i, j, s, opt_crit, order, W, low
     invisible(.Call(`_opdesmixr_findBestCoxDirMNLBrent`, X, beta_mat, i, j, s, opt_crit, order, W, lower, upper, tol, verbose, transform_beta, n_pv, no_choice))
 }
 
-mixtureCoordinateExchangeMNL <- function(X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta = TRUE, n_pv = 0L, no_choice = FALSE) {
-    .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta, n_pv, no_choice)
+mixtureCoordinateExchangeMNL <- function(X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta = TRUE, n_pv = 0L, no_choice = FALSE, n_fixed_alternatives = 0L, n_fixed_choice_sets = 0L) {
+    .Call(`_opdesmixr_mixtureCoordinateExchangeMNL`, X_orig, beta_mat, order, max_it, verbose, opt_crit, W, opt_method, lower, upper, tol, n_cox_points, transform_beta, n_pv, no_choice, n_fixed_alternatives, n_fixed_choice_sets)
 }
 
 changeIngredientDesignMNL2 <- function(theta, X, i, j_vec, s_vec, n_pv) {

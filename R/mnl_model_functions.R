@@ -262,10 +262,13 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #' @param save_all_designs Whether the function should return a list with all the designs created at random or only the best.
 #' @param n_pv Number of process variables
 #' @param no_choice Add no_choice (i.e., opt-out) alternative?
+#' @param fixed_choice_sets If it is desired, a number of fixed choice sets can be added to the design. These should come in a 3-dimensional array of size \code{(q+n_pv, J, n_fixed_choice_sets)}. The final design (unless randomized) will have these fixed choice sets as the first \code{n_fixed_choice_sets} choice sets. Note that the parameter \code{S} in the function already includes these fixed choice sets. If n_fixed_choice_sets is bigger than S, then an exception will be returned. Also, there is no sanity check for these choice sets, so they should be checked first by the user to make sure that the mixtures sum up to 1 and that the process variables are within the acceptable ranges.
+#' @param fixed_alternatives If it is desired, a number of fixed alternatives can be added. At the moment it is only possible to add one fixed alternative per choice set. These fixed alternatives should come in a matrix with \code{q+n_pv} columns and \code{n_fixed_alternatives} rows. If there are no fixed choice sets in the design, the final design (unless randomized) will have the choice sets with the fixed alternatives as the first \code{n_fixed_alternatives} choice sets. If there are fixed choice sets in the design, the final design (unless randomized) will have the choice sets with the fixed alternatives as the first \code{n_fixed_alternatives} choice sets, then the \code{n_fixed_alternatives} choice sets. There is no sanity check here either, so the alternatives should be checked first by the user to make sure that the mixtures sum up to 1 and that the process variables are within the acceptable ranges.
+#' @param randomize_final_designs Should the final designs should be randomized? This orders the choice sets randomly as well as the alternatives.
 #'
 #' @return The function returns a list with 11 elements: \enumerate{
-#'     \item \code{X_orig}: The original design. A 3-dimensional array of size \code{(q, J, S)}.
-#'     \item \code{X}: The optimized design. A 3-dimensional array of size \code{(q, J, S)}.
+#'     \item \code{X_orig}: The original design. A 3-dimensional array of size \code{(q + n_pv, J, S)}.
+#'     \item \code{X}: The optimized design. A 3-dimensional array of size \code{(q + n_pv, J, S)}.
 #'     \item \code{beta}: The original \code{beta} vector or matrix.
 #'     \item \code{opt_crit_value_orig}: efficiency of the original design.
 #'     \item \code{opt_crit_value}: efficiency of the optimized design.
@@ -282,14 +285,10 @@ mnl_create_random_beta = function(q, n_pv = 0, order = 3, seed = NULL){
 #' Verbosity levels: each level prints the previous plus additional things:
 #' \enumerate{
 #'     \item Print the efficiency value in each iteration and a final summary
-#'     \item Print the values of k, s, i, and efficiency value in each subiteration
-#'     \item Print the resulting X after each iteration, i.e., after each complete pass on the data
-#'     \item Print efficiency value for each point in the Cox direction discretization
-#'     \item Print the resulting X and information matrix after each subiteration
-#'     \item Print the resulting X or each point in the Cox direction discretization
+#'     \item Print the values of j, s, i, and efficiency value in each subiteration
+#'     \item TO-DO: Write the rest
 #'  }
 #'
-
 #' @export
 mnl_mixture_coord_exch = function(
   q = NULL,
@@ -311,7 +310,10 @@ mnl_mixture_coord_exch = function(
   n_cores = 1,
   save_all_designs = F,
   n_pv = 0,
-  no_choice = F
+  no_choice = F,
+  fixed_choice_sets = NULL,
+  fixed_alternatives = NULL,
+  randomize_final_designs = F
 ){
   # Assumes process variables are bwteen -1 and 1
 
@@ -448,21 +450,76 @@ mnl_mixture_coord_exch = function(
   ## Check operating system for parallel processing
   #############################################
 
-  if(.Platform$OS.type == "windows" & n_cores > 1) {
-    verbose = 0
-    future::plan(future::multisession, workers = n_cores)
-    apply_parallel = function(...) return(furrr::future_map(...))
-  }
-  else{
-    apply_parallel = function(...) return(parallel::mclapply(..., mc.cores = n_cores))
-  }
+  if(.Platform$OS.type != "unix") n_cores = 1
 
   #############################################
   ## Apply the coordinate exchange algorithm to all the created designs
   #############################################
 
-  results = apply_parallel(seq_along(designs), function(i){
+  results = parallel::mclapply(seq_along(designs), function(i){
+
+
     X = designs[[i]]
+
+
+
+
+
+    if(!is.null(fixed_choice_sets)){
+
+      # Example of fixed choice sets for q = 3, J = 2
+      # fixed_choice_sets = array(c(c(0.5, 0.5, 0), c(0, 0, 1), c(0.25, 0.25, 0.5), c(1, 0, 0)), dim = c(3, 2, 2))
+
+      if(!is.array(fixed_choice_sets)) stop("fixed_choice_sets should be an array")
+      if(length(dim(fixed_choice_sets))!= 3) stop("fixed_choice_sets should be a 3-d array")
+
+      if(dim(fixed_choice_sets)[1] != dim(X)[1] | dim(fixed_choice_sets)[2] != dim(X)[2]) {
+        stop("The first two dimensions of fixed_choice_sets should match the design")
+      }
+
+      n_fixed_choice_sets = dim(fixed_choice_sets)[3]
+
+      for(i in 1:n_fixed_choice_sets){
+        X[, , i] = fixed_choice_sets[, , i]
+      }
+
+    } else{
+      n_fixed_choice_sets = 0
+    }
+
+
+
+
+    if(!is.null(fixed_alternatives)){
+
+      # Example of fixed alternatives for q = 3:
+      # # 4 fixed alternatives
+      # fixed_alternatives = matrix(
+      #   c(c(1/3, 1/3, 1/3), c(1, 0, 0), c(0, 1, 0), c(0, 0, 1)),
+      #   byrow = T, ncol = 3
+      # )
+
+      if(!is.matrix(fixed_alternatives)) stop("fixed_alternatives should be a matrix")
+
+      if(ncol(fixed_alternatives) != dim(X)[1]) stop("Number of columns in fixed_alternatives should match the number of ingredients + process variables")
+
+      n_fixed_alternatives = nrow(fixed_alternatives)
+
+      # Append the fixed alternatives to the design
+      for(i in (n_fixed_choice_sets+1):(n_fixed_choice_sets+n_fixed_alternatives)){
+        X[, 1, i] = fixed_alternatives[i-n_fixed_choice_sets, ]
+      }
+
+    } else{
+      n_fixed_alternatives = 0
+    }
+
+    stopifnot(S >= n_fixed_alternatives + n_fixed_choice_sets)
+
+
+
+
+
 
     if(verbose > 0) cat("\nDesign", i, "\n")
 
@@ -484,7 +541,9 @@ mnl_mixture_coord_exch = function(
         n_cox_points = n_cox_points,
         transform_beta = transform_beta,
         n_pv = n_pv,
-        no_choice = no_choice
+        no_choice = no_choice,
+        n_fixed_alternatives = n_fixed_alternatives,
+        n_fixed_choice_sets = n_fixed_choice_sets
       ), silent = T)
 
     # If there was an error with this design, return whatever
@@ -504,7 +563,7 @@ mnl_mixture_coord_exch = function(
     }
 
     return(out)
-  })
+  }, mc.cores = n_cores)
 
   # Get optimality values for all designs
   optimality_values = unlist(lapply(results, function(x) x$opt_crit_value))
@@ -515,7 +574,11 @@ mnl_mixture_coord_exch = function(
     optimality_values_indices = order(optimality_values, decreasing = F)
 
     out_list = lapply(optimality_values_indices, function(i){
+
       X_result_i = results[[i]]
+
+      if(randomize_final_designs) X_result_i$X = mnl_randomize_design(X_result_i$X, seed = seeds_designs[i])
+
       out = list(
         X_orig = X_result_i$X_orig,
         X = X_result_i$X,
@@ -537,6 +600,8 @@ mnl_mixture_coord_exch = function(
 
     # Keep only the result with the best optimality criterion
     X_result = results[[best_index]]
+
+    if(randomize_final_designs) X_result$X = mnl_randomize_design(X_result$X, seed = seeds_designs[best_index])
 
     out_list = list(
       X_orig = X_result$X_orig,
@@ -1369,6 +1434,39 @@ transform_varcov_matrix = function(Sigma, q){
 
 }
 
+
+
+#' Randomize the order of the choice sets and alternatives
+#'
+#' This function transforms the order of the choice sets and the alternatives in a design array.
+#'
+#' @param design Array of dimensions \code{(q, J, S)}.
+#' @param seed Integer seed for reproducibility
+#'
+#' @return Array of dimensions \code{(q, J, S)}.
+#'
+#' @export
+mnl_randomize_design = function(design, seed = NULL){
+
+  stopifnot(length(dim(design)) == 3)
+
+  X = design
+
+  if(!is.null(seed)) set.seed(seed)
+
+  order_cs = sample(dim(X)[3])
+  X[, , 1:dim(X)[3]] = X[, , order_cs]
+
+  for(j in 1:dim(X)[2]){
+    for(s in 1:dim(X)[3]){
+      order_j = sample(1:J)
+      X[, , s] = X[, order_j, s]
+    }
+  }
+
+  return(X)
+
+}
 
 
 
