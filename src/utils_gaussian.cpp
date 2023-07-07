@@ -207,7 +207,7 @@ double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arm
     opt_success = solve(C, I, W, solve_opts::likely_sympd + solve_opts::no_approx);
     // If no solution is found solve(X,A,B) resets X and returns a bool set to false (exception is not thrown)
     if(opt_success){
-      eff_crit = log(trace(C));
+      eff_crit = trace(C);
     } else {
       eff_crit = 1000;
     }
