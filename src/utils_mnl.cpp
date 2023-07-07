@@ -635,7 +635,7 @@ double getOptCritValueMNL(arma::cube& X, arma::mat& beta_mat, int verbose, int o
 
 
 
-  bool opt_success; // flag for success of the decomposition
+  bool opt_success; // flag for success of the decomposition and solve
 
 
 
