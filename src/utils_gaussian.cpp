@@ -184,35 +184,42 @@ double getOptCritValueGaussian(arma::mat& X, int order, int q, int opt_crit, arm
 
   double eff_crit; // We want to minimize this
 
-  arma::mat L; // matrix for Cholesky decomposition
-  bool chol_success; // flag for success of the decomposition
+  bool opt_success; // flag for success of the decomposition and solve
 
-  // If the decomposition fails chol(R,X) resets R and returns a bool set to false (exception is not thrown) (http://arma.sourceforge.net/docs.html#chol)
-  chol_success = chol(L, I);
+  if(opt_crit == 0){
+    // D-optimality
+    arma::mat L; // matrix for Cholesky decomposition
 
-  if(chol_success){
-    // If Cholesky decomposition doesn't fail, compute the efficiency crriterion values.
-    if(opt_crit == 0){
-      // D-optimality
+    opt_success = chol(L, I);
+    
+    // If the decomposition fails chol(R,X) resets R and returns a bool set to false (exception is not thrown) (http://arma.sourceforge.net/docs.html#chol)
+    if(opt_success){
       double log_det_I = 2*sum(log(L.diag())); // Compute the log-determinant of information matrix using the decomposition
       eff_crit = -log_det_I/X_m.n_cols + log(X_m.n_rows);
-    } else{
-      // I-optimality
-      arma::mat A = solve(trimatl(L.t()), W);
-      arma::mat C = solve(trimatu(L), A);
-      eff_crit = trace(C);
-    }
-  } else {
-    // If Cholesky decomposition fails, it is likely because information matrix
-    // was not numerically positive definite.
-    // If this happens, it is probably because a numerical inestability.
-    // The function then returns the efficiency value as a big positive number, this
-    // way the algorithm does nothing in this iteration because the algorithm thinks
-    // there was no improvement when swapping the proportions.
 
-    // If Cholesky decomposition failed, returns a final value of 1000
+    } else{
+      eff_crit = 1000;
+    }
+  } else{
+   // I-optimality
+
+    arma::mat C; // Matrix for the solution of the linear system involving I and W.
+    opt_success = solve(C, I, W, solve_opts::likely_sympd + solve_opts::no_approx);
+    // If no solution is found solve(X,A,B) resets X and returns a bool set to false (exception is not thrown)
+    if(opt_success){
+      eff_crit = log(trace(C));
+    } else {
+      eff_crit = 1000;
+    }
+
+  }
+
+  if(!opt_success){
+    // If either the Cholesky decomposition or the solving of the linear system fail, it is probably because a numerical inestability.
+    // The function then returns the efficiency value as a big positive number (1000), this way the algorithm does nothing in this iteration
+    // because it thinks there was no improvement when swapping the proportions.
     eff_crit = 1000;
-    // Rcpp::warning("Error in Cholesky decomposition. Returning eff_crit = eff_crit = %i.", eff_crit);
+    warning("Numerical problem in Cholesky decomposition or while solving linear system.");
   }
 
   return eff_crit;
